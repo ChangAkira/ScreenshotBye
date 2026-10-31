@@ -5,6 +5,12 @@ Android 上持续后台监听系统截图，过一段时间（默认 5 分钟）
 
 适合「截图只是临时用一下，用完就忘在相册里」的人。
 
+## 下载
+
+最新 release：[v1.0.0](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.0) —
+直接安装 [ScreenshotBye-v1.0.0-debug.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.0/ScreenshotBye-v1.0.0-debug.apk)
+（debug 签名，minSdk 26 / Android 8.0 起）。
+
 ## 功能
 
 - 常驻前台服务持续监听相册变化，截图落盘即被发现
@@ -64,7 +70,7 @@ Android 上持续后台监听系统截图，过一段时间（默认 5 分钟）
 `release` 构建目前复用 debug 签名，方便直接安装自测；上架前请换成自己的 keystore。
 `specialUse` 前台服务类型上架时需要在 Play 控制台填写用途说明。
 
-Releases 页提供已签名的 debug APK，可直接安装。
+现成的 APK 见[上面的下载一节](#下载)。
 
 ## 代码结构
 
