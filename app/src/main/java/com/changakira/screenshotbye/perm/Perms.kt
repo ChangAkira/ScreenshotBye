@@ -1,0 +1,133 @@
+package com.changakira.screenshotbye.perm
+
+import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.os.PowerManager
+import android.provider.Settings as SysSettings
+import androidx.core.content.ContextCompat
+
+/** 权限状态查询 + 跳转引导。 */
+object Perms {
+
+    /** 33+ 用 READ_MEDIA_IMAGES，更低版本用 READ_EXTERNAL_STORAGE。 */
+    fun hasMediaRead(ctx: Context): Boolean {
+        val p = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+            Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_EXTERNAL_STORAGE
+        return granted(ctx, p)
+    }
+
+    fun hasNotification(ctx: Context): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            granted(ctx, Manifest.permission.POST_NOTIFICATIONS)
+
+    /** 「所有文件访问」：只有拿到它才能绕过系统删除确认弹窗、做到完全静默删除。 */
+    fun hasAllFilesAccess(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment.isExternalStorageManager()
+
+    /**
+     * 能否不经用户确认就删掉相册里由系统/别的应用创建的文件。
+     * - Android 11+：必须「所有文件访问」
+     * - Android 10：requestLegacyExternalStorage 生效，需要 WRITE 权限
+     * - Android 9 及以下：需要 WRITE 权限
+     */
+    fun canDeleteSilently(ctx: Context): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        hasAllFilesAccess()
+    } else {
+        // Android 10 及以下：WRITE_EXTERNAL_STORAGE 即可直接删除（10 上配合 requestLegacyExternalStorage）
+        granted(ctx, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    }
+
+    fun canIgnoreBattery(ctx: Context): Boolean {
+        val pm = ctx.getSystemService(PowerManager::class.java) ?: return true
+        return pm.isIgnoringBatteryOptimizations(ctx.packageName)
+    }
+
+    fun requestIgnoreBattery(ctx: Context) {
+        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Intent(SysSettings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        } else null
+        // ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS 会弹系统确认框，交由调用方决定是否用列表页替代
+        runCatching {
+            val direct = Intent("android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS")
+                .setData(Uri.fromParts("package", ctx.packageName, null))
+                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            ctx.startActivity(direct)
+        }.onFailure {
+            runCatching { intent?.let { i -> ctx.startActivity(i) } }
+        }
+    }
+
+    fun openAllFilesAccess(ctx: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+        val intent = Intent(SysSettings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+            .setData(Uri.fromParts("package", ctx.packageName, null))
+            .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { ctx.startActivity(intent) }.onFailure {
+            runCatching {
+                ctx.startActivity(
+                    Intent(SysSettings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            }
+        }
+    }
+
+    fun openAppNotificationSettings(ctx: Context) {
+        val intent = Intent(SysSettings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(SysSettings.EXTRA_APP_PACKAGE, ctx.packageName)
+            .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { ctx.startActivity(intent) }
+    }
+
+    fun openAppStorageSettings(ctx: Context) {
+        val intent = Intent(SysSettings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            .setData(Uri.fromParts("package", ctx.packageName, null))
+            .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { ctx.startActivity(intent) }
+    }
+
+    /**
+     * 国产 ROM 的自启动 / 后台运行白名单入口。各家 Settings 页 action 不公开也不稳定，
+     * 只能逐个尝试、失败即跳过；找不到时回退到应用信息页，让用户手动操作。
+     */
+    fun openOemAutoStart(ctx: Context): Boolean {
+        val pkgs = listOf(
+            "com.miui.securitycenter" to "com.miui.permcenter.autostart.AutoStartManagementActivity",
+            "com.letv.android.letvsafe" to "com.letv.android.letvsafe.AutobootManageActivity",
+            "com.huawei.systemmanager" to "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity",
+            "com.huawei.systemmanager" to "com.huawei.systemmanager.appcontrol.activity.StartupAppControlActivity",
+            "com.coloros.safecenter" to "com.coloros.safecenter.permission.startup.StartupAppListActivity",
+            "com.coloros.safecenter" to "com.coloros.safecenter.startupapp.StartupAppListActivity",
+            "com.oppo.safe" to "com.oppo.safe.permission.startup.StartupAppListActivity",
+            "com.iqoo.secure" to "com.iqoo.secure.ui.phoneoptimize.BgStartUpManager",
+            "com.iqoo.secure" to "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity",
+            "com.vivo.permissionmanager" to "com.vivo.permissionmanager.activity.BgStartUpManagerActivity",
+            "com.asus.mobilemanager" to "com.asus.mobilemanager.autostart.AutoStartActivity",
+            "com.samsung.android.lool" to "com.samsung.android.sm.ui.battery.BatteryActivity",
+            "com.meizu.safe" to "com.meizu.safe.security.SHOW_APPSEC",
+        )
+        val pm = ctx.packageManager
+        for ((pkg, cls) in pkgs) {
+            if (runCatching { pm.getPackageInfo(pkg, 0); true }.getOrDefault(false)) {
+                val intent = Intent().setClassName(pkg, cls)
+                    .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                if (runCatching { ctx.startActivity(intent); true }.getOrDefault(false)) return true
+            }
+        }
+        runCatching { ctx.startActivity(
+            Intent(SysSettings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                .setData(Uri.fromParts("package", ctx.packageName, null))
+                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        ) }
+        return false
+    }
+
+    private fun granted(ctx: Context, permission: String): Boolean =
+        ContextCompat.checkSelfPermission(ctx, permission) == PackageManager.PERMISSION_GRANTED
+}

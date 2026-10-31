@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ScreenshotBye</string>
+
+    <!-- 通知渠道 -->
+    <string name="ch_service">监控状态</string>
+    <string name="ch_service_desc">常驻通知，显示后台监控是否在运行</string>
+    <string name="ch_review">截图待确认</string>
+    <string name="ch_review_desc">截图若干分钟后询问是否还需要</string>
+
+    <!-- 通知文案 -->
+    <string name="notif_watch_on">正在监控截图</string>
+    <string name="notif_watch_on_pending">正在监控截图 · %1$d 张待确认</string>
+    <string name="notif_watch_off">监控已暂停</string>
+    <string name="notif_review_title">还需要这张截图吗？</string>
+    <string name="notif_review_short">截图 %1$s 已过确认时间</string>
+    <string name="notif_review_body">截图 %1$s（%2$s）已经过了设定的时间。\n不需要的话点「不需要，删除」，删除前会自动备份到回收站。</string>
+    <string name="act_delete">不需要，删除</string>
+    <string name="act_keep">还要留着</string>
+    <string name="act_snooze">10 分钟后再问</string>
+    <string name="notif_confirm_title">需要你确认删除</string>
+    <string name="notif_confirm_body">系统要求由你亲自确认删除 %1$s。点按本通知打开确认对话框。</string>
+    <string name="notif_deleted_title">截图已删除</string>
+    <string name="notif_deleted_trash">%1$s 已删除，回收站里留了一份备份</string>
+    <string name="notif_deleted_permanent">%1$s 已删除</string>
+    <string name="notif_recovery_title">截图监控已停止</string>
+    <string name="notif_recovery_body">系统限制了后台自启，点按本通知重新开启监控。</string>
+    <string name="notif_stop_watch">停止监控</string>
+
+    <!-- 主界面 -->
+    <string name="main_status">运行状态</string>
+    <string name="main_watch_switch">后台监控截图</string>
+    <string name="main_running">服务运行中 · 已发现 %1$d 张待确认</string>
+    <string name="main_stopped">未运行</string>
+    <string name="main_permissions">权限</string>
+    <string name="main_ask_settings">询问设置</string>
+    <string name="main_delay">多久后询问是否还需要</string>
+    <string name="main_delay_value">%1$d 分钟</string>
+    <string name="main_trash_switch">删除前先备份到回收站</string>
+    <string name="main_trash_days">回收站保留天数</string>
+    <string name="main_rules">识别规则</string>
+    <string name="main_rule_folder">按截图目录识别（DCIM/Screenshots 等）</string>
+    <string name="main_rule_name">按文件名识别（Screenshot_2026… 等）</string>
+    <string name="main_rule_video">同时处理录屏视频</string>
+    <string name="main_keywords">额外关键词（逗号分隔）</string>
+    <string name="main_keywords_hint">例如 scrollshot,屏幕快照</string>
+    <string name="main_pending">待确认截图（%1$d）</string>
+    <string name="main_pending_empty">暂时没有待确认的截图。</string>
+    <string name="main_trash">回收站</string>
+    <string name="main_trash_summary">%1$d 项备份 · 占用 %2$s</string>
+    <string name="main_open_trash">打开回收站</string>
+    <string name="main_log">事件日志</string>
+    <string name="main_clear_log">清空日志</string>
+    <string name="main_save">保存</string>
+    <string name="main_saved">已保存</string>
+
+    <!-- 权限引导 -->
+    <string name="perm_read_media">读取相册（必需）</string>
+    <string name="perm_notification">通知权限（必需，否则收不到询问）</string>
+    <string name="perm_all_files">所有文件访问（推荐，可免系统弹窗直接删除）</string>
+    <string name="perm_battery">忽略电池优化（推荐，防后台被杀）</string>
+    <string name="perm_autostart">自启动 / 后台运行白名单（国产 ROM 建议设置）</string>
+    <string name="perm_granted">已授予</string>
+    <string name="perm_denied">未授予</string>
+    <string name="perm_go_grant">去开启</string>
+    <string name="perm_grant_now">授权</string>
+    <string name="perm_legacy_write">存储写入权限（Android 10 及以下删除所需）</string>
+    <string name="perm_media_location">媒体位置权限（系统删除确认所需）</string>
+
+    <!-- 回收站 -->
+    <string name="trash_title">回收站</string>
+    <string name="trash_empty">回收站是空的。</string>
+    <string name="trash_restore">还原到相册</string>
+    <string name="trash_purge">彻底删除</string>
+    <string name="trash_restored">已还原：%1$s</string>
+    <string name="trash_restore_failed">还原失败，请检查存储权限</string>
+    <string name="trash_purged">已彻底删除</string>
+    <string name="trash_purge_confirm">彻底删除后无法找回，确定吗？</string>
+    <string name="trash_meta">删除于 %1$s · 原目录 %2$s</string>
+
+    <string name="dlg_purge_all">清空回收站</string>
+    <string name="dlg_purge_all_desc">将彻底删除全部 %1$d 项备份，无法找回。</string>
+    <string name="cancel">取消</string>
+    <string name="confirm">确定</string>
+
+    <string name="toast_deleted">已删除</string>
+    <string name="toast_deleted_trash">已删除，备份在回收站</string>
+    <string name="toast_kept">已保留</string>
+    <string name="toast_snoozed">10 分钟后再问</string>
+    <string name="toast_needs_confirm">请点通知里的确认，或再按一次删除</string>
+    <string name="toast_no_delete_support">系统未提供删除确认入口，请手动删除或授予「所有文件访问」权限</string>
+    <string name="toast_failed">%1$s</string>
+    <string name="toast_need_read_media">先授予相册读取权限，否则无法检测截图</string>
+    <string name="dialog_preview">查看截图</string>
+    <string name="dialog_preview_hint">%1$s\n%2$s · %3$s</string>
+    <string name="shot_meta">%1$s · %2$s · %3$s</string>
+    <string name="state_waiting">%1$d 分钟后询问</string>
+    <string name="state_asked">已询问，等待你的决定</string>
+    <string name="state_deleting">等待系统确认删除</string>
+    <string name="size_unknown">未知大小</string>
+</resources>
