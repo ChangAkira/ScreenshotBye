@@ -25,10 +25,15 @@ object Thumbs {
     /** ImageView 拿不到 Context，由 Application 启动时注入一次。 */
     fun init(ctx: Context) { appContext = ctx.applicationContext }
 
-    /** source 返回 null 表示文件已不存在，此时把视图清成占位图。 */
-    fun into(view: ImageView, key: String, maxPx: Int = 128, source: () -> Uri?) {
+    /**
+     * source 返回 null 表示文件已不存在，此时把视图清成占位图。
+     *
+     * 缓存键带上 maxPx，避免列表的 128px 小图和详情页的大图互相串用；
+     * 大图传 cache=false 不进 LRU，否则几张 1000px 的位图就能把内存吃满。
+     */
+    fun into(view: ImageView, key: String, maxPx: Int = 128, cache: Boolean = true, source: () -> Uri?) {
         view.tag = key
-        lru[key]?.let { bitmap ->
+        if (cache) lru[key]?.let { bitmap ->
             view.setImageDrawable(null)
             view.setImageBitmap(bitmap)
             return
@@ -37,7 +42,7 @@ object Thumbs {
             val ctx = appContext ?: return@execute
             val uri = source()
             val bitmap = if (uri == null) null else runCatching { decode(ctx, uri, maxPx) }.getOrNull()
-            if (bitmap != null) lru[key] = bitmap
+            if (bitmap != null && cache) lru[key] = bitmap
             view.post {
                 if (view.tag != key) return@post
                 view.setImageDrawable(null)
@@ -51,11 +56,9 @@ object Thumbs {
         into(view, "file:" + file.absolutePath) { if (file.exists()) Uri.fromFile(file) else null }
     }
 
-    fun media(view: ImageView, uri: Uri, maxPx: Int = 128) {
-        into(view, "media:$uri", maxPx) { uri }
+    fun media(view: ImageView, uri: Uri, maxPx: Int = 128, cache: Boolean = true) {
+        into(view, "media:$uri:$maxPx", maxPx, cache) { uri }
     }
-
-    fun evict(key: String) { lru.remove(key) }
 
     private fun decode(ctx: Context, uri: Uri, maxPx: Int): Bitmap? {
         val resolver = ctx.contentResolver

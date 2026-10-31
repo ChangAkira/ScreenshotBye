@@ -30,8 +30,20 @@ class Settings private constructor(private val sp: SharedPreferences) {
         private const val K_SEEN = "seen_ids"
         private const val K_LOG = "event_log"
         private const val K_RESTORED = "restored_names"
+        private const val K_ONBOARDED = "onboarded"
+        private const val K_PERMS_ASKED = "perms_asked"
         private const val RESTORED_TTL_MS = 3 * 60 * 1000L
     }
+
+    /** 首次启动是否已走完引导页。 */
+    var onboarded: Boolean
+        get() = sp.getBoolean(K_ONBOARDED, false)
+        set(v) = sp.edit().putBoolean(K_ONBOARDED, v).apply()
+
+    /** 运行期权限是否已经问过一次，避免每次打开都弹一遍。 */
+    var permsAsked: Boolean
+        get() = sp.getBoolean(K_PERMS_ASKED, false)
+        set(v) = sp.edit().putBoolean(K_PERMS_ASKED, v).apply()
 
     /** 总开关；关闭时前台服务只保留通知栏入口，不做任何扫描。 */
     var enabled: Boolean

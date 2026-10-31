@@ -13,13 +13,18 @@
     <string name="notif_watch_on_pending">正在监控截图 · %1$d 张待确认</string>
     <string name="notif_watch_off">监控已暂停</string>
     <string name="notif_review_title">还需要这张截图吗？</string>
+    <string name="notif_review_title_multi">%1$d 张截图待确认</string>
     <string name="notif_review_short">截图 %1$s 已过确认时间</string>
-    <string name="notif_review_body">截图 %1$s（%2$s）已经过了设定的时间。\n不需要的话点「不需要，删除」，删除前会自动备份到回收站。</string>
+    <string name="notif_review_multi_short">%1$s 等 %2$d 张已过确认时间</string>
+    <string name="notif_review_more">…还有 %1$d 张</string>
+    <string name="notif_review_hint">点按通知逐个确认，或用下面的按钮先处理最早那张。</string>
     <string name="act_delete">不需要，删除</string>
     <string name="act_keep">还要留着</string>
     <string name="act_snooze">10 分钟后再问</string>
+    <string name="act_snooze_all">全部稍后再问</string>
     <string name="notif_confirm_title">需要你确认删除</string>
     <string name="notif_confirm_body">系统要求由你亲自确认删除 %1$s。点按本通知打开确认对话框。</string>
+    <string name="notif_confirm_body_multi">%1$d 张截图需要你在系统弹窗里确认删除，点按本通知打开。</string>
     <string name="notif_deleted_title">截图已删除</string>
     <string name="notif_deleted_trash">%1$s 已删除，回收站里留了一份备份</string>
     <string name="notif_deleted_permanent">%1$s 已删除</string>
@@ -98,4 +103,48 @@
     <string name="state_asked">已询问，等待你的决定</string>
     <string name="state_deleting">等待系统确认删除</string>
     <string name="size_unknown">未知大小</string>
+
+    <!-- 逐个确认页 -->
+    <string name="main_open_review">逐个确认待处理截图</string>
+    <string name="review_title">逐个确认</string>
+    <string name="review_confirm_title">确认要删除的截图</string>
+    <string name="review_empty">没有待确认的截图，可以放心了。</string>
+    <string name="review_progress">第 %1$d / %2$d 张 · 已标记删除 %3$d 张</string>
+    <string name="review_countdown">%1$d 分钟后才到询问时间</string>
+    <string name="review_back">返回逐个看</string>
+    <string name="review_confirm_delete">删除所选</string>
+    <string name="review_confirm_delete_n">删除 %1$d 张</string>
+    <string name="review_none_selected">没有勾选任何截图</string>
+    <string name="review_done_deleted">已删除 %1$d 张</string>
+    <string name="review_done_partial">%1$d 张已删除，%2$d 项失败</string>
+    <string name="review_nothing">没有截图被删除</string>
+    <string name="toast_deleted_n">已删除 %1$d 张</string>
+    <string name="toast_confirm_partial">%1$d 张已删除，%2$d 张你取消了</string>
+    <string name="toast_confirm_cancelled">你在系统弹窗里取消了删除</string>
+
+    <!-- 首次引导 -->
+    <string name="main_open_guide">使用引导</string>
+    <string name="onb_skip">跳过</string>
+    <string name="onb_page_label">%1$d / %2$d</string>
+    <string name="onb_next">下一步</string>
+    <string name="onb_prev">上一步</string>
+    <string name="onb_start">开始使用</string>
+    <string name="onb_enable_now">现在就开启后台监控</string>
+    <string name="onb_enable_hint">开启后通知栏会有一条常驻通知；国产 ROM 还需在系统里允许自启动，否则监控会被杀掉。</string>
+
+    <string-array name="onb_titles">
+        <item>ScreenshotBye 做什么</item>
+        <item>一次询问长什么样</item>
+        <item>为什么要这些权限</item>
+        <item>删除前一定会先备份</item>
+        <item>最后一步</item>
+    </string-array>
+
+    <string-array name="onb_bodies">
+        <item>你截的图大多只是临时用一下，用完就忘在相册里。这个应用持续在后台盯着相册，发现新截图后过一段时间（默认 5 分钟，可调 1–60 分钟）问你一句：还需要这张截图吗？</item>
+        <item>到点后通知栏只出现一条提醒，把这一批到期截图合并在一起问你。点开就是一张一张看：留着、10 分钟后再问、还是不需要。看完后进反选屏，一次删掉标记的那些。</item>
+        <item>读取相册：不授权连截图都看不到。通知：不授权问不出提醒。所有文件访问（Android 11+）：授权后才能静默删除；不授权的话每次删除系统都会再弹一个确认框，这是系统的规定，不是应用的额外要求。</item>
+        <item>点「不需要，删除」时，先把原图复制进应用内的回收站，再删相册里的原件；备份失败就不会删除。回收站默认保留 7 天，可以一键还原。注意：卸载应用会连回收站一起清空。</item>
+        <item>下面这个开关决定现在就开始监控，还是先在主界面把延迟时间和识别规则调好再开。</item>
+    </string-array>
 </resources>

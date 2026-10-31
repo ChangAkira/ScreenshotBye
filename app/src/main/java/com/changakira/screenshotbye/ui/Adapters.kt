@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.changakira.screenshotbye.R
 import com.changakira.screenshotbye.core.PendingShot
 import com.changakira.screenshotbye.core.ShotState
+import com.changakira.screenshotbye.databinding.ItemReviewConfirmBinding
 import com.changakira.screenshotbye.databinding.ItemShotBinding
 import com.changakira.screenshotbye.databinding.ItemTrashBinding
 import com.changakira.screenshotbye.media.TrashEntry
@@ -93,6 +94,61 @@ class TrashAdapter(
         Thumbs.file(holder.b.thumb, entry.backupFile)
         holder.b.btnRestore.setOnClickListener { onRestore(entry) }
         holder.b.btnPurge.setOnClickListener { onPurge(entry) }
+    }
+}
+
+/**
+ * 批量确认页的勾选列表。默认勾上逐个看时标记为「不需要」的那些，
+ * 用户可以在这一屏反选：取消勾选的截图继续留在待确认清单里。
+ */
+class ReviewConfirmAdapter(private val onChanged: () -> Unit = {}) :
+    RecyclerView.Adapter<ReviewConfirmAdapter.VH>() {
+
+    private var items: List<PendingShot> = emptyList()
+    private val checked = LinkedHashSet<Long>()
+
+    fun submit(newItems: List<PendingShot>, checkedIds: Collection<Long>) {
+        items = newItems
+        checked.clear()
+        checked.addAll(newItems.map { it.mediaId }.filter { it in checkedIds })
+        notifyDataSetChanged()
+    }
+
+    /** 只返回仍然在清单里的勾选项，顺序按列表来。 */
+    fun checkedIds(): List<Long> = items.filter { it.mediaId in checked }.map { it.mediaId }
+
+    fun checkedCount(): Int = checked.size
+
+    class VH(val b: ItemReviewConfirmBinding) : RecyclerView.ViewHolder(b.root)
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
+        VH(ItemReviewConfirmBinding.inflate(LayoutInflater.from(parent.context), parent, false))
+
+    override fun getItemCount() = items.size
+
+    override fun onBindViewHolder(holder: VH, position: Int) {
+        val shot = items[position]
+        val ctx = holder.itemView.context
+        holder.b.shotName.text = shot.name
+        holder.b.shotMeta.text = ctx.getString(
+            R.string.shot_meta,
+            shot.folder.ifBlank { "-" },
+            sizeOf(ctx, shot.size),
+            DateFormat.getTimeFormat(ctx).format(Date(shot.takenAt))
+        )
+        Thumbs.media(holder.b.thumb, shot.contentUri)
+        holder.b.check.isChecked = shot.mediaId in checked
+        val toggle: () -> Unit = {
+            val pos = holder.bindingAdapterPosition
+            if (pos != RecyclerView.NO_POSITION) {
+                val target = items[pos]
+                if (target.mediaId in checked) checked.remove(target.mediaId) else checked.add(target.mediaId)
+                notifyItemChanged(pos)
+                onChanged()
+            }
+        }
+        holder.b.check.setOnClickListener { toggle() }
+        holder.b.root.setOnClickListener { toggle() }
     }
 }
 

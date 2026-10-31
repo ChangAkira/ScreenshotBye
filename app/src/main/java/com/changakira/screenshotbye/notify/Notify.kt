@@ -15,8 +15,8 @@ import com.changakira.screenshotbye.core.PendingShot
 import com.changakira.screenshotbye.core.ShotState
 import com.changakira.screenshotbye.ui.DeleteConfirmActivity
 import com.changakira.screenshotbye.ui.MainActivity
+import com.changakira.screenshotbye.ui.ReviewActivity
 import com.changakira.screenshotbye.ui.TrashActivity
-import java.text.DateFormat
 import java.util.Date
 
 object Channels {
@@ -42,7 +42,7 @@ object Channels {
 object Actions {
     const val ACTION_DELETE = "com.changakira.screenshotbye.DELETE"
     const val ACTION_KEEP = "com.changakira.screenshotbye.KEEP"
-    const val ACTION_SNOOZE = "com.changakira.screenshotbye.SNOOZE"
+    const val ACTION_SNOOZE_ALL = "com.changakira.screenshotbye.SNOOZE_ALL"
     const val ACTION_STOP_WATCH = "com.changakira.screenshotbye.STOP_WATCH"
     const val EXTRA_MEDIA_ID = "media_id"
 
@@ -64,6 +64,9 @@ object Notify {
 
     const val ID_SERVICE = 1001
     const val ID_RECOVERY = 1002
+
+    /** 待确认清单只占这一条通知，截图多了也不会刷屏。 */
+    const val ID_REVIEW_QUEUE = 1003
 
     /** 看门狗无法从后台拉起服务时，请用户点一下恢复。 */
     fun recoveryNeeded(ctx: Context): Notification {
@@ -111,63 +114,87 @@ object Notify {
             .build()
     }
 
-    /** 五分钟到点后问用户：这张截图还需要吗？ */
-    fun review(ctx: Context, shot: PendingShot): Notification {
-        val openShot = PendingIntent.getActivity(
-            ctx, shot.mediaId.toInt(),
-            Intent(ctx, MainActivity::class.java)
-                .putExtra(MainActivity.EXTRA_MEDIA_ID, shot.mediaId)
-                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val preview = loadPreview(ctx, shot.contentUri)
-        val style = NotificationCompat.BigTextStyle().bigText(
-            ctx.getString(R.string.notif_review_body, shot.name, formatWhen(shot))
-        )
+    /**
+     * 五分钟到点后问用户：还需要这些截图吗？
+     *
+     * 整份待确认清单共用一条通知：连截十张也只问一次，点开就是逐个确认的卡片页。
+     * 通知上的快捷按钮作用于最早到期的那一张，方便不动手时也能一张张清掉。
+     */
+    fun review(ctx: Context, queue: List<PendingShot>): Notification {
+        val oldest = queue.first()
+        val preview = loadPreview(ctx, oldest.contentUri)
+        val title = if (queue.size == 1) ctx.getString(R.string.notif_review_title)
+        else ctx.getString(R.string.notif_review_title_multi, queue.size)
+        val body = buildString {
+            queue.take(4).forEach { append(it.name).append("  · ").append(formatTime(ctx, it)).append('\n') }
+            if (queue.size > 4) append(ctx.getString(R.string.notif_review_more, queue.size - 4))
+            append(ctx.getString(R.string.notif_review_hint))
+        }
         return NotificationCompat.Builder(ctx, Channels.REVIEW)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(ctx.getString(R.string.notif_review_title))
-            .setContentText(ctx.getString(R.string.notif_review_short, shot.name))
-            .setStyle(style)
-            .setSubText(shot.name)
-            .setContentIntent(openShot)
+            .setContentTitle(title)
+            .setContentText(
+                if (queue.size == 1) ctx.getString(R.string.notif_review_short, oldest.name)
+                else ctx.getString(R.string.notif_review_multi_short, oldest.name, queue.size)
+            )
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setSubText(oldest.name)
+            .setOnlyAlertOnce(true)
+            .setContentIntent(reviewIntent(ctx, oldest.mediaId))
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .addAction(
                 R.drawable.ic_delete,
                 ctx.getString(R.string.act_delete),
-                Actions.shotIntent(ctx, Actions.ACTION_DELETE, shot.mediaId)
+                Actions.shotIntent(ctx, Actions.ACTION_DELETE, oldest.mediaId)
             )
             .addAction(
                 R.drawable.ic_keep,
                 ctx.getString(R.string.act_keep),
-                Actions.shotIntent(ctx, Actions.ACTION_KEEP, shot.mediaId)
+                Actions.shotIntent(ctx, Actions.ACTION_KEEP, oldest.mediaId)
             )
             .addAction(
                 R.drawable.ic_clock,
-                ctx.getString(R.string.act_snooze),
-                Actions.shotIntent(ctx, Actions.ACTION_SNOOZE, shot.mediaId)
+                if (queue.size == 1) ctx.getString(R.string.act_snooze) else ctx.getString(R.string.act_snooze_all),
+                Actions.shotIntent(ctx, Actions.ACTION_SNOOZE_ALL, 0L)
             )
             .apply { if (preview != null) setLargeIcon(preview) }
             .build()
     }
 
-    /** Android 11+ 没给「所有文件访问」时，删除需要系统弹窗确认，由这条通知承接点按。 */
-    fun needsSystemConfirm(ctx: Context, shot: PendingShot): Notification {
+    private fun formatTime(ctx: Context, shot: PendingShot): String =
+        android.text.format.DateFormat.getTimeFormat(ctx).format(Date(shot.takenAt))
+
+    fun reviewIntent(ctx: Context, focusMediaId: Long): PendingIntent {
+        val i = Intent(ctx, ReviewActivity::class.java)
+            .putExtra(ReviewActivity.EXTRA_FOCUS_ID, focusMediaId)
+            .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        return PendingIntent.getActivity(
+            ctx, 0x3100, i, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    /**
+     * Android 11+ 没给「所有文件访问」时，删除必须由用户在系统弹窗里确认。
+     * 一批待确认的截图共用一次系统弹窗，所以这条通知带的是 id 列表。
+     */
+    fun needsSystemConfirm(ctx: Context, shots: List<PendingShot>): Notification {
+        val first = shots.first()
+        val body = if (shots.size == 1) ctx.getString(R.string.notif_confirm_body, first.name)
+        else ctx.getString(R.string.notif_confirm_body_multi, shots.size)
         val tap = PendingIntent.getActivity(
-            ctx, (shot.mediaId.toInt() + 7),
+            ctx, 0x3200,
             Intent(ctx, DeleteConfirmActivity::class.java)
-                .putExtra(Actions.EXTRA_MEDIA_ID, shot.mediaId)
+                .putExtra(DeleteConfirmActivity.EXTRA_MEDIA_IDS, shots.map { it.mediaId }.toLongArray())
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         return NotificationCompat.Builder(ctx, Channels.REVIEW)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(ctx.getString(R.string.notif_confirm_title))
-            .setContentText(ctx.getString(R.string.notif_confirm_body, shot.name))
-            .setStyle(NotificationCompat.BigTextStyle()
-                .bigText(ctx.getString(R.string.notif_confirm_body, shot.name)))
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(tap)
@@ -209,10 +236,10 @@ object Notify {
         ctx.getSystemService(NotificationManager::class.java)?.cancel(id)
     }
 
-    fun reviewNotifId(mediaId: Long): Int = (mediaId and 0x7FFF_FFFFL).toInt() xor 0x5000_0000
+    /** 「点按完成系统确认」单独占一条；没有待确认删除的截图时由 refreshReviewNotification 撤掉。 */
+    const val ID_CONFIRM = 1004
 
-    private fun formatWhen(shot: PendingShot): String =
-        DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(shot.takenAt))
+    fun reviewNotifId(mediaId: Long): Int = (mediaId and 0x7FFF_FFFFL).toInt() xor 0x5000_0000
 
     /** 缩略图：两遍解码，控制在 512px 以内，避免大图 OOM。 */
     private fun loadPreview(ctx: Context, uri: Uri): Bitmap? = runCatching {

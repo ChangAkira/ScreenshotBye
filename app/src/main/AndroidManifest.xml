@@ -62,6 +62,18 @@
             android:exported="false"
             android:label="@string/trash_title" />
 
+        <!-- 逐个确认 + 批量反选：通知点开设在这里 -->
+        <activity
+            android:name=".ui.ReviewActivity"
+            android:exported="false"
+            android:label="@string/review_title"
+            android:launchMode="singleTop" />
+
+        <activity
+            android:name=".ui.OnboardingActivity"
+            android:exported="false"
+            android:label="@string/app_name" />
+
         <service
             android:name=".service.WatchService"
             android:exported="false"

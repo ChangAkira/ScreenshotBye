@@ -4,13 +4,12 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.changakira.screenshotbye.core.PendingShotStore
+import com.changakira.screenshotbye.core.ScreenshotRepository
 import com.changakira.screenshotbye.core.Settings
 import com.changakira.screenshotbye.core.ShotState
 import com.changakira.screenshotbye.media.DeleteGateway
-import com.changakira.screenshotbye.notify.Notify
-import com.changakira.screenshotbye.service.WatchService
 
-/** 到点弹出「还需要这张截图吗」的通知。 */
+/** 到点把这张截图推进待确认清单，并刷新那条合并询问通知。 */
 class ReminderWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
 
     override suspend fun doWork(): Result {
@@ -19,19 +18,20 @@ class ReminderWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(c
 
         val app = applicationContext
         val store = PendingShotStore.of(app)
+        val repo = ScreenshotRepository(app)
         val shot = store.find(mediaId) ?: return Result.success()
 
         // 用户已经自己在相册里删掉了，不必再问
         if (!DeleteGateway(app).exists(shot.contentUri)) {
             store.remove(mediaId)
-            WatchService.refreshNotification(app)
+            repo.refreshReviewNotification(app)
             return Result.success()
         }
 
-        Notify.notify(app, Notify.reviewNotifId(mediaId), Notify.review(app, shot))
         store.upsert(shot.copy(state = ShotState.ASKED))
+        // 无论这张是第一个还是第五个到期的，都只更新同一条通知，不新增第二条
+        repo.refreshReviewNotification(app)
         Settings.of(app).appendLog("已询问：${shot.name}")
-        WatchService.refreshNotification(app)
         return Result.success()
     }
 

@@ -1,7 +1,17 @@
+import java.util.Properties
+
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
 }
+
+// 发布签名材料放在仓库根目录的 keystore.properties，密钥库放 keystore/ 下。
+// 两者都被 .gitignore 排除：构建机器上没有这两个文件时，release 依然能构建成功，只是不签名。
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) keystorePropertiesFile.inputStream().use { load(it) }
+}
+val hasReleaseKeystore = keystorePropertiesFile.exists()
 
 android {
     namespace = "com.changakira.screenshotbye"
@@ -11,18 +21,25 @@ android {
         applicationId = "com.changakira.screenshotbye"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
     }
 
-    // Release 复用 debug 签名，方便直接 sideload 安装；上架需换成自己的 keystore。
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
-        }
-        getByName("debug") {
-            applicationIdSuffix = ""
+            if (hasReleaseKeystore) signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -47,11 +64,9 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
-    implementation("androidx.work:work-runtime-ktx:2.10.0")
-    implementation("androidx.concurrent:concurrent-futures-ktx:1.1.0")
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.google.material)
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.work.runtime.ktx)
 }

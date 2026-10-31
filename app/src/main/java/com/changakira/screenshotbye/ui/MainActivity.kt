@@ -61,11 +61,18 @@ class MainActivity : AppCompatActivity() {
         b.pendingList.isNestedScrollingEnabled = false
 
         wireControls()
-        requestCorePermissionsIfNeeded()
+        if (settings.onboarded) {
+            // 从旧版本升上来、还没问过权限的用户：进页面问一次，之后不再重复弹
+            requestCorePermissions()
+        } else {
+            startActivity(Intent(this, OnboardingActivity::class.java))
+        }
     }
 
     private fun wireControls() {
         b.watchSwitch.setOnClickListener { setWatching(b.watchSwitch.isChecked) }
+        b.openReviewBtn.setOnClickListener { startActivity(Intent(this, ReviewActivity::class.java)) }
+        b.guideBtn.setOnClickListener { startActivity(Intent(this, OnboardingActivity::class.java)) }
 
         b.delaySlider.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
@@ -101,7 +108,7 @@ class MainActivity : AppCompatActivity() {
         if (on) {
             if (!Perms.hasMediaRead(this)) {
                 toast(getString(R.string.toast_need_read_media))
-                requestCorePermissionsIfNeeded()
+                requestCorePermissions(force = true)
                 b.watchSwitch.isChecked = false
                 return
             }
@@ -118,8 +125,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** 缺少关键权限时一次性问齐，其余留给权限列表逐条引导。 */
-    private fun requestCorePermissionsIfNeeded() {
+    /** 缺少关键权限时一次性问齐；引导页问过一次后不再重复弹，用户点授权按钮时照样能问。 */
+    private fun requestCorePermissions(force: Boolean = false) {
+        if (settings.permsAsked && !force) return
         val needed = mutableListOf<String>()
         if (!Perms.hasMediaRead(this)) {
             needed += if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
@@ -134,7 +142,10 @@ class MainActivity : AppCompatActivity() {
         if (!Perms.hasMediaRead(this) || !Perms.hasNotification(this)) {
             needed += Manifest.permission.ACCESS_MEDIA_LOCATION
         }
-        if (needed.isNotEmpty()) askPerms.launch(needed.distinct().toTypedArray())
+        if (needed.isNotEmpty()) {
+            settings.permsAsked = true
+            askPerms.launch(needed.distinct().toTypedArray())
+        }
     }
 
     private fun decide(shot: PendingShot, decision: Decision) {
@@ -161,7 +172,7 @@ class MainActivity : AppCompatActivity() {
             scaleType = ImageView.ScaleType.FIT_CENTER
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 360)
         }
-        Thumbs.media(image, shot.contentUri, maxPx = 720)
+        Thumbs.media(image, shot.contentUri, maxPx = 720, cache = false)
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.dialog_preview)
             .setMessage(shot.name)
@@ -174,11 +185,6 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         refreshAll()
-        val focus = intent?.getLongExtra(EXTRA_MEDIA_ID, -1L) ?: -1L
-        if (focus > 0) {
-            intent.removeExtra(EXTRA_MEDIA_ID)
-            repo.find(focus)?.let { showPreview(it) }
-        }
     }
 
     private fun refreshAll() {
@@ -286,8 +292,4 @@ class MainActivity : AppCompatActivity() {
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
-
-    companion object {
-        const val EXTRA_MEDIA_ID = "media_id"
-    }
 }

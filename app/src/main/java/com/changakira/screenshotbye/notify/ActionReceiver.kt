@@ -26,7 +26,7 @@ class ActionReceiver : BroadcastReceiver() {
                 when (intent.action) {
                     Actions.ACTION_DELETE -> ScreenshotRepository(app).decide(mediaId, Decision.DELETE)
                     Actions.ACTION_KEEP -> ScreenshotRepository(app).decide(mediaId, Decision.KEEP)
-                    Actions.ACTION_SNOOZE -> ScreenshotRepository(app).decide(mediaId, Decision.SNOOZE)
+                    Actions.ACTION_SNOOZE_ALL -> ScreenshotRepository(app).snoozeAllDue()
                     Actions.ACTION_STOP_WATCH -> {
                         Settings.of(app).enabled = false
                         WatchService.stop(app)

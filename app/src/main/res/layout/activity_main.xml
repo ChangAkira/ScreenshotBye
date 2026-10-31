@@ -59,6 +59,15 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/guideBtn"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/main_open_guide" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -201,6 +210,14 @@
                         android:layout_height="wrap_content"
                         android:nestedScrollingEnabled="false"
                         android:overScrollMode="never" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/openReviewBtn"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/main_open_review" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

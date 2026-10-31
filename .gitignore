@@ -11,3 +11,7 @@ local.properties
 app/build/
 .kotlin/
 build/
+keystore/
+keystore.properties
+*.jks
+*.keystore
