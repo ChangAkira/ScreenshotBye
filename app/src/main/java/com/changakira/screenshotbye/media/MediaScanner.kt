@@ -227,7 +227,10 @@ class MediaScanner(
         if (roots.isEmpty()) return
 
         val mask = FileObserver.CLOSE_WRITE or FileObserver.MOVED_TO or FileObserver.CREATE
-        val observer = object : FileObserver(roots.first(), mask) {
+        // 用 String 版构造：FileObserver(File, int) 是 API 29 才有的，
+        // 在 minSdk 26 上直接引用会让 Android 8/9 的机型在启动监听时抛解析错误。
+        @Suppress("DEPRECATION")
+        val observer = object : FileObserver(roots.first().absolutePath, mask) {
             override fun onEvent(event: Int, path: String?) {
                 if (path == null) return
                 val looksLikeShot = NAME_HINTS.any { path.contains(it, ignoreCase = true) }

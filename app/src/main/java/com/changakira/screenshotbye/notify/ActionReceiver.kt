@@ -46,8 +46,11 @@ class ActionReceiver : BroadcastReceiver() {
     /**
      * 划掉询问通知不代表已经回答。把节流计时清零，并排一个延时补提醒，
      * 否则这批截图会一直沉在通知历史里没人管。
+     *
+     * internal 只为了能被单元测试直接调用：Robolectric 只按 intent-filter 匹配清单里的
+     * receiver，而这条广播在生产里是显式点名投递的，走不到这个方法。
      */
-    private fun onNotificationDismissed(app: Context) {
+    internal fun onNotificationDismissed(app: Context) {
         val settings = Settings.of(app)
         if (ScreenshotRepository(app).dueQueue().isEmpty()) return
         settings.lastAlertAt = 0L

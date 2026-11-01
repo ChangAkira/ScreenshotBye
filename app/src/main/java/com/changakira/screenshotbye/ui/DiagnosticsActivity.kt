@@ -51,7 +51,7 @@ class DiagnosticsActivity : AppCompatActivity() {
             }
         }
         b.copyBtn.setOnClickListener { copyReport() }
-        b.notifySettingsBtn.setOnClickListener { Perms.openAppNotificationSettings(this) }
+        b.notifySettingsBtn.setOnClickListener { Perms.openChannelSettings(this, Channels.REVIEW) }
         reload()
     }
 

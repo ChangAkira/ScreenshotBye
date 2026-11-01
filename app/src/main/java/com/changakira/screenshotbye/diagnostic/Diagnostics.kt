@@ -47,11 +47,16 @@ object Diagnostics {
             section("通知能不能出来")
             row("通知总开关", nm?.areNotificationsEnabled() ?: false, if (nm != null && nm.areNotificationsEnabled()) "" else "系统里已关闭本应用通知")
             row("打扰模式", nm?.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_ALL, interruptionLabel(nm))
-            val channelId = Channels.forIntensity(settings.alertIntensity)
-            line("提醒强度：" + intensityName(settings.alertIntensity))
-            line("提醒渠道：$channelId · importance=" + channelImportance(nm, channelId))
-            line("提示：横幅需要通知带声音或震动，若强度选了「安静」就不会弹横幅；ROM 另有独立的横幅开关，需自行确认。")
-            line("测试提醒按钮可以按当前强度真发一条，用来区分「应用没发」还是「系统压掉了」。")
+            line("提醒渠道：${Channels.REVIEW} · importance=" + channelImportance(nm, Channels.REVIEW))
+            line("声音、震动、横幅、锁屏显示都归这条渠道管，在系统通知设置里改，应用不代做决定。")
+            line("「发送测试提醒」走同一条渠道真发一条，用来区分「应用没发」还是「系统压掉了」。")
+
+            val crash = settings.lastCrash
+            if (crash.isNotBlank()) {
+                section("上次未捕获异常")
+                line(crash)
+                line("（复制整份报告反馈即可，这条记录比界面截图有用得多）")
+            }
 
             section("监控是否在跑")
             row("前台服务存活", WatchService.running, if (WatchService.running) "" else "服务没在跑，看门狗会尝试拉起")
@@ -117,7 +122,7 @@ object Diagnostics {
         return true
     }
 
-    /** 供界面解释「为什么没响」：区分权限、勿扰、强度档位三类原因。 */
+    /** 供界面解释「为什么没响」：区分权限、勿扰、渠道设置三类原因。 */
     fun alertBlockers(ctx: Context): String {
         val nm = ctx.getSystemService(NotificationManager::class.java)
         val out = mutableListOf<String>()
@@ -126,7 +131,11 @@ object Diagnostics {
         if (nm != null && nm.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL) {
             out.add("系统处于勿扰/静音模式：" + interruptionLabel(nm))
         }
-        if (Settings.of(ctx).alertIntensity == Settings.INTENSITY_QUIET) out.add("当前强度是「安静」，本来就不弹横幅")
+        val importance = nm?.getNotificationChannel(Channels.REVIEW)?.importance
+        if (importance == null) out.add("提醒渠道不存在，去系统通知设置里确认")
+        else if (importance <= NotificationManager.IMPORTANCE_LOW) {
+            out.add("提醒渠道已被系统设为「${importanceName(importance)}」，横幅和声音是在这里被关掉的，需要在系统通知设置里调回「高」")
+        }
         return out.joinToString("；")
     }
 
@@ -171,12 +180,6 @@ object Diagnostics {
         NotificationManager.INTERRUPTION_FILTER_ALARMS -> "仅闹钟"
         null -> "未知"
         else -> "受限（通知栏折叠/静音类模式）"
-    }
-
-    private fun intensityName(v: Int) = when (v) {
-        Settings.INTENSITY_QUIET -> "安静（只进通知栏，不弹横幅）"
-        Settings.INTENSITY_VIBRATE -> "横幅 + 震动"
-        else -> "横幅 + 震动 + 声音"
     }
 
     private fun importanceName(v: Int) = when (v) {

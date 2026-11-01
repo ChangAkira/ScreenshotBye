@@ -1,6 +1,5 @@
 package com.changakira.screenshotbye.media
 
-import android.app.RecoverableSecurityException
 import android.content.Context
 import android.content.IntentSender
 import android.net.Uri
@@ -41,10 +40,11 @@ class DeleteGateway(ctx: Context) {
         if (Perms.canDeleteSilently(app)) {
             try {
                 resolver.delete(shot.contentUri, null, null)
-            } catch (e: RecoverableSecurityException) {
-                return needsConfirm(shot, backup)
             } catch (e: SecurityException) {
-                return DeleteResult.Failed("删除被拒绝：${e.message ?: e.javaClass.simpleName}")
+                // RecoverableSecurityException 是 API 29 才有的类，直接在 catch 里写类型
+                // 会让 Android 8/9 在异常传播时报类找不到，因此按类名判断。
+                return if (isRecoverable(e)) needsConfirm(shot, backup)
+                else DeleteResult.Failed("删除被拒绝：${e.message ?: e.javaClass.simpleName}")
             } catch (e: Exception) {
                 return DeleteResult.Failed("删除异常：${e.javaClass.simpleName}")
             }
@@ -86,4 +86,21 @@ class DeleteGateway(ctx: Context) {
     private fun needsConfirm(shot: PendingShot, backup: TrashEntry?): DeleteResult =
         if (deleteRequestIntentSender(listOf(shot.contentUri)) != null) DeleteResult.NeedsConfirm(backup)
         else DeleteResult.Failed("系统拒绝直接删除，且当前版本不支持发起删除确认")
+
+    /**
+     * 是否属于「用户确认后就能删」的拒绝。不能直接写 `e is RecoverableSecurityException`：
+     * 这个类在 Android 9 及以下不存在，引用它会让整段删除逻辑在低版本上验证失败。
+     */
+    private fun isRecoverable(e: SecurityException): Boolean {
+        var c: Class<*>? = e.javaClass
+        while (c != null && c != Throwable::class.java) {
+            if (c.name == RECOVERABLE_EXCEPTION) return true
+            c = c.superclass
+        }
+        return false
+    }
+
+    private companion object {
+        const val RECOVERABLE_EXCEPTION = "android.app.RecoverableSecurityException"
+    }
 }

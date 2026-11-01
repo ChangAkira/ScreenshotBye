@@ -5,12 +5,8 @@
     <!-- 通知渠道 -->
     <string name="ch_service">监控状态</string>
     <string name="ch_service_desc">常驻通知，显示后台监控是否在运行</string>
-    <string name="ch_quiet">截图待确认（安静）</string>
-    <string name="ch_quiet_desc">只进通知栏，不出声不弹横幅</string>
-    <string name="ch_vibrate">截图待确认（横幅+震动）</string>
-    <string name="ch_vibrate_desc">弹横幅并震动，不出声</string>
-    <string name="ch_sound">截图待确认（横幅+震动+声音）</string>
-    <string name="ch_sound_desc">弹横幅、震动并响铃，最不容易错过</string>
+    <string name="ch_review">截图待确认</string>
+    <string name="ch_review_desc">截图若干分钟后询问是否还需要；声音、震动、横幅在系统设置里改</string>
 
     <!-- 通知文案 -->
     <string name="notif_watch_on">正在监控截图</string>
@@ -18,7 +14,7 @@
     <string name="notif_watch_off">监控已暂停</string>
     <string name="notif_handle_now">现在处理</string>
     <string name="notif_test_title">这是测试提醒</string>
-    <string name="notif_test_body">如果这条通知弹了横幅、震了或响了，说明当前的提醒强度在你的系统上是可用的；没动静就是被 ROM 或勿扰模式压掉了，去系统通知设置里检查横幅与声音。</string>
+    <string name="notif_test_body">如果这条通知弹了横幅、震了或响了，说明「截图待确认」这条渠道在你的系统上是可用的；没动静就去系统通知设置里检查这条渠道的声音、横幅和锁屏显示，或先退出勿扰模式。</string>
     <string name="notif_review_title">还需要这张截图吗？</string>
     <string name="notif_review_title_multi">%1$d 张截图待确认</string>
     <string name="notif_review_short">截图 %1$s 已过确认时间</string>
@@ -55,12 +51,9 @@
     <string name="main_expiry_never">永不过期（不回答就一直提醒）</string>
     <string name="main_expiry_hint">0 天表示永不过期。到点自动出队只是不再追问，截图本身不会被删。</string>
 
-    <string name="main_alert_settings">提醒强度</string>
-    <string name="main_alert_intensity">怎么提醒你</string>
-    <string name="main_alert_intensity_hint">原生系统要求通知带声音或震动才会弹横幅，所以「安静」这一档只能进通知栏。ROM 另有自己的横幅开关，选好后用自检页的「发送测试提醒」确认。</string>
-    <string name="intensity_quiet">安静（只进通知栏，不弹横幅）</string>
-    <string name="intensity_vibrate">横幅 + 震动</string>
-    <string name="intensity_sound">横幅 + 震动 + 声音</string>
+    <string name="main_alert_settings">重复提醒</string>
+    <string name="main_alert_hint">响几声、要不要震动、弹不弹横幅，都在系统的通知设置里改——应用不替你决定。这里只管「还有没回答的截图时，多久再提醒一次、最多几次」。</string>
+    <string name="main_open_channel_settings">在系统设置里管理提醒方式</string>
     <string name="main_repeat">还有没回答的，隔多久再提醒一次</string>
     <string name="main_repeat_value">每 %1$d 分钟</string>
     <string name="main_repeat_never">不重复提醒（只在新截图到期时响）</string>
@@ -151,7 +144,7 @@
     <string name="diag_loading">正在采集状态…</string>
     <string name="diag_refresh">重新采集</string>
     <string name="diag_test">发送测试提醒</string>
-    <string name="diag_test_sent">已按当前强度发出，看有没有横幅、震动或声音</string>
+    <string name="diag_test_sent">已发出，看有没有横幅、震动或声音</string>
     <string name="diag_test_blocked">测试提醒没能发出：%1$s</string>
     <string name="diag_test_blocked_unknown">测试提醒没能发出，通知可能被系统限制了</string>
     <string name="diag_copy">复制诊断文本</string>

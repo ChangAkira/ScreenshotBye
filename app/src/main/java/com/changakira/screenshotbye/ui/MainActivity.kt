@@ -122,29 +122,7 @@ class MainActivity : AppCompatActivity() {
                 b.maxTimesLabel.text = getString(R.string.main_max_times_value, value.toInt())
             }
         }
-        b.alertIntensityBtn.setOnClickListener { pickIntensity() }
-    }
-
-    private fun intensityNames(): List<String> = listOf(
-        getString(R.string.intensity_quiet),
-        getString(R.string.intensity_vibrate),
-        getString(R.string.intensity_sound),
-    )
-
-    /** 三档提醒强度。安静档不弹横幅——原生系统要求通知带声音或震动才会弹。 */
-    private fun pickIntensity() {
-        val labels = intensityNames()
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.main_alert_intensity)
-            .setSingleChoiceItems(labels.toTypedArray(), settings.alertIntensity) { d, which ->
-                settings.alertIntensity = which
-                settings.appendLog("提醒强度已改为：${labels[which]}")
-                ScreenshotRepository(this).updateReviewNotification(this)
-                refreshAll()
-                d.dismiss()
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
+        b.notifySettingsBtn.setOnClickListener { Perms.openChannelSettings(this, Channels.REVIEW) }
     }
 
     private fun expiryLabel(days: Int): String =
@@ -259,7 +237,6 @@ class MainActivity : AppCompatActivity() {
         b.repeatLabel.text = repeatLabel(settings.alertRepeatMinutes)
         b.maxTimesSlider.value = settings.alertMaxTimes.coerceIn(1, 10).toFloat()
         b.maxTimesLabel.text = getString(R.string.main_max_times_value, settings.alertMaxTimes)
-        b.alertIntensityBtn.text = intensityNames()[settings.alertIntensity]
 
         io.execute {
             // 打开应用顺便清一次过期/卡住的条目：监控关闭或定时任务丢失时看门狗不在，这里是唯一兜底

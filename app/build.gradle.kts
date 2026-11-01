@@ -21,8 +21,8 @@ android {
         applicationId = "com.changakira.screenshotbye"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.0.3"
     }
 
     signingConfigs {
@@ -58,6 +58,13 @@ android {
         viewBinding = true
     }
 
+    testOptions {
+        unitTests {
+            // Robolectric 要读真实 Manifest、资源和布局，缺这些会在运行期报错
+            isIncludeAndroidResources = true
+        }
+    }
+
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
@@ -69,4 +76,11 @@ dependencies {
     implementation(libs.google.material)
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.work.runtime.ktx)
+
+    // 沙箱里没有 /dev/kvm，起不了模拟器；Robolectric 是唯一能真正跑一遍启动路径、
+    // 通知构造和队列卫生的手段。
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.work.testing)
 }

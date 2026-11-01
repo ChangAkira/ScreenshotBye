@@ -25,9 +25,14 @@ object Perms {
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             granted(ctx, Manifest.permission.POST_NOTIFICATIONS)
 
-    /** 「所有文件访问」：只有拿到它才能绕过系统删除确认弹窗、做到完全静默删除。 */
+    /**
+     * 「所有文件访问」：只有拿到它才能绕过系统删除确认弹窗、做到完全静默删除。
+     * 查询本身是一次 binder 调用，个别 ROM 上会抛；读不到就按没给处理，
+     * 绝不能让权限面板这一行的查询把主界面带崩。
+     */
     fun hasAllFilesAccess(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment.isExternalStorageManager()
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.R ||
+            runCatching { Environment.isExternalStorageManager() }.getOrDefault(false)
 
     /**
      * 能否不经用户确认就删掉相册里由系统/别的应用创建的文件。
@@ -83,6 +88,19 @@ object Perms {
             .putExtra(SysSettings.EXTRA_APP_PACKAGE, ctx.packageName)
             .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         runCatching { ctx.startActivity(intent) }
+    }
+
+    /**
+     * 直接跳到某条通知渠道的系统设置页——声音、震动、横幅、锁屏显示都在那里改。
+     * 提醒强度不做进应用：这些开关本来就该由用户在系统里管，某些 ROM 上应用侧也改不动。
+     */
+    fun openChannelSettings(ctx: Context, channelId: String) {
+        val intent = Intent(SysSettings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+            .putExtra(SysSettings.EXTRA_APP_PACKAGE, ctx.packageName)
+            .putExtra(SysSettings.EXTRA_CHANNEL_ID, channelId)
+            .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { ctx.startActivity(intent) }
+            .onFailure { openAppNotificationSettings(ctx) }
     }
 
     fun openAppStorageSettings(ctx: Context) {

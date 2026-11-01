@@ -7,7 +7,6 @@ import androidx.work.WorkManager
 import com.changakira.screenshotbye.media.DeleteGateway
 import com.changakira.screenshotbye.media.DeleteResult
 import com.changakira.screenshotbye.media.MediaHit
-import com.changakira.screenshotbye.notify.Channels
 import com.changakira.screenshotbye.notify.Notify
 import com.changakira.screenshotbye.perm.Perms
 import com.changakira.screenshotbye.remind.TrashCleanupWorker
@@ -306,12 +305,6 @@ class ScreenshotRepository(ctx: Context) {
             Notify.cancel(ctx, Notify.ID_REVIEW_QUEUE)
         } else {
             val alert = canAlert && shouldAlert(due, newDue, now)
-            // 已发布的通知绑在旧渠道上，改过提醒强度要先撤掉重发，新设置才生效
-            val channel = Channels.forIntensity(settings.alertIntensity)
-            if (settings.lastPostedChannel != channel) {
-                Notify.cancel(ctx, Notify.ID_REVIEW_QUEUE)
-                settings.lastPostedChannel = channel
-            }
             Notify.notify(ctx, Notify.ID_REVIEW_QUEUE, Notify.review(ctx, due, alert))
             if (alert) {
                 settings.lastAlertAt = now

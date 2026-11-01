@@ -168,26 +168,8 @@
                     <TextView style="@style/SectionTitle" android:text="@string/main_alert_settings" />
 
                     <TextView
-                        style="@style/BodyHint"
-                        android:textSize="13sp"
-                        android:text="@string/main_alert_intensity" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/alertIntensityBtn"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
-
-                    <TextView
-                        style="@style/BodyHint"
-                        android:textSize="12sp"
-                        android:text="@string/main_alert_intensity_hint" />
-
-                    <TextView
                         android:id="@+id/repeatLabel"
                         style="@style/BodyHint"
-                        android:layout_marginTop="10dp"
                         android:textSize="13sp"
                         android:text="@string/main_repeat" />
 
@@ -215,6 +197,20 @@
                         android:value="5"
                         android:valueFrom="1"
                         android:valueTo="10" />
+
+                    <TextView
+                        style="@style/BodyHint"
+                        android:layout_marginTop="6dp"
+                        android:textSize="12sp"
+                        android:text="@string/main_alert_hint" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/notifySettingsBtn"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/main_open_channel_settings" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

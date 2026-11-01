@@ -9,7 +9,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.os.VibrationEffect
 import androidx.core.app.NotificationCompat
 import com.changakira.screenshotbye.R
 import com.changakira.screenshotbye.core.PendingShot
@@ -25,75 +24,49 @@ object Channels {
     const val SERVICE = "service"
 
     /**
-     * 提醒渠道按强度分成三条：Android 8+ 起声音与震动归渠道所有，
-     * 通知里再设 setSound / setVibrate 一律无效，所以「提醒强度」只能靠渠道实现。
+     * 询问通知只用这一条渠道。声音、震动、横幅、锁屏显示全部交给用户在系统通知设置里管，
+     * 应用不代做决定，也不再用多档渠道去模拟「提醒强度」。
      */
-    const val QUIET = "alert.quiet"
-    const val VIBRATE = "alert.vibrate"
-    const val SOUND = "alert.sound"
+    const val REVIEW = "review"
 
-    /** 旧版的单一提醒渠道，迁移后删掉，免得系统设置里出现重复渠道。 */
-    private const val LEGACY_REVIEW = "review"
+    /**
+     * 1.0.2 短暂用过按「提醒强度」拆出的三条渠道。这里每次启动都清一遍：
+     * 它们绑着用户已经调过的系统设置，留着只会变成设置页里的重复项。
+     */
+    private val RETIRED = listOf("alert.quiet", "alert.vibrate", "alert.sound")
 
-    /** 横幅（heads-up）在原生系统上要求通知带声音或震动，所以「完全安静」只能降到 DEFAULT，不弹横幅。 */
-    fun forIntensity(v: Int): String = when (v) {
-        Settings.INTENSITY_QUIET -> QUIET
-        Settings.INTENSITY_VIBRATE -> VIBRATE
-        else -> SOUND
-    }
-
+    /**
+     * 渠道创建在 Application.onCreate 上，任何异常都会变成开屏闪退，
+     * 所以逐条兜住并记进事件日志——渠道没建成最多是通知出不来，不该让整个应用起不来。
+     */
     fun ensure(ctx: Context) {
         val nm = ctx.getSystemService(NotificationManager::class.java) ?: return
         val settings = Settings.of(ctx)
 
-        nm.createNotificationChannel(
-            NotificationChannel(SERVICE, ctx.getString(R.string.ch_service), NotificationManager.IMPORTANCE_LOW).apply {
-                description = ctx.getString(R.string.ch_service_desc)
-                // 常驻通知不占桌面角标：它一直在，图标会永远亮着，反而看不出「有几张要处理」
-                setShowBadge(false)
-            }
-        )
+        runCatching {
+            nm.createNotificationChannel(
+                NotificationChannel(
+                    SERVICE, ctx.getString(R.string.ch_service), NotificationManager.IMPORTANCE_LOW
+                ).apply {
+                    description = ctx.getString(R.string.ch_service_desc)
+                    // 常驻通知不占桌面角标：它一直在，图标会永远亮着，反而看不出「有几张要处理」
+                    setShowBadge(false)
+                }
+            )
+        }.onFailure { settings.appendLog("监控渠道创建失败：${it.javaClass.simpleName}") }
 
-        nm.createNotificationChannel(
-            NotificationChannel(QUIET, ctx.getString(R.string.ch_quiet), NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = ctx.getString(R.string.ch_quiet_desc)
-                setSound(null, null)
-                enableVibration(false)
-                enableLights(false)
-            }
-        )
+        runCatching {
+            nm.createNotificationChannel(
+                NotificationChannel(
+                    REVIEW, ctx.getString(R.string.ch_review), NotificationManager.IMPORTANCE_HIGH
+                ).apply { description = ctx.getString(R.string.ch_review_desc) }
+            )
+        }.onFailure { settings.appendLog("提醒渠道创建失败：${it.javaClass.simpleName}") }
 
-        val buzz = android.media.AudioAttributes.Builder()
-            .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
-            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
-
-        nm.createNotificationChannel(
-            NotificationChannel(VIBRATE, ctx.getString(R.string.ch_vibrate), NotificationManager.IMPORTANCE_HIGH).apply {
-                description = ctx.getString(R.string.ch_vibrate_desc)
-                setSound(null, null)
-                vibrationEffect = VibrationEffect.createWaveform(VIBRATE_PATTERN, -1)
-                enableLights(true)
-            }
-        )
-
-        nm.createNotificationChannel(
-            NotificationChannel(SOUND, ctx.getString(R.string.ch_sound), NotificationManager.IMPORTANCE_HIGH).apply {
-                description = ctx.getString(R.string.ch_sound_desc)
-                setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI, buzz)
-                vibrationEffect = VibrationEffect.createWaveform(VIBRATE_PATTERN, -1)
-                enableLights(true)
-            }
-        )
-
-        // 三条提醒渠道都用系统默认角标（可显示桌面圆点），只有常驻通知关掉，见上
-        if (!settings.channelMigrated) {
-            runCatching { nm.deleteNotificationChannel(LEGACY_REVIEW) }
-            settings.channelMigrated = true
+        RETIRED.forEach { id ->
+            if (nm.getNotificationChannel(id) != null) runCatching { nm.deleteNotificationChannel(id) }
         }
     }
-
-    private val VIBRATE_PATTERN = longArrayOf(0, 220, 140, 220, 140, 220)
 }
 
 object Actions {
@@ -149,7 +122,7 @@ object Notify {
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        return NotificationCompat.Builder(ctx, alertChannel(ctx))
+        return NotificationCompat.Builder(ctx, Channels.REVIEW)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(ctx.getString(R.string.notif_recovery_title))
             .setContentText(ctx.getString(R.string.notif_recovery_body))
@@ -220,7 +193,7 @@ object Notify {
             if (queue.size > 4) append(ctx.getString(R.string.notif_review_more, queue.size - 4))
             append(ctx.getString(R.string.notif_review_hint))
         }
-        return NotificationCompat.Builder(ctx, alertChannel(ctx))
+        return NotificationCompat.Builder(ctx, Channels.REVIEW)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(
@@ -255,7 +228,7 @@ object Notify {
             .build()
     }
 
-    /** 诊断页用：按当前提醒强度发一条示例通知，用来验证系统有没有把横幅/声音压掉。 */
+    /** 诊断页用：走真实提醒渠道发一条示例通知，用来验证系统有没有把横幅/声音压掉。 */
     fun testAlert(ctx: Context): Notification {
         val open = PendingIntent.getActivity(
             ctx, 0x3400, Intent(ctx, MainActivity::class.java)
@@ -263,7 +236,7 @@ object Notify {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val body = ctx.getString(R.string.notif_test_body)
-        return NotificationCompat.Builder(ctx, alertChannel(ctx))
+        return NotificationCompat.Builder(ctx, Channels.REVIEW)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(ctx.getString(R.string.notif_test_title))
             .setContentText(body)
@@ -275,9 +248,6 @@ object Notify {
             .setContentIntent(open)
             .build()
     }
-
-    private fun alertChannel(ctx: Context): String =
-        Channels.forIntensity(Settings.of(ctx).alertIntensity)
 
     private fun formatTime(ctx: Context, shot: PendingShot): String =
         android.text.format.DateFormat.getTimeFormat(ctx).format(Date(shot.takenAt))
@@ -306,7 +276,7 @@ object Notify {
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        return NotificationCompat.Builder(ctx, alertChannel(ctx))
+        return NotificationCompat.Builder(ctx, Channels.REVIEW)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(ctx.getString(R.string.notif_confirm_title))
             .setContentText(body)
