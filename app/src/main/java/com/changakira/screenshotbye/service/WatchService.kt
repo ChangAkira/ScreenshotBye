@@ -11,6 +11,7 @@ import com.changakira.screenshotbye.core.PendingShotStore
 import com.changakira.screenshotbye.core.Reminders
 import com.changakira.screenshotbye.core.Settings
 import com.changakira.screenshotbye.core.ScreenshotRepository
+import com.changakira.screenshotbye.core.ShotState
 import com.changakira.screenshotbye.media.MediaScanner
 import com.changakira.screenshotbye.notify.Channels
 import com.changakira.screenshotbye.notify.Notify
@@ -54,6 +55,7 @@ class WatchService : Service() {
         if (scanner != null) return
         running = true
         val repo = ScreenshotRepository(this)
+        repo.sweepStale()
         scanner = MediaScanner(
             ctx = this,
             onHit = { hit -> repo.onDetected(hit) },
@@ -62,6 +64,8 @@ class WatchService : Service() {
         // 进程重启后，把上次没问完的续上：到期的立即问，未到期的重新排队
         Reminders.catchUpOverdue(this, PendingShotStore.of(this))
         goForeground(watching = true)
+        // 重启后如果还有一堆没回答的，按节流规则决定要不要重新出声提醒
+        repo.refreshReviewNotification(this)
     }
 
     private fun stopWatching() {
@@ -71,8 +75,8 @@ class WatchService : Service() {
     }
 
     private fun goForeground(watching: Boolean) {
-        val pending = PendingShotStore.of(this).all().size
-        val notification = Notify.serviceNotification(this, watching, pending)
+        val (due, focusId) = dueInfo(this)
+        val notification = Notify.serviceNotification(this, watching, due, focusId)
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
             ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE else 0
         ServiceCompat.startForeground(this, Notify.ID_SERVICE, notification, type)
@@ -113,7 +117,22 @@ class WatchService : Service() {
         fun refreshNotification(ctx: android.content.Context) {
             if (!running) return
             val watching = Settings.of(ctx).enabled
-            Notify.notify(ctx, Notify.ID_SERVICE, Notify.serviceNotification(ctx, watching, PendingShotStore.of(ctx).all().size))
+            val (due, focusId) = dueInfo(ctx)
+            Notify.notify(
+                ctx, Notify.ID_SERVICE,
+                Notify.serviceNotification(ctx, watching, due, focusId)
+            )
+        }
+
+        /**
+         * 常驻通知要显示的数量：只算「已经到期、等你回答」的条目，
+         * 还在计时的那几张不该催用户。第二个返回值是给通知点击用的定位目标。
+         */
+        private fun dueInfo(ctx: android.content.Context): Pair<Int, Long?> {
+            val due = PendingShotStore.of(ctx).all()
+                .filter { it.state == ShotState.ASKED }
+                .sortedBy { it.askAt }
+            return due.size to due.firstOrNull()?.mediaId
         }
     }
 }

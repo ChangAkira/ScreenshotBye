@@ -5,13 +5,20 @@
     <!-- 通知渠道 -->
     <string name="ch_service">监控状态</string>
     <string name="ch_service_desc">常驻通知，显示后台监控是否在运行</string>
-    <string name="ch_review">截图待确认</string>
-    <string name="ch_review_desc">截图若干分钟后询问是否还需要</string>
+    <string name="ch_quiet">截图待确认（安静）</string>
+    <string name="ch_quiet_desc">只进通知栏，不出声不弹横幅</string>
+    <string name="ch_vibrate">截图待确认（横幅+震动）</string>
+    <string name="ch_vibrate_desc">弹横幅并震动，不出声</string>
+    <string name="ch_sound">截图待确认（横幅+震动+声音）</string>
+    <string name="ch_sound_desc">弹横幅、震动并响铃，最不容易错过</string>
 
     <!-- 通知文案 -->
     <string name="notif_watch_on">正在监控截图</string>
     <string name="notif_watch_on_pending">正在监控截图 · %1$d 张待确认</string>
     <string name="notif_watch_off">监控已暂停</string>
+    <string name="notif_handle_now">现在处理</string>
+    <string name="notif_test_title">这是测试提醒</string>
+    <string name="notif_test_body">如果这条通知弹了横幅、震了或响了，说明当前的提醒强度在你的系统上是可用的；没动静就是被 ROM 或勿扰模式压掉了，去系统通知设置里检查横幅与声音。</string>
     <string name="notif_review_title">还需要这张截图吗？</string>
     <string name="notif_review_title_multi">%1$d 张截图待确认</string>
     <string name="notif_review_short">截图 %1$s 已过确认时间</string>
@@ -43,6 +50,23 @@
     <string name="main_delay_value">%1$d 分钟</string>
     <string name="main_trash_switch">删除前先备份到回收站</string>
     <string name="main_trash_days">回收站保留天数</string>
+    <string name="main_expiry">多久不回答就当作「保留」</string>
+    <string name="main_expiry_value">%1$d 天后自动出队</string>
+    <string name="main_expiry_never">永不过期（不回答就一直提醒）</string>
+    <string name="main_expiry_hint">0 天表示永不过期。到点自动出队只是不再追问，截图本身不会被删。</string>
+
+    <string name="main_alert_settings">提醒强度</string>
+    <string name="main_alert_intensity">怎么提醒你</string>
+    <string name="main_alert_intensity_hint">原生系统要求通知带声音或震动才会弹横幅，所以「安静」这一档只能进通知栏。ROM 另有自己的横幅开关，选好后用自检页的「发送测试提醒」确认。</string>
+    <string name="intensity_quiet">安静（只进通知栏，不弹横幅）</string>
+    <string name="intensity_vibrate">横幅 + 震动</string>
+    <string name="intensity_sound">横幅 + 震动 + 声音</string>
+    <string name="main_repeat">还有没回答的，隔多久再提醒一次</string>
+    <string name="main_repeat_value">每 %1$d 分钟</string>
+    <string name="main_repeat_never">不重复提醒（只在新截图到期时响）</string>
+    <string name="main_max_times">同一批最多提醒几次</string>
+    <string name="main_max_times_value">%1$d 次</string>
+    <string name="main_open_diag">运行自检</string>
     <string name="main_rules">识别规则</string>
     <string name="main_rule_folder">按截图目录识别（DCIM/Screenshots 等）</string>
     <string name="main_rule_name">按文件名识别（Screenshot_2026… 等）</string>
@@ -122,6 +146,18 @@
     <string name="toast_confirm_partial">%1$d 张已删除，%2$d 张你取消了</string>
     <string name="toast_confirm_cancelled">你在系统弹窗里取消了删除</string>
 
+    <!-- 自检 -->
+    <string name="diag_title">运行自检</string>
+    <string name="diag_loading">正在采集状态…</string>
+    <string name="diag_refresh">重新采集</string>
+    <string name="diag_test">发送测试提醒</string>
+    <string name="diag_test_sent">已按当前强度发出，看有没有横幅、震动或声音</string>
+    <string name="diag_test_blocked">测试提醒没能发出：%1$s</string>
+    <string name="diag_test_blocked_unknown">测试提醒没能发出，通知可能被系统限制了</string>
+    <string name="diag_copy">复制诊断文本</string>
+    <string name="diag_copied">已复制，反馈问题时可直接粘贴</string>
+    <string name="diag_open_notify_settings">打开系统通知设置</string>
+
     <!-- 首次引导 -->
     <string name="main_open_guide">使用引导</string>
     <string name="onb_skip">跳过</string>
@@ -142,8 +178,8 @@
 
     <string-array name="onb_bodies">
         <item>你截的图大多只是临时用一下，用完就忘在相册里。这个应用持续在后台盯着相册，发现新截图后过一段时间（默认 5 分钟，可调 1–60 分钟）问你一句：还需要这张截图吗？</item>
-        <item>到点后通知栏只出现一条提醒，把这一批到期截图合并在一起问你。点开就是一张一张看：留着、10 分钟后再问、还是不需要。看完后进反选屏，一次删掉标记的那些。</item>
-        <item>读取相册：不授权连截图都看不到。通知：不授权问不出提醒。所有文件访问（Android 11+）：授权后才能静默删除；不授权的话每次删除系统都会再弹一个确认框，这是系统的规定，不是应用的额外要求。</item>
+        <item>到点后通知栏只出现一条提醒，把这一批到期截图合并在一起问你。点开就是一张一张看：留着、10 分钟后再问、还是不需要。看完后进反选屏，一次删掉标记的那些。没回答的会按设定间隔再提醒你一次，一直不理会在几天后就当作「保留」不再追问。</item>
+        <item>读取相册：不授权连截图都看不到。通知：不授权问不出提醒。所有文件访问（Android 11+）：授权后才能静默删除；不授权的话每批删除系统都会再弹一个确认框（一批只弹一次），这是系统的规定，不是应用的额外要求。</item>
         <item>点「不需要，删除」时，先把原图复制进应用内的回收站，再删相册里的原件；备份失败就不会删除。回收站默认保留 7 天，可以一键还原。注意：卸载应用会连回收站一起清空。</item>
         <item>下面这个开关决定现在就开始监控，还是先在主界面把延迟时间和识别规则调好再开。</item>
     </string-array>

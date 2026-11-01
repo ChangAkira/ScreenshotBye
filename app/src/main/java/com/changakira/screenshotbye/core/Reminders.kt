@@ -5,6 +5,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.changakira.screenshotbye.remind.AlertRetryWorker
 import com.changakira.screenshotbye.remind.ReminderWorker
 import java.util.concurrent.TimeUnit
 
@@ -57,5 +58,24 @@ object Reminders {
         }
     }
 
+    /**
+     * 询问通知被划掉后，过几分钟再提醒一次。用唯一任务名，反复划掉也只留一个待办。
+     * 至少 5 分钟，避免用户刚清完通知栏就被第二次铃声砸到。
+     */
+    fun scheduleAlertRetry(ctx: Context, delayMinutes: Int) {
+        val minutes = delayMinutes.coerceIn(5, 180).toLong()
+        val request = OneTimeWorkRequestBuilder<AlertRetryWorker>()
+            .setInitialDelay(minutes, TimeUnit.MINUTES)
+            .addTag(TAG)
+            .build()
+        WorkManager.getInstance(ctx)
+            .enqueueUniqueWork(ALERT_RETRY, ExistingWorkPolicy.REPLACE, request)
+    }
+
+    fun cancelAlertRetry(ctx: Context) {
+        WorkManager.getInstance(ctx).cancelUniqueWork(ALERT_RETRY)
+    }
+
     const val TAG = "screenshotbye-reminders"
+    const val ALERT_RETRY = "screenshotbye-alert-retry"
 }

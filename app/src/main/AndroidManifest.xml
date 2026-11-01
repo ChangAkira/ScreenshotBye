@@ -74,6 +74,12 @@
             android:exported="false"
             android:label="@string/app_name" />
 
+        <!-- 自检页：服务/监听/通知/队列状态，可复制成文本用于反馈问题 -->
+        <activity
+            android:name=".ui.DiagnosticsActivity"
+            android:exported="false"
+            android:label="@string/diag_title" />
+
         <service
             android:name=".service.WatchService"
             android:exported="false"

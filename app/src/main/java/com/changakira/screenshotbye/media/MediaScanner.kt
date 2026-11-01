@@ -71,7 +71,11 @@ class MediaScanner(
         }
 
         val obs = object : ContentObserver(ui) {
-            override fun onChange(selfChange: Boolean, uri: Uri?) = scheduleScan(DEBOUNCE_MS)
+            override fun onChange(selfChange: Boolean, uri: Uri?) {
+                // 诊断页会看这个时间戳，用来区分「监听没回调」和「回调了但扫描没跟上」
+                settings.lastObserverAt = System.currentTimeMillis()
+                scheduleScan(DEBOUNCE_MS)
+            }
         }
         observer = obs
         for (uri in watchedUris()) {
@@ -122,6 +126,7 @@ class MediaScanner(
 
     private fun scan() {
         if (!settings.enabled) return
+        settings.lastScanAt = System.currentTimeMillis()
         var highest = watermarkSec
         for (video in booleanArrayOf(false, true)) {
             if (video && !settings.includeVideo) continue

@@ -7,6 +7,7 @@ import androidx.work.WorkManager
 import com.changakira.screenshotbye.media.DeleteGateway
 import com.changakira.screenshotbye.media.DeleteResult
 import com.changakira.screenshotbye.media.MediaHit
+import com.changakira.screenshotbye.notify.Channels
 import com.changakira.screenshotbye.notify.Notify
 import com.changakira.screenshotbye.perm.Perms
 import com.changakira.screenshotbye.remind.TrashCleanupWorker
@@ -57,6 +58,7 @@ class ScreenshotRepository(ctx: Context) {
             takenAt = hit.dateAddedSec * 1000L,
             askAt = now + settings.delayMinutes * 60_000L,
             state = ShotState.WAITING,
+            stateAt = now,
             absolutePath = hit.absolutePath,
         )
         store.upsert(shot)
@@ -72,6 +74,18 @@ class ScreenshotRepository(ctx: Context) {
     fun dueQueue(): List<PendingShot> =
         store.all().filter { it.state == ShotState.ASKED }.sortedBy { it.askAt }
 
+    /** 到期的那一条（最早问的），常驻通知点击时定位到它。 */
+    fun oldestPending(): PendingShot? = store.all().minByOrNull { it.askAt }
+
+    /** 定时任务到点：推进 ASKED，并让刷新去判断这次要不要重新出声。 */
+    fun onReminderFired(mediaId: Long): Boolean {
+        val shot = store.find(mediaId) ?: return false
+        store.upsert(shot.copy(state = ShotState.ASKED, stateAt = System.currentTimeMillis()))
+        settings.appendLog("已询问：${shot.name}")
+        refreshReviewNotification(app, newDue = true)
+        return true
+    }
+
     fun decide(mediaId: Long, decision: Decision): DecisionOutcome {
         val shot = store.find(mediaId)
             ?: return DecisionOutcome.Error("这条记录已经处理过了")
@@ -80,7 +94,7 @@ class ScreenshotRepository(ctx: Context) {
                 Reminders.cancel(app, mediaId)
                 store.remove(mediaId)
                 settings.appendLog("保留 ${shot.name}")
-                refreshReviewNotification(app)
+                updateReviewNotification(app)
                 DecisionOutcome.Kept
             }
 
@@ -99,17 +113,18 @@ class ScreenshotRepository(ctx: Context) {
         due.forEach { snooze(it, refresh = false) }
         if (due.isNotEmpty()) {
             settings.appendLog("整批稍后再问：${due.size} 张")
-            refreshReviewNotification(app)
+            updateReviewNotification(app)
         }
         return due.size
     }
 
     private fun snooze(shot: PendingShot, refresh: Boolean = true) {
         val askAt = System.currentTimeMillis() + SNOOZE_MINUTES * 60_000L
-        store.upsert(shot.copy(state = ShotState.WAITING, askAt = askAt))
+        // 用户主动要求再问，提醒次数清零，否则封顶规则会让「稍后再问」变成永久静音
+        store.upsert(shot.copy(state = ShotState.WAITING, askAt = askAt, stateAt = System.currentTimeMillis(), askCount = 0))
         Reminders.rescheduleAt(app, shot.mediaId, askAt)
         settings.appendLog("稍后再问 ${shot.name}")
-        if (refresh) refreshReviewNotification(app)
+        if (refresh) updateReviewNotification(app)
     }
 
     private fun delete(shot: PendingShot): DecisionOutcome {
@@ -124,22 +139,22 @@ class ScreenshotRepository(ctx: Context) {
                 settings.appendLog(
                     if (r.backup != null) "已删除 ${shot.name}（回收站可找回）" else "已删除 ${shot.name}"
                 )
-                refreshReviewNotification(app)
+                updateReviewNotification(app)
                 DecisionOutcome.Deleted(inTrash = r.backup != null)
             }
 
             is DeleteResult.NeedsConfirm -> {
-                store.upsert(shot.copy(state = ShotState.DELETING))
+                markDeleting(shot)
                 settings.appendLog("等待系统确认：${shot.name}")
-                refreshReviewNotification(app)
+                updateReviewNotification(app)
                 DecisionOutcome.NeedsSystemConfirm
             }
 
             is DeleteResult.Failed -> {
                 // 备份失败或权限被拒时保留条目，让用户能重试，绝不静默丢弃
-                store.upsert(shot.copy(state = ShotState.ASKED))
+                store.upsert(shot.copy(state = ShotState.ASKED, stateAt = System.currentTimeMillis()))
                 settings.appendLog("删除失败：${r.reason}")
-                refreshReviewNotification(app)
+                updateReviewNotification(app)
                 DecisionOutcome.Error(r.reason)
             }
         }
@@ -171,7 +186,7 @@ class ScreenshotRepository(ctx: Context) {
                     }
 
                     is DeleteResult.NeedsConfirm -> {
-                        store.upsert(shot.copy(state = ShotState.DELETING))
+                        markDeleting(shot)
                         awaiting += id
                     }
 
@@ -190,7 +205,7 @@ class ScreenshotRepository(ctx: Context) {
                 else -> null
             } ?: "批量删除：无成功项"
         )
-        refreshReviewNotification(app)
+        updateReviewNotification(app)
         return BatchPlan(deleted, awaiting, failed)
     }
 
@@ -201,7 +216,7 @@ class ScreenshotRepository(ctx: Context) {
             return DeleteResult.Failed("备份失败，已取消删除")
         }
         return if (gateway.deleteRequestIntentSender(listOf(shot.contentUri)) != null) {
-            store.upsert(shot.copy(state = ShotState.DELETING))
+            markDeleting(shot)
             DeleteResult.NeedsConfirm(null)
         } else {
             failed += "${shot.name}：系统不支持删除确认"
@@ -224,29 +239,105 @@ class ScreenshotRepository(ctx: Context) {
                 deleted++
                 settings.appendLog("系统确认后已删除：${shot.name}")
             } else {
-                store.upsert(shot.copy(state = ShotState.ASKED))
+                store.upsert(shot.copy(state = ShotState.ASKED, stateAt = System.currentTimeMillis()))
                 cancelled++
                 settings.appendLog("你在系统弹窗中取消了删除：${shot.name}")
             }
         }
-        refreshReviewNotification(app)
+        updateReviewNotification(app)
         return deleted to cancelled
     }
 
     /**
-     * 重建两条与待确认清单有关的通知：整批询问（一条）、等待系统确认（一条）。
-     * 清单空了就撤销，避免残留。
+     * 队列卫生，由看门狗周期性调用，兜住三种「静默卡住」：
+     * - WAITING 但到期时间早就过了（定时任务被 ROM 清掉）→ 立即补问
+     * - ASKED 长期没人回答 → 按「保留」处理出队，通知不再无限挂着
+     * - DELETING 超时没拿到系统确认结果（弹窗开着时进程被杀）→ 退回 ASKED
      */
-    fun refreshReviewNotification(ctx: Context) {
+    fun sweepStale(): Int {
+        val now = System.currentTimeMillis()
+        val expiryMs = if (settings.askExpiryDays > 0) settings.askExpiryDays * DAY_MS else 0L
+        var changed = 0
+        store.all().forEach { shot ->
+            when (shot.state) {
+                ShotState.WAITING -> if (shot.askAt <= now - LATE_GRACE_MS) {
+                    store.upsert(shot.copy(state = ShotState.ASKED, stateAt = now))
+                    settings.appendLog("补发已到期的询问：${shot.name}")
+                    changed++
+                }
+
+                ShotState.ASKED -> if (expiryMs > 0L && now - shot.sinceStateAt >= expiryMs) {
+                    Reminders.cancel(app, shot.mediaId)
+                    store.remove(shot.mediaId)
+                    settings.appendLog("超过 ${settings.askExpiryDays} 天未回答，按保留处理：${shot.name}")
+                    changed++
+                }
+
+                ShotState.DELETING -> if (now - shot.sinceStateAt >= DELETING_TIMEOUT_MS) {
+                    store.upsert(shot.copy(state = ShotState.ASKED, stateAt = now))
+                    settings.appendLog("系统确认超时未完成，退回待确认：${shot.name}")
+                    changed++
+                }
+            }
+        }
+        if (changed > 0) updateReviewNotification(app)
+        return changed
+    }
+
+    private fun markDeleting(shot: PendingShot) =
+        store.upsert(shot.copy(state = ShotState.DELETING, stateAt = System.currentTimeMillis()))
+
+    /**
+     * 把清单同步到通知栏，并允许按节流规则重新出声。
+     * 只有「刚有截图到期」「看门狗心跳」「通知被划掉后的补提醒」这三类调用会走到这里；
+     * 用户在应用内自己操作后的同步走 [updateReviewNotification]，别再打扰。
+     */
+    fun refreshReviewNotification(ctx: Context, newDue: Boolean = false) = syncNotifications(ctx, canAlert = true, newDue = newDue)
+
+    /** 只同步内容，不出声。 */
+    fun updateReviewNotification(ctx: Context) = syncNotifications(ctx, canAlert = false, newDue = false)
+
+    private fun syncNotifications(ctx: Context, canAlert: Boolean, newDue: Boolean) {
+        val now = System.currentTimeMillis()
         val due = dueQueue()
-        if (due.isEmpty()) Notify.cancel(ctx, Notify.ID_REVIEW_QUEUE)
-        else Notify.notify(ctx, Notify.ID_REVIEW_QUEUE, Notify.review(ctx, due))
+        if (due.isEmpty()) {
+            settings.lastAlertAt = 0L
+            Reminders.cancelAlertRetry(app)
+            Notify.cancel(ctx, Notify.ID_REVIEW_QUEUE)
+        } else {
+            val alert = canAlert && shouldAlert(due, newDue, now)
+            // 已发布的通知绑在旧渠道上，改过提醒强度要先撤掉重发，新设置才生效
+            val channel = Channels.forIntensity(settings.alertIntensity)
+            if (settings.lastPostedChannel != channel) {
+                Notify.cancel(ctx, Notify.ID_REVIEW_QUEUE)
+                settings.lastPostedChannel = channel
+            }
+            Notify.notify(ctx, Notify.ID_REVIEW_QUEUE, Notify.review(ctx, due, alert))
+            if (alert) {
+                settings.lastAlertAt = now
+                due.forEach { store.upsert(it.copy(askCount = it.askCount + 1)) }
+            }
+        }
 
         val awaiting = store.all().filter { it.state == ShotState.DELETING }.sortedBy { it.askAt }
         if (awaiting.isEmpty()) Notify.cancel(ctx, Notify.ID_CONFIRM)
         else Notify.notify(ctx, Notify.ID_CONFIRM, Notify.needsSystemConfirm(ctx, awaiting))
 
         WatchService.refreshNotification(ctx)
+    }
+
+    /**
+     * 要不要重新出声。同一条通知默认只响第一次，所以必须显式再响一次，
+     * 否则一天里的第二张、第三张截图到期就完全无感。
+     */
+    private fun shouldAlert(due: List<PendingShot>, newDue: Boolean, now: Long): Boolean {
+        val last = settings.lastAlertAt
+        if (last == 0L) return true
+        // 提醒够次数了就只留通知不出声，避免变成骚扰
+        if (due.minOf { it.askCount } >= settings.alertMaxTimes) return false
+        if (newDue) return now - last >= BURST_GUARD_MS
+        val repeat = settings.alertRepeatMinutes
+        return repeat > 0 && now - last >= repeat * 60_000L
     }
 
     val trash get() = gateway.trash
@@ -262,5 +353,15 @@ class ScreenshotRepository(ctx: Context) {
 
     companion object {
         const val SNOOZE_MINUTES = 10
+        private const val DAY_MS = 24 * 60 * 60_000L
+
+        /** 连拍保护：几秒内多张一起到期只响一次。 */
+        private const val BURST_GUARD_MS = 90_000L
+
+        /** 定时任务丢失的容忍窗口。 */
+        private const val LATE_GRACE_MS = 2 * 60_000L
+
+        /** 系统确认弹窗长时间没结果（进程被杀等），退回待确认。 */
+        private const val DELETING_TIMEOUT_MS = 6 * 60 * 60_000L
     }
 }

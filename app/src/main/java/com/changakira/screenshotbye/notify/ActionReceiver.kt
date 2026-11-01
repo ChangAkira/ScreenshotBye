@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.changakira.screenshotbye.core.Decision
+import com.changakira.screenshotbye.core.Reminders
 import com.changakira.screenshotbye.core.Settings
 import com.changakira.screenshotbye.core.ScreenshotRepository
 import com.changakira.screenshotbye.service.WatchService
@@ -27,6 +28,7 @@ class ActionReceiver : BroadcastReceiver() {
                     Actions.ACTION_DELETE -> ScreenshotRepository(app).decide(mediaId, Decision.DELETE)
                     Actions.ACTION_KEEP -> ScreenshotRepository(app).decide(mediaId, Decision.KEEP)
                     Actions.ACTION_SNOOZE_ALL -> ScreenshotRepository(app).snoozeAllDue()
+                    Actions.ACTION_ON_DISMISS -> onNotificationDismissed(app)
                     Actions.ACTION_STOP_WATCH -> {
                         Settings.of(app).enabled = false
                         WatchService.stop(app)
@@ -39,6 +41,18 @@ class ActionReceiver : BroadcastReceiver() {
                 finish.finish()
             }
         }
+    }
+
+    /**
+     * 划掉询问通知不代表已经回答。把节流计时清零，并排一个延时补提醒，
+     * 否则这批截图会一直沉在通知历史里没人管。
+     */
+    private fun onNotificationDismissed(app: Context) {
+        val settings = Settings.of(app)
+        if (ScreenshotRepository(app).dueQueue().isEmpty()) return
+        settings.lastAlertAt = 0L
+        Reminders.scheduleAlertRetry(app, settings.alertRepeatMinutes)
+        settings.appendLog("询问通知被划掉，已安排稍后补提醒")
     }
 
     private companion object {

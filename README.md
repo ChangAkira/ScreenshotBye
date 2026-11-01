@@ -4,7 +4,7 @@
   <p>截图常常只是临时用一下，用完就忘在相册里。这个应用持续在后台盯着相册，过一段时间问你一句「还需要这张截图吗」，回答不需要就删掉它——删除前先备份，反悔可以还原。</p>
   <p>
     <img alt="platform" src="https://img.shields.io/badge/Android-8.0%2B-green"/>
-    <img alt="release" src="https://img.shields.io/badge/release-v1.0.1-blue"/>
+    <img alt="release" src="https://img.shields.io/badge/release-v1.0.2-blue"/>
     <img alt="lang" src="https://img.shields.io/badge/Kotlin-2.0.21-orange"/>
     <img alt="offline" src="https://img.shields.io/badge/联网-不需要-informational"/>
     <img alt="license" src="https://img.shields.io/badge/License-MIT-lightgrey"/>
@@ -18,19 +18,37 @@
 1. 引导页走完、打开**后台监控截图**，之后每次开机它都会自己在后台跑起来（常驻前台服务 + 开机自启 + 看门狗）。
 2. 你截了一张图。系统把它写进相册并通知 MediaStore，`ContentObserver` 收到变化，350ms 防抖后按 `DATE_ADDED` 水位线做一次增量查询，用「所在目录 / 文件名 / 自定义关键词」三条规则判断这是不是截图。
 3. 是截图 → 记进待确认清单，并用 WorkManager 排一个 N 分钟后的一次性任务（默认 5 分钟，可调 1–60）。任务持久化在 WorkManager 数据库里，进程被杀、设备重启都照样会到点。
-4. 到点 → **通知栏只出现一条**提醒。连截十张也合并成一条「10 张截图待确认」，不会刷屏。
+4. 到点 → **通知栏只出现一条**提醒。连截十张也合并成一条「10 张截图待确认」，不会刷屏；同一条通知会按你设定的强度重新出声（见下一节）。
 5. 点通知进入逐个确认页：一张一张看，三个选择——`还要留着` / `10 分钟后再问` / `不需要，删除`，左右滑动切换。看完进入反选屏，勾着的这批一次处理。
 6. 删除时先把原图复制进应用内回收站，再删相册里的原件；**备份失败就不会删除**。没给「所有文件访问」时，整批共用一次系统删除确认弹窗。
+7. 一直没回答的询问不会永远挂着：超过设定天数（默认 3 天）自动按「保留」出队。
 
 > 通知上也有快捷按钮，直接处理最早到期那一张，不用点开应用；第三个按钮 `全部稍后再问` 把整批往后推 10 分钟。
+> 常驻的监控通知在有待确认截图时会变成入口：点它直接进逐个确认页，不用再从主页找按钮。
+
+## 提醒强度与自检
+
+「提醒不够强、回来要在通知栏里翻」是这一版针对的问题，做了三件事：
+
+- **三条提醒渠道 + 三档强度**：`安静`（只进通知栏，不弹横幅）、`横幅 + 震动`、`横幅 + 震动 + 声音`。
+  Android 8 起声音和震动归**渠道**所有，通知里再调 `setSound` / `setVibrate` 一律无效，所以强度只能这样实现；
+  也正因为原生系统要求横幅必须带声音或震动，「静默弹横幅」这一档做不出来，`安静` 只能降到不弹横幅。
+  首次升级到这一版时旧的单一渠道会被删掉，系统设置里不会留下重复项。
+- **会重新出声的询问**：同一条通知默认只在第一次响，后面的截图到期就完全无感。现在按节流规则重发提醒——
+  连拍保护 90 秒（几秒内多张一起到期只响一次）、可设间隔（默认 20 分钟，0 = 不重复）、可设最多次数（默认 5 次，
+  到了就只留通知不出声）。通知被划掉不等于回答了，条目留在队列里并安排一次补提醒；`稍后再问` 会把次数清零。
+  改过强度后当前那条通知会被撤销重发一次，新渠道的设置才会生效。
+- **应用内自检页**：主页 `自检` 一份纯文本报告——通知权限、渠道实际 importance、当前勿扰状态、监控服务是否活着、
+  内容观察器和最近扫描的时间戳、相册水位线是否落后、到点任务的状态、队列里每一条的状态和已提醒次数、
+  以及哪些条件正在挡住提醒。`发一条测试提醒` 可以直接验证系统有没有把横幅压掉。
 
 ## 下载
 
-最新 release：[v1.0.1](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.1) —
-直接安装 [ScreenshotBye-v1.0.1.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.1/ScreenshotBye-v1.0.1.apk)
-（release 签名，minSdk 26 / Android 8.0 起）。
+最新 release：[v1.0.2](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.2) —
+直接安装 [ScreenshotBye-v1.0.2.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.2/ScreenshotBye-v1.0.2.apk)
+（release 签名，minSdk 26 / Android 8.0 起）。v1.0.1 → v1.0.2 是同一把密钥，**直接覆盖安装即可**，清单和回收站都保留。
 
-⚠️ v1.0.0 的包用的是 debug 签名，和 v1.0.1 不是同一把密钥，**覆盖安装会失败**，请先卸载旧版再装新版（回收站里的备份会随卸载丢失，先还原出来）。从 v1.0.1 起所有 release 使用同一把密钥，可以正常增量升级。
+⚠️ v1.0.0 的包用的是 debug 签名，和 v1.0.1 起不是同一把密钥，**覆盖安装会失败**，请先卸载旧版再装新版（回收站里的备份会随卸载丢失，先还原出来）。从 v1.0.1 起所有 release 使用同一把密钥，可以正常增量升级。
 
 ## 设置项
 
@@ -38,10 +56,15 @@
 | --- | --- | --- | --- |
 | 后台监控截图 | 开关 | — | 开 |
 | 多久后询问 | 滑杆 | 1 – 60 分钟 | 5 |
+| 提醒强度 | 单选 | 安静 / 横幅+震动 / 横幅+震动+声音 | 横幅+震动+声音 |
+| 重复提醒间隔 | 滑杆 | 0 – 120 分钟（0 = 不重复） | 20 |
+| 最多提醒次数 | 滑杆 | 1 – 10 次 | 5 |
+| 未回答自动过期 | 滑杆 | 0 – 14 天（0 = 永不过期） | 3 |
 | 删除前备份到回收站 | 开关 | — | 开 |
 | 回收站保留天数 | 滑杆 | 1 – 30 天 | 7 |
 | 识别规则 | 复选 | 按目录 / 按文件名 / 额外关键词 / 含录屏视频 | 目录 + 文件名 |
 | 待确认清单 | 列表 | 逐个确认、预览、单张删除或保留 | — |
+| 自检 | 页面 | 通知/权限/服务/队列状态报告 + 测试提醒，可复制 | — |
 | 事件日志 | 文本 | 记录「检测到 / 已询问 / 已删除 / 失败」，方便定位是没检测到还是检测到没问 | — |
 
 ## 权限与真实限制
@@ -68,6 +91,8 @@ Manifest 里没有 `INTERNET` 权限，应用在系统层面就无法联网：�
 - **删除**：`DeleteGateway` 先备份再删；能静默删就直删，不能就生成 `MediaStore.createDeleteRequest`（一批一次弹窗），由透明中转页 `DeleteConfirmActivity` 拉起。系统弹窗结束后以「原图还在不在」为准判断用户是否真的确认，取消了就把多余的备份抹掉。
 - **回收站**：`filesDir/trash/<mediaId>/` + `meta.json`，还原时重新写回 MediaStore。还原本机会让相册多出一条新记录，所以还原成功的文件名会进 3 分钟屏蔽名单，避免「刚还原又被当成新截图问一遍」。
 - **存活**：`BootReceiver`（开机 / 应用更新）+ 15 分钟 `WatchdogWorker`，拉不起来时发一条「点按恢复」的通知，而不是无声失败。
+- **队列卫生**：看门狗每轮先跑一次 `sweepStale()` 兜住三种「静默卡住」——`WAITING` 早过了到期时间却没被问（定时任务被 ROM 清掉）→ 立即补问；`ASKED` 超过设定天数没人回答 → 按保留出队；`DELETING` 六小时拿不到系统确认结果（弹窗开着时进程被杀）→ 退回待确认。监控关着时看门狗不在，`MainActivity.onResume` 是兜底入口。
+- **提醒的出声时机**：`ScreenshotRepository` 区分 `refreshReviewNotification`（允许按节流规则重新出声）和 `updateReviewNotification`（只同步内容）。到点询问、看门狗心跳、通知被划掉后的补提醒走前者；用户在应用里自己点了保留/删除/稍后再问之后的同步走后者，不该再响一次。
 
 ## 为什么不是别的做法
 
@@ -84,8 +109,10 @@ Manifest 里没有 `INTERNET` 权限，应用在系统层面就无法联网：�
 - 其他应用改名保存的截图可能识别不到，用「额外关键词」补。
 - 通知上的快捷按钮只作用于最早到期的那一张，批量操作要点开逐个确认页。
 - 回收站在应用私有目录，**卸载应用即永久丢失**；从回收站还原会在相册里生成一条新记录。
-- 国产 ROM 的后台管控是硬限制，不手动放行自启动就可能收不到询问。
-- 界面文案硬编码中文，未做国际化。
+- 国产 ROM 的后台管控是硬限制，不手动放行自启动就可能收不到询问。提醒强度同样有天花板：应用只能建渠道、按档重发，
+  横幅到底弹不弹、锁屏上显不显示、震动和铃声认不认，最终由 ROM 决定。用自检页 + 测试提醒可以先确认是哪种情况。
+- 询问过期是**按「保留」出队**，不会自动删除——宁可漏删，也不在你不在场时误删。
+- 界面文案硬编码中文（包括自检报告正文），未做国际化。
 - 代码只做过编译与打包验证（`assembleDebug` / `assembleRelease`、合并 Manifest、APK 签名），**没有在真机上做系统化回归测试**。运行时行为欢迎开 issue。
 
 ## 从源码构建
@@ -129,10 +156,11 @@ app/src/main/java/com/changakira/screenshotbye/
   core/        Settings(配置), PendingShot(待确认清单), Reminders(计时), ScreenshotRepository(决策中枢)
   media/       MediaScanner(发现), ScreenshotRule(判定), DeleteGateway(删除), TrashStore(回收站)
   service/     WatchService(常驻前台服务), WatchdogWorker(存活看门狗)
-  remind/      ReminderWorker(到点询问), TrashCleanupWorker(过期清理)
-  notify/      Channels, Notify, ActionReceiver(通知按钮)
+  remind/      ReminderWorker(到点询问), AlertRetryWorker(被划掉后补提醒), TrashCleanupWorker(过期清理)
+  notify/      Channels(三条提醒渠道), Notify, ActionReceiver(通知按钮与划掉事件)
+  diagnostic/  Diagnostics(纯文本自检报告 + 测试提醒)
   perm/        Perms(权限状态与 OEM 跳转)
-  ui/          MainActivity, ReviewActivity(逐个确认+批量反选), TrashActivity,
+  ui/          MainActivity, ReviewActivity(逐个确认+批量反选), TrashActivity, DiagnosticsActivity,
                DeleteConfirmActivity(系统删除确认中转), OnboardingActivity(首次引导), Adapters, Thumbs
 ```
 
@@ -150,6 +178,8 @@ ScreenshotBye keeps an eye on your camera roll for you. When a new screenshot sh
 On Android 11 and later, deleting files the app didn't create requires either the "all files access" grant or a system confirmation dialog; ScreenshotBye backs up first and asks the system once per batch, never silently. Detection uses a `MediaStore` content observer plus a `DATE_ADDED` watermark (Android 14's `DETECT_SCREEN_CAPTURE` only fires for your own visible activity and gives you no file), timing uses WorkManager so it survives process death, and a watchdog plus boot receiver bring the foreground service back when aggressive ROMs kill it.
 
 No `INTERNET` permission at all — photos, settings and trash stay on the device. Requires Android 8.0+.
+
+Reminders can re-alert instead of firing once and going silent: three notification channels back three intensity levels (quiet / banner + vibration / banner + vibration + sound — on Android 8+ sound and vibration belong to the channel, and a heads-up banner needs sound or vibration, so a "silent banner" level isn't achievable), with a 90-second burst guard, a configurable repeat interval and a per-item alert cap. Swiping the notification away schedules a follow-up rather than muting the item forever, unanswered asks expire into "kept" after a configurable number of days, and stuck `DELETING` entries fall back into the queue. A built-in diagnostics screen dumps notification permission and channel importance, DND state, service liveness, observer and scan timestamps, WorkManager job states and per-item queue state as copyable plain text, plus a "send test alert" button — useful when the question is whether the app didn't fire or the ROM ate the banner.
 
 ## License
 

@@ -16,7 +16,14 @@ class Settings private constructor(private val sp: SharedPreferences) {
         }
 
         const val DEFAULT_DELAY_MIN = 5
+        const val DEFAULT_ALERT_REPEAT_MIN = 20
+        const val DEFAULT_ASK_EXPIRY_DAYS = 3
         private const val MAX_SEEN = 800
+
+        /** 提醒强度：安静（仅通知栏）/ 横幅+震动 / 横幅+震动+声音。 */
+        const val INTENSITY_QUIET = 0
+        const val INTENSITY_VIBRATE = 1
+        const val INTENSITY_SOUND = 2
 
         private const val K_ENABLED = "watch_enabled"
         private const val K_DELAY = "delay_minutes"
@@ -32,6 +39,15 @@ class Settings private constructor(private val sp: SharedPreferences) {
         private const val K_RESTORED = "restored_names"
         private const val K_ONBOARDED = "onboarded"
         private const val K_PERMS_ASKED = "perms_asked"
+        private const val K_ALERT_INTENSITY = "alert_intensity"
+        private const val K_ALERT_REPEAT = "alert_repeat_minutes"
+        private const val K_ALERT_MAX = "alert_max_times"
+        private const val K_ASK_EXPIRY = "ask_expiry_days"
+        private const val K_LAST_ALERT = "last_alert_at"
+        private const val K_LAST_OBSERVER = "last_observer_at"
+        private const val K_LAST_SCAN = "last_scan_at"
+        private const val K_CHANNEL_V2 = "channel_v2"
+        private const val K_POSTED_CHANNEL = "last_posted_channel"
         private const val RESTORED_TTL_MS = 3 * 60 * 1000L
     }
 
@@ -63,6 +79,53 @@ class Settings private constructor(private val sp: SharedPreferences) {
     var trashDays: Int
         get() = sp.getInt(K_TRASH_DAYS, 7).coerceIn(1, 90)
         set(v) = sp.edit().putInt(K_TRASH_DAYS, v.coerceIn(1, 90)).apply()
+
+    /** 提醒强度，决定用哪条通知渠道，见 Channels。 */
+    var alertIntensity: Int
+        get() = sp.getInt(K_ALERT_INTENSITY, INTENSITY_SOUND).coerceIn(INTENSITY_QUIET, INTENSITY_SOUND)
+        set(v) = sp.edit().putInt(K_ALERT_INTENSITY, v.coerceIn(INTENSITY_QUIET, INTENSITY_SOUND)).apply()
+
+    /** 还有没回答的截图时，隔多少分钟再提醒一次；0 表示只问一次不再重复。 */
+    var alertRepeatMinutes: Int
+        get() = sp.getInt(K_ALERT_REPEAT, DEFAULT_ALERT_REPEAT_MIN).coerceIn(0, 180)
+        set(v) = sp.edit().putInt(K_ALERT_REPEAT, v.coerceIn(0, 180)).apply()
+
+    /** 同一批待确认截图最多提醒几次，超过就只留通知不再出声，避免变成骚扰。 */
+    var alertMaxTimes: Int
+        get() = sp.getInt(K_ALERT_MAX, 5).coerceIn(1, 20)
+        set(v) = sp.edit().putInt(K_ALERT_MAX, v.coerceIn(1, 20)).apply()
+
+    /** 一直不回答的询问过多少天按「保留」处理；0 表示永不过期。 */
+    var askExpiryDays: Int
+        get() = sp.getInt(K_ASK_EXPIRY, DEFAULT_ASK_EXPIRY_DAYS).coerceIn(0, 30)
+        set(v) = sp.edit().putInt(K_ASK_EXPIRY, v.coerceIn(0, 30)).apply()
+
+    /** 上一次真正发出提醒（出声/震动）的时刻，用于节流；队列为空时归零。 */
+    var lastAlertAt: Long
+        get() = sp.getLong(K_LAST_ALERT, 0L)
+        set(v) = sp.edit().putLong(K_LAST_ALERT, v).apply()
+
+    /** 诊断用：相册监听最近一次回调、最近一次扫描的时间戳。 */
+    var lastObserverAt: Long
+        get() = sp.getLong(K_LAST_OBSERVER, 0L)
+        set(v) = sp.edit().putLong(K_LAST_OBSERVER, v).apply()
+
+    var lastScanAt: Long
+        get() = sp.getLong(K_LAST_SCAN, 0L)
+        set(v) = sp.edit().putLong(K_LAST_SCAN, v).apply()
+
+    /** 通知渠道从旧的单一 review 渠道迁移到按强度分渠道，只迁一次。 */
+    var channelMigrated: Boolean
+        get() = sp.getBoolean(K_CHANNEL_V2, false)
+        set(v) = sp.edit().putBoolean(K_CHANNEL_V2, v).apply()
+
+    /**
+     * 询问通知最后一次发布时用的渠道。已发布的通知绑定在旧渠道上，改强度后
+     * 必须撤掉重发才会走新渠道的声音/震动设置。
+     */
+    var lastPostedChannel: String
+        get() = sp.getString(K_POSTED_CHANNEL, "") ?: ""
+        set(v) = sp.edit().putString(K_POSTED_CHANNEL, v).apply()
 
     var matchByFolder: Boolean
         get() = sp.getBoolean(K_BY_FOLDER, true)
@@ -97,6 +160,11 @@ class Settings private constructor(private val sp: SharedPreferences) {
         val next = (current + key).takeLast(MAX_SEEN)
         sp.edit().putString(K_SEEN, next.joinToString(",")).apply()
         true
+    }
+
+    /** 诊断用：已登记过的媒体 id 数量（上限 MAX_SEEN，超出后丢最旧）。 */
+    fun seenCount(): Int = synchronized(this) {
+        (sp.getString(K_SEEN, "") ?: "").split(',').count { it.isNotBlank() }
     }
 
     /**

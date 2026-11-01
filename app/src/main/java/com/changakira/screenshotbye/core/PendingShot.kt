@@ -9,6 +9,8 @@ enum class ShotState { WAITING, ASKED, DELETING }
 /**
  * 一张「待确认」的截图。
  * 生命周期：检测到 -> WAITING(计时中) -> ASKED(已通知，等用户回答) -> 删除 / 保留后移出列表。
+ * 两个兜底：一直不回答超过 askExpiryDays 按「保留」处理并出队；
+ * DELETING（等系统弹窗）超时未完成则退回 ASKED，避免通知长期挂着。
  */
 data class PendingShot(
     val mediaId: Long,
@@ -20,6 +22,10 @@ data class PendingShot(
     val takenAt: Long,
     val askAt: Long,
     val state: ShotState,
+    /** 进入当前状态的时间，用于「不回答就过期」和「系统确认卡住」的超时判定。 */
+    val stateAt: Long = 0L,
+    /** 这张已经被提醒（出声/震动）过几次，用于提醒次数封顶。 */
+    val askCount: Int = 0,
     /** 备份文件的本地路径，仅在勾选回收站且有备份时非空。 */
     val backupPath: String? = null,
     /** MediaStore DATA 列的绝对路径，Android 11+ 可能为 null。 */
@@ -27,6 +33,9 @@ data class PendingShot(
 ) {
     val id: String get() = mediaId.toString()
     val contentUri: android.net.Uri get() = android.net.Uri.parse(uri)
+
+    /** 旧版本存档里没有 stateAt，退化用 askAt，保证升级后超时判定仍然成立。 */
+    val sinceStateAt: Long get() = if (stateAt > 0L) stateAt else askAt
 }
 
 /**
@@ -88,6 +97,8 @@ class PendingShotStore private constructor(private val ctx: Context) {
         put("takenAt", s.takenAt)
         put("askAt", s.askAt)
         put("state", s.state.name)
+        put("stateAt", s.stateAt)
+        put("askCount", s.askCount)
         put("backupPath", s.backupPath ?: JSONObject.NULL)
         put("absolutePath", s.absolutePath ?: JSONObject.NULL)
     }
@@ -102,6 +113,8 @@ class PendingShotStore private constructor(private val ctx: Context) {
         takenAt = o.optLong("takenAt"),
         askAt = o.optLong("askAt"),
         state = runCatching { ShotState.valueOf(o.optString("state", "WAITING")) }.getOrDefault(ShotState.WAITING),
+        stateAt = o.optLong("stateAt"),
+        askCount = o.optInt("askCount"),
         backupPath = o.nullableString("backupPath"),
         absolutePath = o.nullableString("absolutePath"),
     )

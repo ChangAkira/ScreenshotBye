@@ -6,10 +6,9 @@ import androidx.work.WorkerParameters
 import com.changakira.screenshotbye.core.PendingShotStore
 import com.changakira.screenshotbye.core.ScreenshotRepository
 import com.changakira.screenshotbye.core.Settings
-import com.changakira.screenshotbye.core.ShotState
 import com.changakira.screenshotbye.media.DeleteGateway
 
-/** 到点把这张截图推进待确认清单，并刷新那条合并询问通知。 */
+/** 到点把这张截图推进待确认清单，并按节流规则刷新那条合并询问通知。 */
 class ReminderWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
 
     override suspend fun doWork(): Result {
@@ -24,19 +23,32 @@ class ReminderWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(c
         // 用户已经自己在相册里删掉了，不必再问
         if (!DeleteGateway(app).exists(shot.contentUri)) {
             store.remove(mediaId)
-            repo.refreshReviewNotification(app)
+            repo.updateReviewNotification(app)
             return Result.success()
         }
 
-        store.upsert(shot.copy(state = ShotState.ASKED))
-        // 无论这张是第一个还是第五个到期的，都只更新同一条通知，不新增第二条
-        repo.refreshReviewNotification(app)
-        Settings.of(app).appendLog("已询问：${shot.name}")
+        repo.onReminderFired(mediaId)
         return Result.success()
     }
 
     companion object {
         const val KEY_MEDIA_ID = "media_id"
+    }
+}
+
+/**
+ * 询问通知被用户划掉后的补提醒。
+ *
+ * 划掉不等于回答：条目还在队列里，如果不补一次，它就永远沉在通知栏历史记录里，
+ * 用户只能自己想起来去应用里找。这里只负责在延时到期后走一次正常的提醒判定，
+ * 该不该出声仍由仓库的节流规则决定。
+ */
+class AlertRetryWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
+
+    override suspend fun doWork(): Result {
+        val app = applicationContext
+        ScreenshotRepository(app).refreshReviewNotification(app, newDue = true)
+        return Result.success()
     }
 }
 
