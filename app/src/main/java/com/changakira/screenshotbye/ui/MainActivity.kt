@@ -47,7 +47,6 @@ class MainActivity : ThemedActivity() {
         b.askPermsBtn.setOnClickListener { onAskPerms() }
         b.settingsBtn.setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
         b.oemBtn.setOnClickListener { Perms.requestIgnoreBattery(this) }
-        b.oemAutostartBtn.setOnClickListener { Perms.openOemAutoStart(this) }
 
         if (settings.onboarded) {
             // 从旧版本升上来、还没问过权限的用户：进页面问一次，之后不再重复弹

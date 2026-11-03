@@ -4,7 +4,7 @@
   <p>截图常常只是临时用一下，用完就忘在相册里。这个应用持续在后台盯着相册，过一段时间问你一句「还需要这张截图吗」，回答不需要就删掉它——删掉之后进的是系统相册自己的回收站，反悔可以在相册里还原。</p>
   <p>
     <img alt="platform" src="https://img.shields.io/badge/Android-8.0%2B-green"/>
-    <img alt="release" src="https://img.shields.io/badge/release-v1.0.6-blue"/>
+    <img alt="release" src="https://img.shields.io/badge/release-v1.0.7-blue"/>
     <img alt="lang" src="https://img.shields.io/badge/Kotlin-2.0.21-orange"/>
     <img alt="offline" src="https://img.shields.io/badge/联网-不需要-informational"/>
     <img alt="license" src="https://img.shields.io/badge/License-MIT-lightgrey"/>
@@ -31,13 +31,15 @@
 
 页面分成三层，首页只回答「现在能不能正常干活」：
 
-- **首页**（照参考仓库 MainScreen 一比一摆）：居中标题、一句应用简介、一行运行状态，
+- **首页**（照参考仓库 MainScreen 一比一摆）：顶部一条应用名，下面居中标题、一句应用简介、一行运行状态，
   然后两个整宽按钮——`请求权限`（缺什么一次问齐，授予后变成 `权限已授予` 并按住）与 `设置`；
-  下面是电池优化提示卡（仅在系统还没放行时出现）与自启动提示卡（常驻）。
+  下面是电池优化提示卡（仅在系统还没放行时出现，带一个跳转按钮）与自启动提示卡（常驻，只有说明文字、没有按钮）。
   权限不再逐行罗列说明，授予状态只由那一个按钮体现。
 - **设置页**（四块，照参考仓库的分卡）：启用服务 → 识别规则与待确认截图 → 询问与提醒（四个旋钮）
-  → 主题颜色、使用引导、事件日志与运行自检。
+  → 主题颜色、使用引导、事件日志与运行自检。「待确认截图」是一行可点条目，不再套一层卡片。
 - **二级页面**：待确认截图（逐个确认）、使用引导、事件日志、运行自检。
+
+主题配色只作用于按钮、旋钮等控件（`colorPrimary`）；卡片背景固定为一个中性色，不随配色变化——和参考仓库一致。
 
 删除的去向不在设置页里：它只有一条路，就是系统的照片回收站（Android 10 及以下没有回收站）。
 
@@ -92,9 +94,22 @@ v1.0.3 把这个档位**撤掉了**：声音、震动、横幅、锁屏显示本
 
 ## 下载
 
-最新 release：[v1.0.6](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.6) —
-直接安装 [ScreenshotBye-v1.0.6.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.6/ScreenshotBye-v1.0.6.apk)
+最新 release：[v1.0.7](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.7) —
+直接安装 [ScreenshotBye-v1.0.7.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.7/ScreenshotBye-v1.0.7.apk)
 （release 签名，minSdk 26 / Android 8.0 起）。v1.0.1 起都是同一把密钥，**直接覆盖安装即可**，待确认清单和设置都保留。
+
+v1.0.7 继续向参考仓库看齐，并做了一处后台常驻的大改进：
+
+- **不再出现在系统「最近使用的应用」里**：主页 `MainActivity` 加了 `excludeFromRecents`，任务不进多任务列表，
+  用户就没法上滑把它划掉，后台监控更不容易被误杀（和参考仓库一致）。
+- **卡片背景不再跟随主题颜色**：主题配色只作用于按钮、旋钮等控件；卡片背景固定为一个中性色，五套配色共用。
+  之前 Material3 的 Filled 卡默认取 `colorSurfaceContainerHighest`，那一层各配色都带了色温，换主题时卡片会跟着变。
+- **首页照参考仓库补上顶部应用名**，并精简文案：应用描述改为「截图一段时间后由你来决定是否删除。」，
+  状态小字改为「运行中  N 张待确认」；自启动提示卡去掉跳转按钮，只留说明文字。
+- **设置页「待确认截图」改成一行可点条目**，不再是「卡片里再套一个卡片」的别扭结构。
+- **回退旋钮的拨动手势阈值检测**：上一版为「让页面能滚」给旋钮加了横向/斜向阈值判定，反而让旋钮手感变差。
+  设置页滑不动的真正原因是当时整页压根没做成可滚动，而非旋钮抢触摸；现在页面已在 `NestedScrollView` 里，
+  旋钮恢复成按下即响应、按角度吸附。
 
 v1.0.6 修了五个恼人的问题：
 
@@ -260,7 +275,7 @@ On Android 11 and later, deleting files the app didn't create requires either th
 
 No `INTERNET` permission at all — photos and settings stay on the device. Requires Android 8.0+. On Android 10 and below there is no system trash, so a delete there is final.
 
-The UI is split the way the reference app splits it: a permissions-only home screen with a single "request permissions" button (the rows just show granted/denied, no per-row grant buttons) plus a settings entry, and a four-card settings screen — an "enable service" switch, detection rules and pending shots, four fixed-detent snapping knobs (ask after 2/5/15/30/90 min, keep for 0/1/3/5/7 days where 0 means "keep waiting", re-alert every 0/1/2/5/10 min, up to 1/2/3 times), then colour palettes, the onboarding guide, the event log and the self-check. Deletion has no settings of its own any more: it goes through the system photo trash. Continuous sliders invite "is 8 minutes different from 12?" — detents remove the question; values saved by older builds snap to the nearest detent on read, so nothing needs migrating. Palettes (beige / slate / terracotta / indigo / graphite) ship a light and a dark colour table each and dark mode simply follows the system, with all text routed through theme attributes so night mode is actually legible.
+The UI is split the way the reference app splits it: a home screen that mirrors the reference almost one-for-one — an app-name bar on top, a centred title, a one-line description and a status line, then two full-width buttons (a single "request permissions" button that asks for everything missing at once and turns into "permissions granted" once done, plus a "settings" entry), a battery-optimisation card that only shows while the system hasn't whitelisted the app, and an always-on autostart card that is text-only. There are no per-permission description rows any more; grant state lives entirely in that one button. The home task is also marked `excludeFromRecents`, so the app never appears in the system recents list and can't be swiped away — the background watcher is less likely to be killed by accident. The theme colour only drives controls (buttons, knobs); card backgrounds are pinned to one neutral colour shared by all five palettes, so cards no longer tint when you switch palette. The settings screen is four cards — an "enable service" switch, detection rules and pending shots (the pending-shots entry is now a plain tappable row, not a card inside a card), four fixed-detent snapping knobs (ask after 2/5/15/30/90 min, keep for 0/1/3/5/7 days where 0 means "keep waiting", re-alert every 0/1/2/5/10 min, up to 1/2/3 times), then colour palettes, the onboarding guide, the event log and the self-check. Deletion has no settings of its own any more: it goes through the system photo trash. Continuous sliders invite "is 8 minutes different from 12?" — detents remove the question; values saved by older builds snap to the nearest detent on read, so nothing needs migrating. Palettes (beige / slate / terracotta / indigo / graphite) ship a light and a dark colour table each and dark mode simply follows the system, with all text routed through theme attributes so night mode is actually legible.
 
 Asks re-alert instead of firing once and going silent: a 90-second burst guard, a configurable repeat interval and a per-item alert cap, all applied to a single notification channel — sound, vibration, heads-up banner and lock-screen behaviour are owned by the system notification settings, and the app just links straight to them rather than duplicating a switch you can already flip in Android itself. (v1.0.2 tried a three-level "alert intensity" picker backed by three channels; since channel settings are immutable once created, that meant three parallel copies of one system setting, so it's gone — the retired channels get deleted on startup and any ringtone or banner choice you'd already made carries over.) Swiping the notification away schedules a follow-up rather than muting the item forever, unanswered asks expire into "kept" after a configurable number of days, and stuck `DELETING` entries fall back into the queue. A built-in diagnostics screen dumps notification permission and channel importance, DND state, service liveness, observer and scan timestamps, WorkManager job states, per-item queue state and the last uncaught crash (captured synchronously, stack frames and all) as copyable plain text, plus a "send test alert" button that posts through the real channel — useful when the question is whether the app didn't fire or the ROM ate the banner.
 

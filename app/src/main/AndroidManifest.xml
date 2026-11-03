@@ -38,6 +38,7 @@
 
         <activity
             android:name=".ui.MainActivity"
+            android:excludeFromRecents="true"
             android:exported="true"
             android:launchMode="singleTop">
             <intent-filter>

@@ -200,6 +200,16 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
 
+    <!--
+      卡片：背景固定用中性的 @color/card_surface，不随主题配色变化。
+      Material3 的 Filled 卡默认取 ?attr/colorSurfaceContainerHighest，而那一层在五套配色里
+      各自带了色温（陶土偏粉、靛蓝偏蓝……），换主题时卡片会跟着变色。这里把容器色钉死成中性，
+      让主题颜色只作用于按钮、旋钮等控件（它们走 colorPrimary），卡片始终保持一致。
+    -->
+    <style name="Widget.ScreenshotBye.Card.Filled" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">@color/card_surface</item>
+    </style>
+
     <!-- 文字颜色一律走主题属性：夜间模式靠 ?attr 自动换，硬写 @color/ink 会让深底上看不清 -->
     <style name="SectionTitle">
         <item name="android:layout_width">match_parent</item>

@@ -1,18 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  首页照参考仓库 MainScreen 一比一摆：居中一列、24dp 内边距，
+  首页照参考仓库 MainScreen 一比一摆：顶部一条应用名，下面居中一列、24dp 内边距，
   标题(headlineLarge) / 副标题(bodyLarge) / 一行状态(bodySmall, onSurfaceVariant)，
   然后两个整宽按钮（请求权限、设置），再下面是电池优化卡（仅未放行时出现）与自启动卡（常驻）。
+  自启动卡照参考仓库只放说明文字，不再摆跳转系统设置的按钮。
   权限不再逐行说明——授予状态由那一个「请求权限」按钮的启用/文案体现，多余的说明文字都删掉。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
 
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        app:title="@string/app_name" />
+
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:fillViewport="true">
 
         <LinearLayout
@@ -66,7 +75,7 @@
             <!-- 电池优化：只在系统没放行时出现，和参考仓库一致 -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/batteryCard"
-                style="@style/Widget.Material3.CardView.Filled"
+                style="@style/Widget.ScreenshotBye.Card.Filled"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
@@ -102,10 +111,10 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- 自启动引导：常驻，和参考仓库一致 -->
+            <!-- 自启动引导：常驻，照参考仓库只放说明文字，不摆跳转按钮 -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/autostartCard"
-                style="@style/Widget.Material3.CardView.Filled"
+                style="@style/Widget.ScreenshotBye.Card.Filled"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp">
@@ -130,14 +139,6 @@
                         android:text="@string/home_autostart_body"
                         android:textAppearance="?attr/textAppearanceBodySmall"
                         android:textColor="?attr/colorOnSurfaceVariant" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/oemAutostartBtn"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/home_autostart_settings" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>

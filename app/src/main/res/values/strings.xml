@@ -36,7 +36,7 @@
 
     <!-- 主界面 -->
     <string name="main_watch_switch">启用服务</string>
-    <string name="main_running">服务运行中 · 已发现 %1$d 张待确认</string>
+    <string name="main_running">运行中  %1$d 张待确认</string>
     <string name="main_stopped">未运行</string>
 
     <string name="main_open_diag">运行自检</string>
@@ -49,7 +49,7 @@
 
 
     <!-- 首页：权限 + 引导 + 设置入口 -->
-    <string name="home_subtitle">截图过一段时间问一句「还需要吗」，不要就删掉，删进的会是系统相册的回收站。</string>
+    <string name="home_subtitle">截图一段时间后由你来决定是否删除。</string>
     <string name="home_request_perms">请求权限</string>
     <string name="home_request_perms_done">权限已授予</string>
     <string name="home_open_settings">设置</string>
@@ -59,7 +59,6 @@
     <string name="home_battery_settings">前往电池设置</string>
     <string name="home_autostart_title">为保障稳定运行</string>
     <string name="home_autostart_body">请允许本应用自启动与后台活动（可在系统设置里搜索「应用启动管理」）。</string>
-    <string name="home_autostart_settings">允许自启动 / 后台运行</string>
 
     <!-- 设置页 -->
     <string name="settings_title">设置</string>

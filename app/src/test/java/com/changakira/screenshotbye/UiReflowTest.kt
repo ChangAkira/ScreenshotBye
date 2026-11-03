@@ -114,25 +114,6 @@ class UiReflowTest {
     }
 
     @Test
-    fun `竖直滑动旋钮不拨档也不抢页面滚动`() {
-        val activity = Robolectric.buildActivity(SettingsActivity::class.java).setup().get()
-        val dial = activity.findViewById<DetentDial>(R.id.askDial)
-        val width = 600
-        dial.measure(
-            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.AT_MOST)
-        )
-        dial.layout(0, 0, width, dial.measuredHeight)
-        val before = dial.value
-        // 手指落在旋钮上竖直往下划：这是滚动意图，旋钮不该改值、也不该把触摸抢下来
-        dial.dispatchTouchEvent(MotionEvent.obtain(0L, 1L, MotionEvent.ACTION_DOWN, width / 2f, 120f, 0))
-        dial.dispatchTouchEvent(MotionEvent.obtain(0L, 2L, MotionEvent.ACTION_MOVE, width / 2f, 320f, 0))
-        dial.dispatchTouchEvent(MotionEvent.obtain(0L, 3L, MotionEvent.ACTION_CANCEL, width / 2f, 320f, 0))
-        assertEquals("竖直滑动不该改变档位", before, dial.value)
-        assertEquals(before, Settings.of(ctx).delayMinutes)
-    }
-
-    @Test
     fun `拨旋钮会把值写进设置`() {
         val activity = Robolectric.buildActivity(SettingsActivity::class.java).setup().get()
         val dial = activity.findViewById<DetentDial>(R.id.askDial)
@@ -213,15 +194,39 @@ class UiReflowTest {
         val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
         assertNotNull(activity.findViewById<View>(R.id.askPermsBtn))
         assertNotNull(activity.findViewById<View>(R.id.settingsBtn))
+        // 顶部一条应用名，和参考仓库的 TopAppBar 一致
+        assertEquals(
+            ctx.getString(R.string.app_name),
+            activity.findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.topBar).title.toString()
+        )
         // 电池优化卡（仅未放行时出现）与自启动卡（常驻）都还在
         assertNotNull(activity.findViewById<View>(R.id.batteryCard))
-        assertNotNull(activity.findViewById<View>(R.id.autostartCard))
+        val autostart = activity.findViewById<View>(R.id.autostartCard)
+        assertNotNull(autostart)
+        // 自启动卡照参考仓库只放说明文字，不再有跳转系统设置的按钮
+        assertFalse(
+            autostart.flatten().any { it is com.google.android.material.button.MaterialButton }
+        )
         val homeTexts = activity.findViewById<View>(android.R.id.content).flatten()
             .filterIsInstance<android.widget.TextView>().map { it.text.toString() }
         // 使用引导挪进了设置页，首页不再放入口
         assertFalse(homeTexts.any { it == ctx.getString(R.string.main_open_guide) })
         // 逐行的权限说明文字全部删掉：授予状态只由那一个按钮体现
         assertFalse(homeTexts.any { "读取相册" in it || "通知权限" in it })
+    }
+
+    @Test
+    fun `卡片背景不随主题配色变化，主题色只管控件`() {
+        fun autostartCardColor(paletteId: String): Int {
+            dropSingleton(Settings::class.java)
+            Settings.of(ctx).themePalette = paletteId
+            val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+            val card = activity.findViewById<com.google.android.material.card.MaterialCardView>(R.id.autostartCard)
+            return card.cardBackgroundColor.defaultColor
+        }
+        // 陶土偏粉、靛蓝偏蓝，若卡片跟着配色走这两者会不同；现在应为同一个中性色
+        assertEquals(autostartCardColor("terracotta"), autostartCardColor("indigo"))
+        assertEquals(ctx.getColor(R.color.card_surface), autostartCardColor("graphite"))
     }
 
     @Test

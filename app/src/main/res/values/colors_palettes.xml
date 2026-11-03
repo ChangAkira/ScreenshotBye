@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 由参考仓库 Palette.kt 的 5 套配色生成，不要手改单条数值 -->
 <resources>
+    <!--
+      卡片背景：刻意不随主题配色变化，五套配色共用这一个中性色（夜间见 values-night）。
+      主题颜色只作用于按钮、旋钮等控件（colorPrimary），卡片/底衬保持中性——对齐参考仓库的观感。
+    -->
+    <color name="card_surface">#EEEDEB</color>
     <color name="beige_primary">#8B7D6B</color>
     <color name="beige_onPrimary">#FFFFFF</color>
     <color name="beige_primaryContainer">#EBE8E4</color>

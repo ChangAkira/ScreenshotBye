@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 由参考仓库 Palette.kt 的 5 套配色生成，不要手改单条数值 -->
 <resources>
+    <!-- 卡片背景的夜间中性色，同样不随主题配色变化 -->
+    <color name="card_surface">#2F2E30</color>
     <color name="beige_primary">#C4B6A3</color>
     <color name="beige_onPrimary">#171412</color>
     <color name="beige_primaryContainer">#49423A</color>
