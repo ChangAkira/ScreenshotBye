@@ -26,7 +26,7 @@ import com.google.android.material.color.MaterialColors
 import java.util.concurrent.Executors
 
 /**
- * 设置页四段：服务与识别规则 / 询问与提醒 / 回收站 / 外观与日志。
+ * 设置页三段：服务与识别规则 / 询问与提醒 / 外观与日志。
  *
  * 询问、保留、间隔、重复用固定档位旋钮而不是滑块：可选值就三五个，摊成一圈数字比让用户
  * 在一条连续轨道上找「15 分钟那一格」快得多，也不会出现 8 分钟和 12 分钟这种没区别的取值。
@@ -52,21 +52,14 @@ class SettingsActivity : ThemedActivity() {
 
         wireService()
         wireDials()
-        wireTrash()
         wireAppearance()
     }
 
     override fun onResume() {
         super.onResume()
-        // 待确认张数、日志条数读的是本地偏好，直接同步刷，别等回收站那边扫完目录
+        // 待确认张数、日志条数读的都是本地偏好，同步刷就行
         refreshCounts()
-        io.execute {
-            runCatching { repo.sweepStale() }
-            // 回收站要列目录、算大小，放到后台；失败就当空的，不拖垮整页
-            val entries = runCatching { repo.trash.list() }.getOrDefault(emptyList())
-            val summary = getString(R.string.main_trash_summary, entries.size, sizeOf(this, entries.sumOf { it.size }))
-            runOnUiThread { b.trashSummary.text = summary }
-        }
+        io.execute { runCatching { repo.sweepStale() } }
     }
 
     // ---- ① 服务 + 识别规则 + 待确认 ----
@@ -149,22 +142,7 @@ class SettingsActivity : ThemedActivity() {
         b.timesDial.setOnValueChangeListener { settings.alertMaxTimes = it }
     }
 
-    // ---- ③ 回收站 ----
-
-    private fun wireTrash() {
-        b.trashRow.setOnClickListener { startActivity(Intent(this, TrashActivity::class.java)) }
-        b.trashSwitch.isChecked = settings.useTrash
-        b.trashSwitch.setOnClickListener { settings.useTrash = b.trashSwitch.isChecked }
-
-        // 保留天数只有 1/3/5/7/30 五档，间距完全不均匀，所以滑块走下标而不是天数本身
-        b.trashDaysSlider.setLabelFormatter { Settings.TRASH_PRESETS[it.toInt()].toString() }
-        b.trashDaysSlider.value = Settings.TRASH_PRESETS.indexOf(settings.trashDays).toFloat()
-        b.trashDaysSlider.addOnChangeListener { _, value, fromUser ->
-            if (fromUser) settings.trashDays = Settings.TRASH_PRESETS[value.toInt()]
-        }
-    }
-
-    // ---- ④ 外观 + 日志 + 自检 ----
+    // ---- ③ 外观 + 日志 + 自检 ----
 
     private fun wireAppearance() {
         buildSwatches()

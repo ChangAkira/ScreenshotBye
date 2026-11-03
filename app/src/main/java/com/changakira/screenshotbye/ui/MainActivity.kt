@@ -86,8 +86,9 @@ class MainActivity : ThemedActivity() {
 
         // 权限还缺就继续问；全齐了把按钮按住，免得首页一直挂着个点了没反应的大按钮
         val coreMissing = !Perms.hasMediaRead(this) || !Perms.hasNotification(this)
-        val allFilesMissing = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Perms.hasAllFilesAccess()
-        b.askPermsBtn.isEnabled = coreMissing || allFilesMissing
+        // Android 11+ 不需要任何「静默删除」权限：删除请求本来就交给系统弹窗
+        val writeMissing = Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q && !Perms.canDeleteSilently(this)
+        b.askPermsBtn.isEnabled = coreMissing || writeMissing
         b.askPermsBtn.text = getString(
             if (b.askPermsBtn.isEnabled) R.string.home_request_perms else R.string.home_request_perms_done
         )
@@ -97,11 +98,7 @@ class MainActivity : ThemedActivity() {
     }
 
     private fun onAskPerms() {
-        if (!Perms.hasMediaRead(this) || !Perms.hasNotification(this)) {
-            requestCorePermissions(force = true)
-            return
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Perms.hasAllFilesAccess()) Perms.openAllFilesAccess(this)
+        requestCorePermissions(force = true)
     }
 
     /** 缺少关键权限时一次性问齐；引导页问过一次后不再重复弹，用户点授权按钮时照样能问。 */
@@ -138,9 +135,6 @@ class MainActivity : ThemedActivity() {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
                     askPerms.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
                 else Perms.openAppNotificationSettings(this)
-            },
-            Row(getString(R.string.perm_all_files), Perms.hasAllFilesAccess(), visible = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                Perms.openAllFilesAccess(this)
             },
             Row(getString(R.string.perm_legacy_write), Perms.canDeleteSilently(this), visible = Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
                 askPerms.launch(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE))

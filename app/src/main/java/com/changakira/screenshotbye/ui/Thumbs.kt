@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.widget.ImageView
 import com.changakira.screenshotbye.R
-import java.io.File
 import java.util.Collections
 import java.util.concurrent.Executors
 
@@ -50,10 +49,6 @@ object Thumbs {
                 else view.setBackgroundResource(R.drawable.thumb_placeholder)
             }
         }
-    }
-
-    fun file(view: ImageView, file: File) {
-        into(view, "file:" + file.absolutePath) { if (file.exists()) Uri.fromFile(file) else null }
     }
 
     fun media(view: ImageView, uri: Uri, maxPx: Int = 128, cache: Boolean = true) {

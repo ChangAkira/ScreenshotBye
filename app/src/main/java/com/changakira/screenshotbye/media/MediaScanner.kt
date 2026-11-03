@@ -206,8 +206,6 @@ class MediaScanner(
     }
 
     private fun isScreenshot(h: MediaHit): Boolean {
-        // 刚从回收站还原回来的文件不重复处理，否则「还原」会被当成一次新截图
-        if (settings.isRecentlyRestored(h.displayName)) return false
         return ScreenshotRule.matches(
             displayName = h.displayName,
             folderLabel = h.folder,

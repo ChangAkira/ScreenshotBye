@@ -2,8 +2,6 @@ package com.changakira.screenshotbye.core
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.os.Environment
-import android.os.Build
 
 /** 用户可配置项，全部落在 SharedPreferences 里。 */
 class Settings private constructor(private val sp: SharedPreferences) {
@@ -19,7 +17,6 @@ class Settings private constructor(private val sp: SharedPreferences) {
         const val DEFAULT_ALERT_REPEAT_MIN = 5
         const val DEFAULT_ALERT_MAX_TIMES = 3
         const val DEFAULT_ASK_EXPIRY_DAYS = 3
-        const val DEFAULT_TRASH_DAYS = 7
 
         /**
          * 固定档位。旋钮只在这几个值之间吸附，理由和参考仓库一样：
@@ -30,7 +27,6 @@ class Settings private constructor(private val sp: SharedPreferences) {
         val EXPIRY_PRESETS = listOf(0, 1, 3, 5, 7)
         val REPEAT_PRESETS = listOf(0, 1, 2, 5, 10)
         val MAX_TIMES_PRESETS = listOf(1, 2, 3)
-        val TRASH_PRESETS = listOf(1, 3, 5, 7, 30)
 
         /** 吸附到最近的一格。档位升序遍历 + 严格小于，平局时留下较小的那一档。 */
         fun nearest(value: Int, presets: List<Int>): Int {
@@ -50,8 +46,6 @@ class Settings private constructor(private val sp: SharedPreferences) {
 
         private const val K_ENABLED = "watch_enabled"
         private const val K_DELAY = "delay_minutes"
-        private const val K_TRASH = "use_trash"
-        private const val K_TRASH_DAYS = "trash_days"
         private const val K_BY_FOLDER = "match_by_folder"
         private const val K_BY_NAME = "match_by_name"
         private const val K_THEME = "theme_palette"
@@ -59,7 +53,6 @@ class Settings private constructor(private val sp: SharedPreferences) {
         private const val K_BASELINE = "baseline_date_added"
         private const val K_SEEN = "seen_ids"
         private const val K_LOG = "event_log"
-        private const val K_RESTORED = "restored_names"
         private const val K_ONBOARDED = "onboarded"
         private const val K_PERMS_ASKED = "perms_asked"
         private const val K_ALERT_REPEAT = "alert_repeat_minutes"
@@ -69,7 +62,6 @@ class Settings private constructor(private val sp: SharedPreferences) {
         private const val K_LAST_OBSERVER = "last_observer_at"
         private const val K_LAST_SCAN = "last_scan_at"
         private const val K_LAST_CRASH = "last_crash"
-        private const val RESTORED_TTL_MS = 3 * 60 * 1000L
     }
 
     /** 首次启动是否已走完引导页。 */
@@ -94,16 +86,6 @@ class Settings private constructor(private val sp: SharedPreferences) {
     var delayMinutes: Int
         get() = nearest(sp.getInt(K_DELAY, DEFAULT_DELAY_MIN), DELAY_PRESETS)
         set(v) = sp.edit().putInt(K_DELAY, nearest(v, DELAY_PRESETS)).apply()
-
-    /** 删除前先备份到应用私有目录，可在回收站找回。 */
-    var useTrash: Boolean
-        get() = sp.getBoolean(K_TRASH, true)
-        set(v) = sp.edit().putBoolean(K_TRASH, v).apply()
-
-    /** 回收站保留天数，同样是固定档位。 */
-    var trashDays: Int
-        get() = nearest(sp.getInt(K_TRASH_DAYS, DEFAULT_TRASH_DAYS), TRASH_PRESETS)
-        set(v) = sp.edit().putInt(K_TRASH_DAYS, nearest(v, TRASH_PRESETS)).apply()
 
     /** 还有没回答的截图时，隔多少分钟再提醒一次；0 表示只问一次不再重复。 */
     var alertRepeatMinutes: Int
@@ -192,29 +174,6 @@ class Settings private constructor(private val sp: SharedPreferences) {
         (sp.getString(K_SEEN, "") ?: "").split(',').count { it.isNotBlank() }
     }
 
-    /**
-     * 刚被用户「还原到相册」的文件名，短时间内不再当作新截图处理。
-     * 否则还原动作本身会让相册多出一张 Screenshot_xxx.png，又被检测、又被问、甚至又被删。
-     */
-    fun markRestored(name: String) {
-        val horizon = System.currentTimeMillis() + RESTORED_TTL_MS
-        val kept = restoredList().filter { it.expireAt > System.currentTimeMillis() } + Restored(name, horizon)
-        sp.edit().putString(
-            K_RESTORED, kept.joinToString("|") { "${it.name}#${it.expireAt}" }
-        ).apply()
-    }
-
-    fun isRecentlyRestored(name: String): Boolean =
-        restoredList().any { it.name == name && it.expireAt > System.currentTimeMillis() }
-
-    private fun restoredList(): List<Restored> =
-        (sp.getString(K_RESTORED, "") ?: "").split('|').filter { it.isNotBlank() }.mapNotNull {
-            val parts = it.split('#')
-            if (parts.size != 2) null else Restored(parts[0], parts[1].toLongOrNull() ?: 0L)
-        }
-
-    private data class Restored(val name: String, val expireAt: Long)
-
     fun appendLog(line: String) {
         val stamp = android.text.format.DateFormat.format("MM-dd HH:mm:ss", System.currentTimeMillis())
         val entry = "[$stamp] $line"
@@ -226,9 +185,4 @@ class Settings private constructor(private val sp: SharedPreferences) {
 
     val log: String get() = sp.getString(K_LOG, "") ?: ""
     fun clearLog() = sp.edit().remove(K_LOG).apply()
-
-    /** 系统是否允许外部存储写回（决定能否走 File 直删路径）。 */
-    val externalWritable: Boolean
-        get() = Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment
-            .getExternalStorageDirectory().canWrite()
 }

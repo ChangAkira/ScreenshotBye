@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.os.PowerManager
 import android.provider.Settings as SysSettings
 import androidx.core.content.ContextCompat
@@ -26,26 +25,13 @@ object Perms {
             granted(ctx, Manifest.permission.POST_NOTIFICATIONS)
 
     /**
-     * 「所有文件访问」：只有拿到它才能绕过系统删除确认弹窗、做到完全静默删除。
-     * 查询本身是一次 binder 调用，个别 ROM 上会抛；读不到就按没给处理，
-     * 绝不能让权限面板这一行的查询把主界面带崩。
+     * 能否不经系统弹窗就把文件从相册里抹掉。Android 11+ 恒为 false：
+     * 那一版开始删除统一交给系统弹窗，同意后原件进系统回收站，应用侧不再需要
+     * 「所有文件访问」这种过宽的权限。10 及以下有 WRITE 就能直删（10 上配合 requestLegacyExternalStorage）。
      */
-    fun hasAllFilesAccess(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.R ||
-            runCatching { Environment.isExternalStorageManager() }.getOrDefault(false)
-
-    /**
-     * 能否不经用户确认就删掉相册里由系统/别的应用创建的文件。
-     * - Android 11+：必须「所有文件访问」
-     * - Android 10：requestLegacyExternalStorage 生效，需要 WRITE 权限
-     * - Android 9 及以下：需要 WRITE 权限
-     */
-    fun canDeleteSilently(ctx: Context): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        hasAllFilesAccess()
-    } else {
-        // Android 10 及以下：WRITE_EXTERNAL_STORAGE 即可直接删除（10 上配合 requestLegacyExternalStorage）
-        granted(ctx, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-    }
+    fun canDeleteSilently(ctx: Context): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.R &&
+            granted(ctx, Manifest.permission.WRITE_EXTERNAL_STORAGE)
 
     fun canIgnoreBattery(ctx: Context): Boolean {
         val pm = ctx.getSystemService(PowerManager::class.java) ?: return true
@@ -65,21 +51,6 @@ object Perms {
             ctx.startActivity(direct)
         }.onFailure {
             runCatching { intent?.let { i -> ctx.startActivity(i) } }
-        }
-    }
-
-    fun openAllFilesAccess(ctx: Context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
-        val intent = Intent(SysSettings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-            .setData(Uri.fromParts("package", ctx.packageName, null))
-            .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        runCatching { ctx.startActivity(intent) }.onFailure {
-            runCatching {
-                ctx.startActivity(
-                    Intent(SysSettings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                )
-            }
         }
     }
 

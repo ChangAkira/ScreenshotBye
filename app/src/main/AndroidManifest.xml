@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- 读取相册/截图 -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
@@ -9,12 +8,12 @@
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
 
-    <!-- Android 10 及以下需要写权限才能真正删除文件；Android 10 上配合 requestLegacyExternalStorage -->
+    <!-- Android 10 及以下由本应用直接删除，需要写权限；Android 10 上配合 requestLegacyExternalStorage -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="29" />
 
-    <!-- 通过 createDeleteRequest 删除非本应用创建的文件所必需 -->
+    <!-- Android 11+ 发起 createTrashRequest / createDeleteRequest 的前置条件 -->
     <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
 
     <!-- 持久后台监听 -->
@@ -24,10 +23,6 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-
-    <!-- 可选：授予「所有文件访问」后可静默删除，无需系统确认弹窗 -->
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
-        tools:ignore="ScopedStorage" />
 
     <!-- 旋钮切档时那一下「咔」的短震动；没有震动马达的设备上直接跳过 -->
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -51,7 +46,7 @@
             </intent-filter>
         </activity>
 
-        <!-- 设置页：服务、识别规则、旋钮、回收站、外观 -->
+        <!-- 设置页：服务、识别规则、旋钮、外观与日志 -->
         <activity
             android:name=".ui.SettingsActivity"
             android:exported="false"
@@ -63,7 +58,7 @@
             android:exported="false"
             android:label="@string/log_title" />
 
-        <!-- 透明中转页：负责在用户点按通知后拉起系统删除确认框 -->
+        <!-- 透明中转页：拉起系统的「移入回收站」确认框，一批只弹一次 -->
         <activity
             android:name=".ui.DeleteConfirmActivity"
             android:excludeFromRecents="true"
@@ -71,11 +66,6 @@
             android:launchMode="singleTask"
             android:taskAffinity=""
             android:theme="@style/Theme.Translucent" />
-
-        <activity
-            android:name=".ui.TrashActivity"
-            android:exported="false"
-            android:label="@string/trash_title" />
 
         <!-- 逐个确认 + 批量反选：通知点开设在这里 -->
         <activity

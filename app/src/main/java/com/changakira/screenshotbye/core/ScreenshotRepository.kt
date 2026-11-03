@@ -1,23 +1,19 @@
 package com.changakira.screenshotbye.core
 
 import android.content.Context
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
 import com.changakira.screenshotbye.media.DeleteGateway
+import com.changakira.screenshotbye.media.DeleteMode
 import com.changakira.screenshotbye.media.DeleteResult
 import com.changakira.screenshotbye.media.MediaHit
 import com.changakira.screenshotbye.notify.Notify
-import com.changakira.screenshotbye.perm.Perms
-import com.changakira.screenshotbye.remind.TrashCleanupWorker
 import com.changakira.screenshotbye.service.WatchService
-import java.util.concurrent.TimeUnit
 
 enum class Decision { DELETE, KEEP, SNOOZE }
 
 /** 一次决策的结果，UI 用它决定 Toast 文案。 */
 sealed interface DecisionOutcome {
-    data class Deleted(val inTrash: Boolean) : DecisionOutcome
+    /** Android 10 及以下直接删掉了；Android 11+ 只会返回 NeedsSystemConfirm。 */
+    data object Deleted : DecisionOutcome
     data object Kept : DecisionOutcome
     data object Snoozed : DecisionOutcome
     /** 需要系统弹窗确认，已发出一条「点按以确认删除」的通知。 */
@@ -27,8 +23,8 @@ sealed interface DecisionOutcome {
 
 /**
  * 批量处置的结果。
- * @param deleted 已直接删掉的张数（有「所有文件访问」或 Android 10 及以下）
- * @param awaitingConfirm 需要一次系统弹窗确认的媒体 id，调用方拿去拉起 createDeleteRequest
+ * @param deleted 已直接删掉的张数（只有 Android 10 及以下有写权限时才可能）
+ * @param awaitingConfirm 需要一次系统弹窗确认的媒体 id，调用方拿去拉起回收站请求
  * @param failed 失败原因，逐条写进事件日志
  */
 data class BatchPlan(val deleted: Int, val awaitingConfirm: List<Long>, val failed: List<String>)
@@ -129,20 +125,15 @@ class ScreenshotRepository(ctx: Context) {
     private fun delete(shot: PendingShot): DecisionOutcome {
         Reminders.cancel(app, shot.mediaId)
         return when (val r = gateway.deleteNow(shot)) {
-            is DeleteResult.Removed -> {
+            DeleteResult.Removed -> {
                 store.remove(shot.mediaId)
-                Notify.notify(
-                    app, Notify.reviewNotifId(shot.mediaId),
-                    Notify.deleted(app, shot, r.backup != null)
-                )
-                settings.appendLog(
-                    if (r.backup != null) "已删除 ${shot.name}（回收站可找回）" else "已删除 ${shot.name}"
-                )
+                Notify.notify(app, Notify.reviewNotifId(shot.mediaId), Notify.deleted(app, shot))
+                settings.appendLog("已删除 ${shot.name}")
                 updateReviewNotification(app)
-                DecisionOutcome.Deleted(inTrash = r.backup != null)
+                DecisionOutcome.Deleted
             }
 
-            is DeleteResult.NeedsConfirm -> {
+            DeleteResult.NeedsConfirm -> {
                 markDeleting(shot)
                 settings.appendLog("等待系统确认：${shot.name}")
                 updateReviewNotification(app)
@@ -150,7 +141,7 @@ class ScreenshotRepository(ctx: Context) {
             }
 
             is DeleteResult.Failed -> {
-                // 备份失败或权限被拒时保留条目，让用户能重试，绝不静默丢弃
+                // 权限被拒时保留条目，让用户能重试，绝不静默丢弃
                 store.upsert(shot.copy(state = ShotState.ASKED, stateAt = System.currentTimeMillis()))
                 settings.appendLog("删除失败：${r.reason}")
                 updateReviewNotification(app)
@@ -160,40 +151,32 @@ class ScreenshotRepository(ctx: Context) {
     }
 
     /**
-     * 批量处置：逐个确认页一次标记多张时走这里。
+     * 批量处置：逐个看时标为「不需要」的一整批在这里收口。
      *
-     * 有静默删除权限时逐张备份 + 删除；没有时先把整批备份好、标记为待系统确认，
-     * 再由调用方用一次 MediaStore.createDeleteRequest 收口——避免每张弹一次系统框。
+     * Android 11+ 先把整批标记为待系统确认，再由调用方用一次回收站请求收口——避免每张弹一次系统框；
+     * Android 10 及以下有写权限时逐张直删，那一版没有回收站，删掉就找不回来了。
      */
     fun deleteBatch(mediaIds: List<Long>): BatchPlan {
         var deleted = 0
         val awaiting = mutableListOf<Long>()
         val failed = mutableListOf<String>()
-        val silent = Perms.canDeleteSilently(app)
 
         mediaIds.forEach { id ->
             val shot = store.find(id) ?: return@forEach
             Reminders.cancel(app, id)
-            if (silent) {
-                when (val r = gateway.deleteNow(shot)) {
-                    is DeleteResult.Removed -> {
-                        store.remove(id)
-                        deleted++
-                        settings.appendLog(
-                            if (r.backup != null) "已删除 ${shot.name}（回收站可找回）" else "已删除 ${shot.name}"
-                        )
-                    }
-
-                    is DeleteResult.NeedsConfirm -> {
-                        markDeleting(shot)
-                        awaiting += id
-                    }
-
-                    is DeleteResult.Failed -> failed += "${shot.name}：${r.reason}"
+            when (val r = gateway.deleteNow(shot)) {
+                DeleteResult.Removed -> {
+                    store.remove(id)
+                    deleted++
+                    settings.appendLog("已删除 ${shot.name}")
                 }
-            } else {
-                val outcome = prepareForSystemConfirm(shot, failed)
-                if (outcome is DeleteResult.NeedsConfirm) awaiting += id
+
+                DeleteResult.NeedsConfirm -> {
+                    markDeleting(shot)
+                    awaiting += id
+                }
+
+                is DeleteResult.Failed -> failed += "${shot.name}：${r.reason}"
             }
         }
 
@@ -208,35 +191,22 @@ class ScreenshotRepository(ctx: Context) {
         return BatchPlan(deleted, awaiting, failed)
     }
 
-    /** 无静默权限时的准备：只备份并标记状态，真正删除交给系统弹窗。备份失败就不许删。 */
-    private fun prepareForSystemConfirm(shot: PendingShot, failed: MutableList<String>): DeleteResult {
-        if (settings.useTrash && gateway.trash.backUp(shot) == null) {
-            failed += "${shot.name}：备份失败，已取消删除"
-            return DeleteResult.Failed("备份失败，已取消删除")
-        }
-        return if (gateway.deleteRequestIntentSender(listOf(shot.contentUri)) != null) {
-            markDeleting(shot)
-            DeleteResult.NeedsConfirm(null)
-        } else {
-            failed += "${shot.name}：系统不支持删除确认"
-            DeleteResult.Failed("系统不支持删除确认")
-        }
-    }
-
     /**
      * 系统删除确认弹窗结束后调用，支持一整批。
-     * 以「原图还在不在」为准：还在 = 用户点了取消，抹掉多余备份并退回已询问状态；
-     * 不在 = 删除成功，移出待确认列表，备份留在回收站。
+     * 以「相册里还查得到吗」为准：查不到 = 已进系统回收站（或已被真删），移出待确认清单；
+     * 还查得到 = 用户在弹窗里点了取消，退回已询问状态，下次还能处理。
      */
-    fun onBatchConfirmResult(mediaIds: List<Long>): Pair<Int, Int> {
-        var deleted = 0
+    fun onBatchConfirmResult(mediaIds: List<Long>, mode: DeleteMode = DeleteMode.TRASH): Pair<Int, Int> {
+        var done = 0
         var cancelled = 0
         mediaIds.forEach { id ->
             val shot = store.find(id) ?: return@forEach
             if (gateway.finalizeAfterConfirm(shot)) {
                 store.remove(id)
-                deleted++
-                settings.appendLog("系统确认后已删除：${shot.name}")
+                done++
+                settings.appendLog(
+                    if (mode == DeleteMode.TRASH) "已移入系统回收站：${shot.name}" else "系统确认后已删除：${shot.name}"
+                )
             } else {
                 store.upsert(shot.copy(state = ShotState.ASKED, stateAt = System.currentTimeMillis()))
                 cancelled++
@@ -244,7 +214,7 @@ class ScreenshotRepository(ctx: Context) {
             }
         }
         updateReviewNotification(app)
-        return deleted to cancelled
+        return done to cancelled
     }
 
     /**
@@ -331,17 +301,6 @@ class ScreenshotRepository(ctx: Context) {
         if (newDue) return now - last >= BURST_GUARD_MS
         val repeat = settings.alertRepeatMinutes
         return repeat > 0 && now - last >= repeat * 60_000L
-    }
-
-    val trash get() = gateway.trash
-
-    fun ensureCleanupSchedule() {
-        val request = PeriodicWorkRequestBuilder<TrashCleanupWorker>(1, TimeUnit.DAYS)
-            .setInitialDelay(6, TimeUnit.HOURS)
-            .build()
-        WorkManager.getInstance(app).enqueueUniquePeriodicWork(
-            "trash-cleanup", ExistingPeriodicWorkPolicy.KEEP, request
-        )
     }
 
     companion object {

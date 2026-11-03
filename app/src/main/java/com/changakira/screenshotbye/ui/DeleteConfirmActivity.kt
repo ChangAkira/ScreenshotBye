@@ -9,24 +9,31 @@ import com.changakira.screenshotbye.R
 import com.changakira.screenshotbye.core.PendingShotStore
 import com.changakira.screenshotbye.core.ScreenshotRepository
 import com.changakira.screenshotbye.media.DeleteGateway
+import com.changakira.screenshotbye.media.DeleteMode
 
 /**
  * 无界面的中转页。
  *
- * Android 11+ 没拿到「所有文件访问」时，删掉系统创建的截图必须由用户在系统对话框里亲自确认，
- * 而这个 IntentSender 只能由 Activity 发起。通知或逐个确认页把要删的媒体 id 交给这里，
- * 由它一次拉起系统弹窗（一批只弹一次），再把结果回报给 ScreenshotRepository。
+ * Android 11+ 删掉系统创建的截图必须由用户在系统对话框里亲自点头，而这个 IntentSender
+ * 只能由 Activity 发起。通知或逐个确认页把要删的媒体 id 交给这里，由它一次拉起系统弹窗
+ * （一批只弹一次），弹窗同意后原件进系统相册的回收站，本应用不再留副本。
  */
 class DeleteConfirmActivity : AppCompatActivity() {
+
+    /** 这次请求是「移入回收站」还是「永久删除」，决定结果提示的措辞。 */
+    private var mode = DeleteMode.TRASH
 
     private val systemDelete = registerForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
     ) {
         val ids = mediaIds()
-        val (deleted, cancelled) = ScreenshotRepository(this).onBatchConfirmResult(ids)
+        val (done, cancelled) = ScreenshotRepository(this).onBatchConfirmResult(ids, mode)
         val msg = when {
-            deleted > 0 && cancelled > 0 -> getString(R.string.toast_confirm_partial, deleted, cancelled)
-            deleted > 0 -> getString(R.string.toast_deleted_n, deleted)
+            done > 0 && cancelled > 0 -> getString(R.string.toast_confirm_partial, done, cancelled)
+            done > 0 -> getString(
+                if (mode == DeleteMode.TRASH) R.string.toast_trashed_n else R.string.toast_deleted_n,
+                done
+            )
             else -> getString(R.string.toast_confirm_cancelled)
         }
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
@@ -43,18 +50,19 @@ class DeleteConfirmActivity : AppCompatActivity() {
             return
         }
 
-        val sender = DeleteGateway(this).deleteRequestIntentSender(shots.map { it.contentUri })
-        if (sender == null) {
-            // 系统不给删除入口：这些截图还都在，把状态从「等待系统确认」退回「已询问」
-            ScreenshotRepository(this).onBatchConfirmResult(ids)
+        val request = DeleteGateway(this).confirmRequest(shots.map { it.contentUri })
+        if (request == null) {
+            // 系统不给回收站也不给删除入口：这些截图还都在，把状态从「等待系统确认」退回「已询问」
+            ScreenshotRepository(this).onBatchConfirmResult(ids, mode)
             Toast.makeText(this, R.string.toast_no_delete_support, Toast.LENGTH_LONG).show()
             finish()
             return
         }
+        mode = request.second
         if (savedInstanceState == null) {
-            runCatching { systemDelete.launch(IntentSenderRequest.Builder(sender).build()) }
+            runCatching { systemDelete.launch(IntentSenderRequest.Builder(request.first).build()) }
                 .onFailure {
-                    ScreenshotRepository(this).onBatchConfirmResult(ids)
+                    ScreenshotRepository(this).onBatchConfirmResult(ids, mode)
                     Toast.makeText(this, R.string.toast_no_delete_support, Toast.LENGTH_LONG).show()
                     finish()
                 }

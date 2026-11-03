@@ -26,8 +26,6 @@ data class PendingShot(
     val stateAt: Long = 0L,
     /** 这张已经被提醒（出声/震动）过几次，用于提醒次数封顶。 */
     val askCount: Int = 0,
-    /** 备份文件的本地路径，仅在勾选回收站且有备份时非空。 */
-    val backupPath: String? = null,
     /** MediaStore DATA 列的绝对路径，Android 11+ 可能为 null。 */
     val absolutePath: String? = null,
 ) {
@@ -99,7 +97,6 @@ class PendingShotStore private constructor(private val ctx: Context) {
         put("state", s.state.name)
         put("stateAt", s.stateAt)
         put("askCount", s.askCount)
-        put("backupPath", s.backupPath ?: JSONObject.NULL)
         put("absolutePath", s.absolutePath ?: JSONObject.NULL)
     }
 
@@ -115,7 +112,6 @@ class PendingShotStore private constructor(private val ctx: Context) {
         state = runCatching { ShotState.valueOf(o.optString("state", "WAITING")) }.getOrDefault(ShotState.WAITING),
         stateAt = o.optLong("stateAt"),
         askCount = o.optInt("askCount"),
-        backupPath = o.nullableString("backupPath"),
         absolutePath = o.nullableString("absolutePath"),
     )
 

@@ -16,7 +16,6 @@ import com.changakira.screenshotbye.notify.Notify
 import com.changakira.screenshotbye.perm.Perms
 import com.changakira.screenshotbye.service.WatchService
 import androidx.work.WorkManager
-import java.io.File
 
 /**
  * 应用内自检。
@@ -73,12 +72,13 @@ object Diagnostics {
             line("已登记媒体 id 数：" + settings.seenCount())
             line("定时任务：${workState(app, Reminders.ALERT_RETRY)}")
             line("看门狗：${workState(app, com.changakira.screenshotbye.ScreenshotByeApp.WATCHDOG)}")
-            line("回收站清理：${workState(app, "trash-cleanup")}")
 
             section("权限")
             row("读取相册", Perms.hasMediaRead(app), "")
             row("通知权限", Perms.hasNotification(app), "")
-            row("所有文件访问（决定能否静默删除）", Perms.canDeleteSilently(app), if (Perms.canDeleteSilently(app)) "" else "删除会多一次系统确认弹窗")
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                row("存储写入权限（决定能否直接删除）", Perms.canDeleteSilently(app), if (Perms.canDeleteSilently(app)) "" else "没有写权限就删不掉")
+            }
             row("电池优化白名单", Perms.canIgnoreBattery(app), "")
 
             section("提醒节流")
@@ -92,18 +92,20 @@ object Diagnostics {
             val all = store.all()
             if (all.isEmpty()) line("空")
             all.forEach {
-                val backup = it.backupPath?.let { p -> if (File(p).exists()) "备份在" else "备份丢了" } ?: "无备份"
                 val stillThere = repo.find(it.mediaId)?.let { s -> existsSafe(app, s) } ?: true
                 line(
                     "#${it.mediaId} ${it.name} · ${stateName(it.state)} · 到期 " +
-                        timeOrNever(it.askAt, now) + " · 已提醒 ${it.askCount} 次 · $backup" +
+                        timeOrNever(it.askAt, now) + " · 已提醒 ${it.askCount} 次" +
                         if (stillThere) "" else " · 原图已不在"
                 )
             }
 
-            section("回收站")
-            val entries = runCatching { repo.trash.list() }.getOrDefault(emptyList())
-            line("${entries.size} 项 · ${humanSize(entries.sumOf { it.size })} · 保留 ${settings.trashDays} 天")
+            section("删除去向")
+            line(
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+                    "Android 11+：系统弹窗确认后移入系统相册的回收站，保留多久由系统决定，本应用不存副本"
+                else "Android 10 及以下：系统没有回收站，删掉即消失"
+            )
 
             section("最近事件")
             val log = settings.log.lines().filter { it.isNotBlank() }.takeLast(25)
@@ -204,13 +206,6 @@ object Diagnostics {
         val code = if (Build.VERSION.SDK_INT >= 28) pi.longVersionCode else pi.versionCode.toLong()
         "版本 ${pi.versionName}（build $code）"
     }.getOrDefault("版本未知")
-
-    private fun humanSize(bytes: Long): String = when {
-        bytes >= 1_000_000_000 -> "%.1f GB".format(bytes / 1e9)
-        bytes >= 1_000_000 -> "%.1f MB".format(bytes / 1e6)
-        bytes >= 1_000 -> "%d KB".format(bytes / 1000)
-        else -> "$bytes B"
-    }
 
     private fun stamp(ms: Long): String =
         DateFormat.format("yyyy-MM-dd HH:mm:ss", ms).toString()

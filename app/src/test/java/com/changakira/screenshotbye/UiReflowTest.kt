@@ -45,6 +45,10 @@ class UiReflowTest {
         PendingShotStore.of(ctx).replaceAll(emptyList())
     }
 
+    /** 把一棵 View 树摊平成列表，用于「界面上再也没提到某件事」这种断言。 */
+    private fun View.flatten(): List<View> = if (this !is ViewGroup) listOf(this)
+    else listOf(this) + (0 until childCount).flatMap { getChildAt(it).flatten() }
+
     private fun dropSingleton(clazz: Class<*>) {
         runCatching {
             val f = clazz.getDeclaredField("instance").apply { isAccessible = true }
@@ -60,11 +64,9 @@ class UiReflowTest {
         assertEquals(listOf(0, 1, 3, 5, 7), Settings.EXPIRY_PRESETS)
         assertEquals(listOf(0, 1, 2, 5, 10), Settings.REPEAT_PRESETS)
         assertEquals(listOf(1, 2, 3), Settings.MAX_TIMES_PRESETS)
-        assertEquals(listOf(1, 3, 5, 7, 30), Settings.TRASH_PRESETS)
 
         val s = Settings.of(ctx)
         assertEquals("默认仍然是 5 分钟问一次", 5, s.delayMinutes)
-        assertEquals(7, s.trashDays)
         // 旧版本存的是连续值，读出来必须自己回到格子上，不能显示一个「8 分钟」
         s.delayMinutes = 60
         assertEquals(30, s.delayMinutes)
@@ -74,32 +76,30 @@ class UiReflowTest {
         assertEquals("平局时留下较小的那档", 1, s.askExpiryDays)
         s.alertRepeatMinutes = 4
         assertEquals(5, s.alertRepeatMinutes)
-        s.trashDays = 14
-        assertEquals(7, s.trashDays)
     }
 
     // ---- 页面 ----
 
     @Test
-    fun `设置页四段都在，旋钮停在当前档位上`() {
+    fun `设置页三段都在，旋钮停在当前档位上`() {
         val s = Settings.of(ctx)
         s.delayMinutes = 15
         s.askExpiryDays = 0
         s.alertRepeatMinutes = 2
         s.alertMaxTimes = 3
-        s.trashDays = 30
 
         val activity = Robolectric.buildActivity(SettingsActivity::class.java).setup().get()
         assertEquals(15, activity.findViewById<DetentDial>(R.id.askDial).value)
         assertEquals(0, activity.findViewById<DetentDial>(R.id.keepDial).value)
         assertEquals(2, activity.findViewById<DetentDial>(R.id.gapDial).value)
         assertEquals(3, activity.findViewById<DetentDial>(R.id.timesDial).value)
-        // 保留天数是 1/3/5/7/30 五档，滑块走的是下标
-        assertEquals(4f, activity.findViewById<com.google.android.material.slider.Slider>(R.id.trashDaysSlider).value, 0f)
         assertEquals(5, (activity.findViewById<View>(R.id.swatchRow) as ViewGroup).childCount)
         assertNotNull(activity.findViewById<View>(R.id.pendingRow))
-        assertNotNull(activity.findViewById<View>(R.id.trashRow))
         assertNotNull(activity.findViewById<View>(R.id.logRow))
+        // 回收站整个没了：删除去向归系统相册管，设置页不该再留任何一块空壳
+        val texts = activity.findViewById<View>(android.R.id.content).flatten()
+            .filterIsInstance<android.widget.TextView>().map { it.text.toString() }
+        assertFalse(texts.any { "回收站" in it })
         // 行尾的计数在 onResume 就该填好，不能是空白
         assertFalse(activity.findViewById<android.widget.TextView>(R.id.pendingValue).text.isBlank())
         assertFalse(activity.findViewById<android.widget.TextView>(R.id.logValue).text.isBlank())
@@ -188,7 +188,8 @@ class UiReflowTest {
         assertNotNull(activity.findViewById<View>(R.id.askPermsBtn))
         assertNotNull(activity.findViewById<View>(R.id.settingsBtn))
         assertNotNull(activity.findViewById<View>(R.id.guideBtn))
-        assertNotNull(activity.findViewById<View>(R.id.permContainer))
+        // Android 11+ 只要「读相册」和「通知」两行：删除经系统弹窗，不再要所有文件访问
+        assertEquals(2, (activity.findViewById<View>(R.id.permContainer) as ViewGroup).childCount)
     }
 
     // ---- 配色 ----

@@ -17,7 +17,6 @@ import com.changakira.screenshotbye.core.ShotState
 import com.changakira.screenshotbye.ui.DeleteConfirmActivity
 import com.changakira.screenshotbye.ui.MainActivity
 import com.changakira.screenshotbye.ui.ReviewActivity
-import com.changakira.screenshotbye.ui.TrashActivity
 import java.util.Date
 
 object Channels {
@@ -262,7 +261,7 @@ object Notify {
     }
 
     /**
-     * Android 11+ 没给「所有文件访问」时，删除必须由用户在系统弹窗里确认。
+     * Android 11+ 的删除必须由用户在系统弹窗里点头，同意后原件进系统回收站。
      * 一批待确认的截图共用一次系统弹窗，所以这条通知带的是 id 列表。
      */
     fun needsSystemConfirm(ctx: Context, shots: List<PendingShot>): Notification {
@@ -287,16 +286,19 @@ object Notify {
             .build()
     }
 
-    /** 删除结果回执，复用同一条通知槽位，点按即消失。 */
-    fun deleted(ctx: Context, shot: PendingShot, inTrash: Boolean): Notification {
+    /**
+     * 删除结果回执，复用同一条通知槽位，点按即消失。
+     * 只有 Android 10 及以下的直删路径会走到这里——11+ 的处置由系统弹窗负责，
+     * 回执是 DeleteConfirmActivity 的 Toast，不再多发一条通知。
+     */
+    fun deleted(ctx: Context, shot: PendingShot): Notification {
         val open = PendingIntent.getActivity(
             ctx, (shot.mediaId.toInt() + 11),
-            (if (inTrash) Intent(ctx, TrashActivity::class.java) else Intent(ctx, MainActivity::class.java))
+            Intent(ctx, MainActivity::class.java)
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val body = if (inTrash) ctx.getString(R.string.notif_deleted_trash, shot.name)
-        else ctx.getString(R.string.notif_deleted_permanent, shot.name)
+        val body = ctx.getString(R.string.notif_deleted_permanent, shot.name)
         return NotificationCompat.Builder(ctx, Channels.SERVICE)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(ctx.getString(R.string.notif_deleted_title))

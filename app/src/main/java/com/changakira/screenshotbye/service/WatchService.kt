@@ -30,7 +30,6 @@ class WatchService : Service() {
     override fun onCreate() {
         super.onCreate()
         Channels.ensure(this)
-        ScreenshotRepository(this).ensureCleanupSchedule()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

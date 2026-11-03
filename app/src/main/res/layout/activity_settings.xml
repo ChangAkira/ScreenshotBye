@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  设置页四段：服务与识别 / 询问与提醒（旋钮）/ 回收站 / 外观与日志。
+  设置页三段：服务与识别 / 询问与提醒（旋钮）/ 外观与日志。
   文案一律不给提示语，档位本身就把可选值摊在屏幕上了。
+  删除的去向不在这里设置：Android 11+ 一律交给系统的照片回收站，应用不存副本、也没有可调的保留期。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -196,89 +197,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- ③ 回收站 -->
-            <com.google.android.material.card.MaterialCardView
-                style="@style/Widget.Material3.CardView.Filled"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingVertical="8dp">
-
-                    <LinearLayout
-                        android:id="@+id/trashRow"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:minHeight="48dp"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="16dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/main_trash"
-                            android:textAppearance="?attr/textAppearanceTitleMedium"
-                            android:textColor="?attr/colorOnSurface" />
-
-                        <TextView
-                            style="@style/SectionChevron"
-                            android:contentDescription="@string/home_open" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:minHeight="48dp"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="16dp">
-
-                        <TextView
-                            style="@style/SettingRowLabel"
-                            android:text="@string/main_trash_switch" />
-
-                        <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/trashSwitch"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:contentDescription="@string/main_trash_switch" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/trashDaysLabel"
-                        style="@style/BodyHint"
-                        android:layout_marginTop="4dp"
-                        android:paddingHorizontal="16dp"
-                        android:textSize="13sp"
-                        android:text="@string/main_trash_days" />
-
-                    <com.google.android.material.slider.Slider
-                        android:id="@+id/trashDaysSlider"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="10dp"
-                        android:stepSize="1"
-                        android:value="1"
-                        android:valueFrom="0"
-                        android:valueTo="4" />
-
-                    <TextView
-                        android:id="@+id/trashSummary"
-                        style="@style/BodyHint"
-                        android:paddingHorizontal="16dp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- ④ 主题颜色 + 日志 + 自检 -->
+            <!-- ③ 主题颜色 + 日志 + 自检 -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.Material3.CardView.Filled"
                 android:layout_width="match_parent"

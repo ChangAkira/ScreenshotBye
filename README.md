@@ -1,7 +1,7 @@
 <div align="center">
   <img src="docs/logo.png" width="140" alt="ScreenshotBye logo"/>
   <h1>ScreenshotBye</h1>
-  <p>截图常常只是临时用一下，用完就忘在相册里。这个应用持续在后台盯着相册，过一段时间问你一句「还需要这张截图吗」，回答不需要就删掉它——删除前先备份，反悔可以还原。</p>
+  <p>截图常常只是临时用一下，用完就忘在相册里。这个应用持续在后台盯着相册，过一段时间问你一句「还需要这张截图吗」，回答不需要就删掉它——删掉之后进的是系统相册自己的回收站，反悔可以在相册里还原。</p>
   <p>
     <img alt="platform" src="https://img.shields.io/badge/Android-8.0%2B-green"/>
     <img alt="release" src="https://img.shields.io/badge/release-v1.0.3-blue"/>
@@ -20,8 +20,9 @@
 3. 是截图 → 记进待确认清单，并用 WorkManager 排一个 N 分钟后的一次性任务（默认 5 分钟，档位 2／5／15／30／90）。任务持久化在 WorkManager 数据库里，进程被杀、设备重启都照样会到点。
 4. 到点 → **通知栏只出现一条**提醒。连截十张也合并成一条「10 张截图待确认」，不会刷屏；同一条通知会按节流规则重新出声（见「提醒方式与自检」）。
 5. 点通知进入逐个确认页：一张一张看，三个选择——`还要留着` / `10 分钟后再问` / `不需要，删除`，左右滑动切换。看完进入反选屏，勾着的这批一次处理。
-6. 删除时先把原图复制进应用内回收站，再删相册里的原件；**备份失败就不会删除**。没给「所有文件访问」时，整批共用一次系统删除确认弹窗。
-7. 一直没回答的询问默认不会永远挂着：超过设定天数（默认 3 天）自动按「保留」出队；这一档设成 0 就是「继续等待处理」，条目一直留在队列里。
+6. 整批共用**一次系统弹窗**：Android 11+ 发的是 MediaStore 的回收站请求，你在系统框里点确认之后，原件进的是系统相册自带的回收站——保留多久、怎么显示、能不能还原，全由系统和相册决定，本应用不再复制原件、不再存副本，卸载应用也带不走你的照片。
+7. Android 10 及以下没有这套机制：那一版由应用直接删除，删掉就找不回来了。
+8. 一直没回答的询问默认不会永远挂着：超过设定天数（默认 3 天）自动按「保留」出队；这一档设成 0 就是「继续等待处理」，条目一直留在队列里。
 
 > 通知上也有快捷按钮，直接处理最早到期那一张，不用点开应用；第三个按钮 `全部稍后再问` 把整批往后推 10 分钟。
 > 常驻的监控通知在有待确认截图时会变成入口：点它直接进逐个确认页，不用再从主页找按钮。
@@ -32,10 +33,12 @@
 
 - **首页**：应用简介、运行状态、权限清单（缺哪项点哪项）、`请求权限`、`使用引导`、`设置` 入口；
   只有在电池优化还没放行时，才多出一块「为保障稳定运行」的国产 ROM 提示。
-- **设置页**（四段）：服务与识别规则 → 询问与提醒（四个旋钮）→ 回收站 → 主题颜色与日志。
-- **二级页面**：待确认截图（逐个确认）、回收站、事件日志、运行自检。
+- **设置页**（三段）：服务与识别规则 → 询问与提醒（四个旋钮）→ 主题颜色与日志。
+- **二级页面**：待确认截图（逐个确认）、事件日志、运行自检。
 
-可调项里除了回收站保留天数，全是**固定档位吸附旋钮**：可选值本来就三五个，摊成一圈数字，
+删除的去向不在设置页里：它只有一条路，就是系统的照片回收站（Android 10 及以下没有回收站）。
+
+可调项全是**固定档位吸附旋钮**：可选值本来就三五个，摊成一圈数字，
 怎么滑都只会停在格子之一，切档时「咔」一下短震动。滑块的问题在于「8 分钟」和「12 分钟」
 体感没有区别，却让用户在一条连续轨道上猜哪一格才是 15 分钟 —— 所以旧版的六根滑块换成了旋钮，
 自定义关键词那一栏也一并去掉了。旋钮没有额外提示文字，也没有跳转系统设置的按钮：
@@ -49,7 +52,7 @@
 
 | 位置 | 设置 | 形式 | 可选值 | 默认 |
 | --- | --- | --- | --- | --- |
-| 首页 | 权限 | 状态行 + `去开启` | 读取相册 / 通知 / 所有文件访问 /（≤Android 10）存储写入 | — |
+| 首页 | 权限 | 状态行 + `去开启` | 读取相册 / 通知 /（≤Android 10）存储写入 | — |
 | 首页 | 使用引导、设置入口 | 按钮 | — | — |
 | 设置 ① | 后台监控截图 | 开关 | — | 开 |
 | 设置 ① | 识别规则 | 复选 | 按截图目录 / 按文件名 / 含录屏视频 | 目录 + 文件名 |
@@ -58,12 +61,9 @@
 | 设置 ② | 默认保留 | 旋钮 | 0（继续等待处理）/ 1 / 3 / 5 / 7 天 | 3 |
 | 设置 ② | 间隔 | 旋钮 | 0（只问一次）/ 1 / 2 / 5 / 10 分钟 | 5 |
 | 设置 ② | 重复 | 旋钮 | 1 / 2 / 3 次 | 3 |
-| 设置 ③ | 回收站 | 标题带 `>`，进二级页面 | — | — |
-| 设置 ③ | 删除前先备份到回收站 | 开关 | — | 开 |
-| 设置 ③ | 回收站保留天数 | 滑杆（走档位下标） | 1 / 3 / 5 / 7 / 30 天 | 7 |
-| 设置 ④ | 主题颜色 | 色块，点一下当场换色 | 米白 / 青灰 / 陶土 / 靛蓝 / 石墨 | 米白 |
-| 设置 ④ | 事件日志 | 二级页面 | 复制、清空 | — |
-| 设置 ④ | 运行自检 | 二级页面 | 通知/权限/服务/队列状态报告 + 测试提醒，可复制 | — |
+| 设置 ③ | 主题颜色 | 色块，点一下当场换色 | 米白 / 青灰 / 陶土 / 靛蓝 / 石墨 | 米白 |
+| 设置 ③ | 事件日志 | 二级页面 | 复制、清空 | — |
+| 设置 ③ | 运行自检 | 二级页面 | 通知/权限/服务/队列状态报告 + 测试提醒，可复制 | — |
 
 旧版本存的是 1–60 / 0–120 这类连续值，读到新档位时会自动吸附到最近的一格（平局留下较小的那档），
 不需要卸载重装，也不做迁移脚本。
@@ -91,9 +91,11 @@ v1.0.3 把这个档位**撤掉了**：声音、震动、横幅、锁屏显示本
 
 最新 release：[v1.0.3](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.3) —
 直接安装 [ScreenshotBye-v1.0.3.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.3/ScreenshotBye-v1.0.3.apk)
-（release 签名，minSdk 26 / Android 8.0 起）。v1.0.1 起都是同一把密钥，**直接覆盖安装即可**，清单和回收站都保留。
+（release 签名，minSdk 26 / Android 8.0 起）。v1.0.1 起都是同一把密钥，**直接覆盖安装即可**，待确认清单和设置都保留。
 
-⚠️ v1.0.0 的包用的是 debug 签名，和 v1.0.1 起不是同一把密钥，**覆盖安装会失败**，请先卸载旧版再装新版（回收站里的备份会随卸载丢失，先还原出来）。从 v1.0.1 起所有 release 使用同一把密钥，可以正常增量升级。
+⚠️ v1.0.0 的包用的是 debug 签名，和 v1.0.1 起不是同一把密钥，**覆盖安装会失败**，请先卸载旧版再装新版。
+
+⚠️ 改成「依赖系统照片回收站」之后，应用内的回收站页面整个删掉了。如果你手上的版本（≤ v1.0.3）在应用回收站里还留着没还原的截图，那才是你唯一的副本——**先在那个版本里还原出来，再覆盖安装新版**。升级不会主动删那批文件，但新界面再也没有入口能看到它们。
 
 ## 权限与真实限制
 
@@ -103,22 +105,23 @@ v1.0.3 把这个档位**撤掉了**：声音、震动、横幅、锁屏显示本
 | --- | --- | --- |
 | 读取相册（`READ_MEDIA_IMAGES`） | 查询新增截图、显示预览 | 必需，不给就什么都看不见 |
 | 通知（`POST_NOTIFICATIONS`） | 到点询问、监控状态 | 必需（Android 13+），否则问不出来 |
-| 媒体位置（`ACCESS_MEDIA_LOCATION`） | 系统删除确认请求的前置条件 | 必需 |
-| 所有文件访问（`MANAGE_EXTERNAL_STORAGE`） | **静默删除** | 强烈建议。不授权时删除会退化成系统弹窗二次确认，这是 Android 11+ 的规定：不是你创建的文件，不能由应用悄悄删掉 |
+| 媒体位置（`ACCESS_MEDIA_LOCATION`） | 发起系统回收站／删除确认请求的前置条件 | 必需 |
 | 存储写入（Android 10 及以下） | 直删文件 | 该版本区间必需 |
 | 忽略电池优化 / 自启动白名单 | 防国产 ROM 杀后台 | 建议，不设就会中断监测 |
 | 震动（`VIBRATE`，普通权限） | 旋钮切档时那一下「咔」 | 不需要用户授权，没有震动马达就跳过 |
 | 前台服务 `specialUse` | 常驻监听相册 | 必需，只有一条常驻通知 |
 
-Manifest 里没有 `INTERNET` 权限，应用在系统层面就无法联网：图片字节只在「生成预览」和「备份」时留在本机，不上传、不做任何内容分析，也没有统计和账号。
+「所有文件访问」（`MANAGE_EXTERNAL_STORAGE`）已经从 Manifest 里撤掉了。它以前换来的是静默删除，而静默删除恰好绕开了系统回收站 —— 现在这条取舍反过来了，删除一律经系统的「移入回收站」确认框（一批只弹一次），三方应用没有免弹窗的路径：只有 OEM 预装相册才被允许直接写 `IS_TRASHED`。
+
+Manifest 里没有 `INTERNET` 权限，应用在系统层面就无法联网：图片字节只在「生成预览」时读过一次，不上传、不做任何内容分析，也没有统计和账号。
 
 ## 它是怎么实现的
 
 - **发现截图**：`MediaStore.ContentObserver` 挂在 `MediaStore.Images.Media.EXTERNAL_CONTENT_URI` 上，这是三方应用唯一可靠的全局截图入口。`FileObserver` 只用来提前催一次扫描，不参与判定。服务重启后从水位线续扫，覆盖停摆期间产生的截图；首次启用时把水位线设为当前时刻，不会把历史截图当新截图。
 - **计时**：WorkManager 一次性任务（每张一个 `ask-<mediaId>` 的 unique work），而不是 `Handler.postDelayed`——后者的排队任务会随进程一起消失，五分钟后就问不出来了。
 - **处置**：`ScreenshotRepository` 是唯一的决策出口，通知按钮、逐个确认页、定时任务都调它，删除逻辑只有一份。
-- **删除**：`DeleteGateway` 先备份再删；能静默删就直删，不能就生成 `MediaStore.createDeleteRequest`（一批一次弹窗），由透明中转页 `DeleteConfirmActivity` 拉起。系统弹窗结束后以「原图还在不在」为准判断用户是否真的确认，取消了就把多余的备份抹掉。
-- **回收站**：`filesDir/trash/<mediaId>/` + `meta.json`，还原时重新写回 MediaStore。还原本机会让相册多出一条新记录，所以还原成功的文件名会进 3 分钟屏蔽名单，避免「刚还原又被当成新截图问一遍」。
+- **删除**：`DeleteGateway` 在 Android 11+ 永远不自已动手，只生成 `MediaStore.createTrashRequest`（回收站不支持时退回 `createDeleteRequest`），由透明中转页 `DeleteConfirmActivity` 拉起，一批一次弹窗。弹窗结束后以「相册里还查得到吗」为准：回收站里的条目会被 MediaStore 默认过滤掉，查不到就是已经离开相册，还查得到就是用户点了取消。Android 10 及以下没有回收站，有写权限就直接 `delete`。
+- **不再自建回收站**：以前是 `filesDir/trash/` 里存一份原件副本 + `meta.json`，再配还原、过期清理任务和一整页 UI。系统从 Android 11 起已经有这个能力了，应用再存一份只是重复，还会占私有空间、让人误以为能自定义保留天数。现在保留期和还原入口都归系统相册，而且用户在相册里点还原时动的是同一条 MediaStore 记录（同一个 `_ID`），「还原后又被当成新截图问一遍」靠原有的 seen 集合就挡住了，不需要额外屏蔽名单。
 - **存活**：`BootReceiver`（开机 / 应用更新）+ 15 分钟 `WatchdogWorker`，拉不起来时发一条「点按恢复」的通知，而不是无声失败。
 - **队列卫生**：看门狗每轮先跑一次 `sweepStale()` 兜住三种「静默卡住」——`WAITING` 早过了到期时间却没被问（定时任务被 ROM 清掉）→ 立即补问；`ASKED` 超过设定天数没人回答 → 按保留出队；`DELETING` 六小时拿不到系统确认结果（弹窗开着时进程被杀）→ 退回待确认。监控关着时看门狗不在，`MainActivity.onResume` 是兜底入口。
 - **提醒的出声时机**：`ScreenshotRepository` 区分 `refreshReviewNotification`（允许按节流规则重新出声）和 `updateReviewNotification`（只同步内容）。到点询问、看门狗心跳、通知被划掉后的补提醒走前者；用户在应用里自己点了保留/删除/稍后再问之后的同步走后者，不该再响一次。
@@ -129,7 +132,7 @@ Manifest 里没有 `INTERNET` 权限，应用在系统层面就无法联网：�
 
 - **Android 14 的 `DETECT_SCREEN_CAPTURE` / `Activity.onScreenCapture()`**：只在你自己的 Activity 可见时回调，而且不返回截图文件，做不了全局截图清理。
 - **亮屏广播（`ACTION_SCREEN_ON`）触发**：能弹界面，但不是「截图后 N 分钟」的语义，服务停摆期间的截图也永远补不回来。
-- **MediaStore 没有公开的「移入系统回收站」API**，而要删的文件不是本应用创建的，直接删除不可逆。所以回收站是自己实现的，删除前强制备份。
+- **自建回收站**（≤ v1.0.3 的做法）：能自定义保留天数、卸载前能一键还原，但代价是每删一张就在私有目录里多存一份原件，还原会生成一条新的 MediaStore 记录（相册里出现重名条目），还得再养一个清理任务和一整页 UI。Android 11 起 `MediaStore.createTrashRequest()` 已经把「进系统回收站」这条路开给三方应用了，代价只是每批多一次系统确认弹窗——相比之下不值得再自己存副本，所以整个换掉了。
 
 ## 已知限制
 
@@ -137,9 +140,10 @@ Manifest 里没有 `INTERNET` 权限，应用在系统层面就无法联网：�
 
 - 服务被杀到被拉回之间产生的截图会在下次启动时补扫，但询问时间会顺延。
 - Doze 深睡时 WorkManager 的询问可能延后到下一个维护窗口，不是精确到秒。
-- 其他应用改名保存的截图可能识别不到，用「额外关键词」补。
+- 其他应用改名保存的截图可能识别不到：判定只看目录和文件名两条规则，自定义关键词那一栏已经去掉。
 - 通知上的快捷按钮只作用于最早到期的那一张，批量操作要点开逐个确认页。
-- 回收站在应用私有目录，**卸载应用即永久丢失**；从回收站还原会在相册里生成一条新记录。
+- 删除能否进系统回收站、在里面留多久、相册里怎么展示，全部由 ROM 决定：Google 相册一般是 30 天（开备份 60 天），个别国产 ROM 的相册不读 `IS_TRASHED`，那删掉的截图就没有找回入口。Android 10 及以下没有系统回收站，删掉即消失。
+- 旧版本（≤ v1.0.3）留在私有目录里的备份不再有任何界面入口，需要的话请在旧版本里先还原。
 - 国产 ROM 的后台管控是硬限制，不手动放行自启动就可能收不到询问。提醒方式也有天花板：应用只负责发通知，
   横幅到底弹不弹、锁屏上显不显示、震动和铃声认不认，最终由 ROM 决定，改只能去系统的通知设置里改。
   用自检页 + 测试提醒可以先确认是哪种情况。
@@ -196,14 +200,14 @@ keyPassword=<你的密钥口令>
 ```
 app/src/main/java/com/changakira/screenshotbye/
   core/        Settings(配置 + 闪退记录), PendingShot(待确认清单), Reminders(计时), ScreenshotRepository(决策中枢)
-  media/       MediaScanner(发现), ScreenshotRule(判定), DeleteGateway(删除), TrashStore(回收站)
+  media/       MediaScanner(发现), ScreenshotRule(判定), DeleteGateway(交给系统的回收站请求)
   service/     WatchService(常驻前台服务), WatchdogWorker(存活看门狗)
-  remind/      ReminderWorker(到点询问), AlertRetryWorker(被划掉后补提醒), TrashCleanupWorker(过期清理)
+  remind/      ReminderWorker(到点询问), AlertRetryWorker(被划掉后补提醒)
   notify/      Channels(常驻 + 一条提醒渠道，顺带清理已废弃的强度渠道), Notify, ActionReceiver(通知按钮与划掉事件)
   diagnostic/  Diagnostics(纯文本自检报告 + 测试提醒)
   perm/        Perms(权限状态、OEM 跳转、直达通知渠道设置)
   ui/          MainActivity(首页：权限与入口), SettingsActivity(设置四段), ReviewActivity(逐个确认+批量反选),
-               TrashActivity, LogActivity, DiagnosticsActivity, OnboardingActivity(首次引导),
+               LogActivity, DiagnosticsActivity, OnboardingActivity(首次引导),
                DeleteConfirmActivity(系统删除确认中转), Adapters, Thumbs,
                ThemedActivity(在 super.onCreate 前 setTheme), theme/Palette(五套配色), widget/DetentDial(固定档位旋钮)
 app/src/main/res/ values/colors_palettes.xml + values-night/colors_palettes.xml(每套配色的亮暗两份色表),
@@ -221,13 +225,13 @@ Kotlin 2.0.21 · AGP 8.7.3 · Material 3（Views + ViewBinding）· WorkManager 
 
 ## English summary
 
-ScreenshotBye keeps an eye on your camera roll for you. When a new screenshot shows up, it waits a configurable delay (5 minutes by default) and then asks — in one merged notification, no matter how many screenshots piled up — whether you still need them. Tap through the cards, keep, snooze, or mark them gone; marked shots are deleted in one batch, after being copied into the app's own trash so you can restore them within the retention window.
+ScreenshotBye keeps an eye on your camera roll for you. When a new screenshot shows up, it waits a configurable delay (5 minutes by default) and then asks — in one merged notification, no matter how many screenshots piled up — whether you still need them. Tap through the cards, keep, snooze, or mark them gone; marked shots are handed to the system in one batch: on Android 11+ the app fires a `MediaStore.createTrashRequest()`, so after the system prompt the original lands in your gallery's own trash — the app no longer keeps a copy of anything.
 
 On Android 11 and later, deleting files the app didn't create requires either the "all files access" grant or a system confirmation dialog; ScreenshotBye backs up first and asks the system once per batch, never silently. Detection uses a `MediaStore` content observer plus a `DATE_ADDED` watermark (Android 14's `DETECT_SCREEN_CAPTURE` only fires for your own visible activity and gives you no file), timing uses WorkManager so it survives process death, and a watchdog plus boot receiver bring the foreground service back when aggressive ROMs kill it.
 
-No `INTERNET` permission at all — photos, settings and trash stay on the device. Requires Android 8.0+.
+No `INTERNET` permission at all — photos and settings stay on the device. Requires Android 8.0+. On Android 10 and below there is no system trash, so a delete there is final.
 
-The UI is split the way the reference app splits it: a permissions-only home screen (plus a guide button and a settings entry), and a four-part settings screen — service & detection rules & pending shots, then four fixed-detent snapping knobs (ask after 2/5/15/30/90 min, keep for 0/1/3/5/7 days where 0 means "keep waiting", re-alert every 0/1/2/5/10 min, up to 1/2/3 times), then the trash (its retention stays a slider over 1/3/5/7/30 days), then five colour palettes and the event log. Continuous sliders invite "is 8 minutes different from 12?" — detents remove the question; values saved by older builds snap to the nearest detent on read, so nothing needs migrating. Palettes (beige / slate / terracotta / indigo / graphite) ship a light and a dark colour table each and dark mode simply follows the system, with all text routed through theme attributes so night mode is actually legible.
+The UI is split the way the reference app splits it: a permissions-only home screen (plus a guide button and a settings entry), and a three-part settings screen — service & detection rules & pending shots, then four fixed-detent snapping knobs (ask after 2/5/15/30/90 min, keep for 0/1/3/5/7 days where 0 means "keep waiting", re-alert every 0/1/2/5/10 min, up to 1/2/3 times), then five colour palettes and the event log. Deletion has no settings of its own any more: it goes through the system photo trash. Continuous sliders invite "is 8 minutes different from 12?" — detents remove the question; values saved by older builds snap to the nearest detent on read, so nothing needs migrating. Palettes (beige / slate / terracotta / indigo / graphite) ship a light and a dark colour table each and dark mode simply follows the system, with all text routed through theme attributes so night mode is actually legible.
 
 Asks re-alert instead of firing once and going silent: a 90-second burst guard, a configurable repeat interval and a per-item alert cap, all applied to a single notification channel — sound, vibration, heads-up banner and lock-screen behaviour are owned by the system notification settings, and the app just links straight to them rather than duplicating a switch you can already flip in Android itself. (v1.0.2 tried a three-level "alert intensity" picker backed by three channels; since channel settings are immutable once created, that meant three parallel copies of one system setting, so it's gone — the retired channels get deleted on startup and any ringtone or banner choice you'd already made carries over.) Swiping the notification away schedules a follow-up rather than muting the item forever, unanswered asks expire into "kept" after a configurable number of days, and stuck `DELETING` entries fall back into the queue. A built-in diagnostics screen dumps notification permission and channel importance, DND state, service liveness, observer and scan timestamps, WorkManager job states, per-item queue state and the last uncaught crash (captured synchronously, stack frames and all) as copyable plain text, plus a "send test alert" button that posts through the real channel — useful when the question is whether the app didn't fire or the ROM ate the banner.
 
