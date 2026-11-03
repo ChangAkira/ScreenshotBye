@@ -3,7 +3,6 @@ package com.changakira.screenshotbye.ui
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.changakira.screenshotbye.R
 import com.changakira.screenshotbye.core.Settings
@@ -14,7 +13,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.util.concurrent.Executors
 
 /** 删除前后的备份都落在这里，用户可以在保留期内反悔。 */
-class TrashActivity : AppCompatActivity() {
+class TrashActivity : ThemedActivity() {
 
     private lateinit var b: ActivityTrashBinding
     private lateinit var store: TrashStore

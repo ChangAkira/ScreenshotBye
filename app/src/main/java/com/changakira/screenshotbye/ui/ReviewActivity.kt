@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.changakira.screenshotbye.R
 import com.changakira.screenshotbye.core.Decision
@@ -28,7 +27,7 @@ import kotlin.math.abs
  * 一次 deleteBatch 收口——这样连截十张也只问一次、只弹一次系统确认，
  * 而不是十张截图十条通知十个系统对话框。
  */
-class ReviewActivity : AppCompatActivity() {
+class ReviewActivity : ThemedActivity() {
 
     private lateinit var b: ActivityReviewBinding
     private lateinit var repo: ScreenshotRepository

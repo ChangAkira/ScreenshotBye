@@ -75,6 +75,8 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.google.material)
     implementation(libs.androidx.recyclerview)
+    // 旋钮的逐档无障碍焦点靠 ExploreByTouchHelper，它是 customview 里的类
+    implementation(libs.androidx.customview)
     implementation(libs.androidx.work.runtime.ktx)
 
     // 沙箱里没有 /dev/kvm，起不了模拟器；Robolectric 是唯一能真正跑一遍启动路径、

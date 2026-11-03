@@ -103,13 +103,6 @@ object Perms {
             .onFailure { openAppNotificationSettings(ctx) }
     }
 
-    fun openAppStorageSettings(ctx: Context) {
-        val intent = Intent(SysSettings.ACTION_APPLICATION_DETAILS_SETTINGS)
-            .setData(Uri.fromParts("package", ctx.packageName, null))
-            .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        runCatching { ctx.startActivity(intent) }
-    }
-
     /**
      * 国产 ROM 的自启动 / 后台运行白名单入口。各家 Settings 页 action 不公开也不稳定，
      * 只能逐个尝试、失败即跳过；找不到时回退到应用信息页，让用户手动操作。

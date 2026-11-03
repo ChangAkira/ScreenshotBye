@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="DetentDial">
+        <!-- 弧线上方的小字，例如「首次询问」 -->
+        <attr name="dialLabel" format="string" />
+        <!-- 圆心大数字下面那行单位，例如「分钟」「天」「次」 -->
+        <attr name="dialUnit" format="string" />
+        <!-- 档位：逗号分隔的整数，至少两个；只有这些值可选，手指怎么滑都吸附到最近的一格 -->
+        <attr name="dialPresets" format="string" />
+    </declare-styleable>
+</resources>

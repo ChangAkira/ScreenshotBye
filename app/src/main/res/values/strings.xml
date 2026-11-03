@@ -36,58 +36,78 @@
     <string name="notif_stop_watch">停止监控</string>
 
     <!-- 主界面 -->
-    <string name="main_status">运行状态</string>
     <string name="main_watch_switch">后台监控截图</string>
     <string name="main_running">服务运行中 · 已发现 %1$d 张待确认</string>
     <string name="main_stopped">未运行</string>
     <string name="main_permissions">权限</string>
-    <string name="main_ask_settings">询问设置</string>
-    <string name="main_delay">多久后询问是否还需要</string>
-    <string name="main_delay_value">%1$d 分钟</string>
     <string name="main_trash_switch">删除前先备份到回收站</string>
     <string name="main_trash_days">回收站保留天数</string>
-    <string name="main_expiry">多久不回答就当作「保留」</string>
-    <string name="main_expiry_value">%1$d 天后自动出队</string>
-    <string name="main_expiry_never">永不过期（不回答就一直提醒）</string>
-    <string name="main_expiry_hint">0 天表示永不过期。到点自动出队只是不再追问，截图本身不会被删。</string>
 
-    <string name="main_alert_settings">重复提醒</string>
-    <string name="main_alert_hint">响几声、要不要震动、弹不弹横幅，都在系统的通知设置里改——应用不替你决定。这里只管「还有没回答的截图时，多久再提醒一次、最多几次」。</string>
-    <string name="main_open_channel_settings">在系统设置里管理提醒方式</string>
-    <string name="main_repeat">还有没回答的，隔多久再提醒一次</string>
-    <string name="main_repeat_value">每 %1$d 分钟</string>
-    <string name="main_repeat_never">不重复提醒（只在新截图到期时响）</string>
-    <string name="main_max_times">同一批最多提醒几次</string>
-    <string name="main_max_times_value">%1$d 次</string>
     <string name="main_open_diag">运行自检</string>
     <string name="main_rules">识别规则</string>
     <string name="main_rule_folder">按截图目录识别（DCIM/Screenshots 等）</string>
     <string name="main_rule_name">按文件名识别（Screenshot_2026… 等）</string>
     <string name="main_rule_video">同时处理录屏视频</string>
-    <string name="main_keywords">额外关键词（逗号分隔）</string>
-    <string name="main_keywords_hint">例如 scrollshot,屏幕快照</string>
-    <string name="main_pending">待确认截图（%1$d）</string>
-    <string name="main_pending_empty">暂时没有待确认的截图。</string>
     <string name="main_trash">回收站</string>
     <string name="main_trash_summary">%1$d 项备份 · 占用 %2$s</string>
-    <string name="main_open_trash">打开回收站</string>
     <string name="main_log">事件日志</string>
     <string name="main_clear_log">清空日志</string>
-    <string name="main_save">保存</string>
-    <string name="main_saved">已保存</string>
+
+
+    <!-- 首页：权限 + 引导 + 设置入口 -->
+    <string name="home_subtitle">截图过一段时间问一句「还需要吗」，不要就删掉，删之前先备份。</string>
+    <string name="home_request_perms">请求权限</string>
+    <string name="home_request_perms_done">权限已授予</string>
+    <string name="home_open_settings">设置</string>
+    <string name="home_open">打开</string>
+    <string name="home_oem_title">为保障稳定运行</string>
+    <string name="home_oem_body">请允许本应用自启动与后台活动，并把电池优化设为「无限制」，否则国产 ROM 会在后台把监控杀掉，询问就发不出来。</string>
+    <string name="home_battery_settings">电池优化：设为无限制</string>
+    <string name="home_autostart_settings">允许自启动 / 后台运行</string>
+    <string name="home_version">版本 %1$s (%2$d)</string>
+
+    <!-- 设置页 -->
+    <string name="settings_title">设置</string>
+    <string name="main_pending_title">待确认截图</string>
+    <string name="settings_pending_none">没有待确认</string>
+    <string name="settings_pending_count">%1$d 张待处理</string>
+    <string name="settings_log_count">%1$d 条</string>
+    <string name="settings_theme">主题颜色</string>
+    <string name="settings_watch_toast_on">监控已开启</string>
+    <string name="settings_watch_toast_off">监控已关闭</string>
+    <string name="settings_rules_saved">识别规则已更新</string>
+
+    <!-- 旋钮 -->
+    <string name="dial_ask_first">首次询问</string>
+    <string name="dial_keep_default">默认保留</string>
+    <string name="dial_gap">间隔</string>
+    <string name="dial_repeat_times">重复</string>
+    <string name="unit_minutes">分钟</string>
+    <string name="unit_days">天</string>
+    <string name="unit_times">次</string>
+
+    <!-- 配色名称 -->
+    <string name="palette_beige">米白</string>
+    <string name="palette_slate">青灰</string>
+    <string name="palette_terracotta">陶土</string>
+    <string name="palette_indigo">靛蓝</string>
+    <string name="palette_graphite">石墨</string>
+
+    <!-- 日志页 -->
+    <string name="log_title">事件日志</string>
+    <string name="log_copy">复制日志</string>
+    <string name="log_empty">暂无日志。</string>
+    <string name="log_cleared">日志已清空</string>
 
     <!-- 权限引导 -->
     <string name="perm_read_media">读取相册（必需）</string>
     <string name="perm_notification">通知权限（必需，否则收不到询问）</string>
     <string name="perm_all_files">所有文件访问（推荐，可免系统弹窗直接删除）</string>
-    <string name="perm_battery">忽略电池优化（推荐，防后台被杀）</string>
-    <string name="perm_autostart">自启动 / 后台运行白名单（国产 ROM 建议设置）</string>
     <string name="perm_granted">已授予</string>
     <string name="perm_denied">未授予</string>
     <string name="perm_go_grant">去开启</string>
     <string name="perm_grant_now">授权</string>
     <string name="perm_legacy_write">存储写入权限（Android 10 及以下删除所需）</string>
-    <string name="perm_media_location">媒体位置权限（系统删除确认所需）</string>
 
     <!-- 回收站 -->
     <string name="trash_title">回收站</string>
@@ -105,16 +125,10 @@
     <string name="cancel">取消</string>
     <string name="confirm">确定</string>
 
-    <string name="toast_deleted">已删除</string>
-    <string name="toast_deleted_trash">已删除，备份在回收站</string>
-    <string name="toast_kept">已保留</string>
-    <string name="toast_snoozed">10 分钟后再问</string>
     <string name="toast_needs_confirm">请点通知里的确认，或再按一次删除</string>
     <string name="toast_no_delete_support">系统未提供删除确认入口，请手动删除或授予「所有文件访问」权限</string>
-    <string name="toast_failed">%1$s</string>
     <string name="toast_need_read_media">先授予相册读取权限，否则无法检测截图</string>
     <string name="dialog_preview">查看截图</string>
-    <string name="dialog_preview_hint">%1$s\n%2$s · %3$s</string>
     <string name="shot_meta">%1$s · %2$s · %3$s</string>
     <string name="state_waiting">%1$d 分钟后询问</string>
     <string name="state_asked">已询问，等待你的决定</string>
@@ -122,7 +136,6 @@
     <string name="size_unknown">未知大小</string>
 
     <!-- 逐个确认页 -->
-    <string name="main_open_review">逐个确认待处理截图</string>
     <string name="review_title">逐个确认</string>
     <string name="review_confirm_title">确认要删除的截图</string>
     <string name="review_empty">没有待确认的截图，可以放心了。</string>
@@ -170,10 +183,10 @@
     </string-array>
 
     <string-array name="onb_bodies">
-        <item>你截的图大多只是临时用一下，用完就忘在相册里。这个应用持续在后台盯着相册，发现新截图后过一段时间（默认 5 分钟，可调 1–60 分钟）问你一句：还需要这张截图吗？</item>
-        <item>到点后通知栏只出现一条提醒，把这一批到期截图合并在一起问你。点开就是一张一张看：留着、10 分钟后再问、还是不需要。看完后进反选屏，一次删掉标记的那些。没回答的会按设定间隔再提醒你一次，一直不理会在几天后就当作「保留」不再追问。</item>
+        <item>你截的图大多只是临时用一下，用完就忘在相册里。这个应用持续在后台盯着相册，发现新截图后过一段时间（默认 5 分钟，可选 2／5／15／30／90 分钟）问你一句：还需要这张截图吗？</item>
+        <item>到点后通知栏只出现一条提醒，把这一批到期截图合并在一起问你。点开就是一张一张看：留着、10 分钟后再问、还是不需要。看完后进反选屏，一次删掉标记的那些。没回答的会按设定间隔再提醒你一次；一直不理会，会在设定的天数后当作「保留」不再追问 —— 这一档也能设成 0，也就是不自动出队、一直等你处理。</item>
         <item>读取相册：不授权连截图都看不到。通知：不授权问不出提醒。所有文件访问（Android 11+）：授权后才能静默删除；不授权的话每批删除系统都会再弹一个确认框（一批只弹一次），这是系统的规定，不是应用的额外要求。</item>
-        <item>点「不需要，删除」时，先把原图复制进应用内的回收站，再删相册里的原件；备份失败就不会删除。回收站默认保留 7 天，可以一键还原。注意：卸载应用会连回收站一起清空。</item>
-        <item>下面这个开关决定现在就开始监控，还是先在主界面把延迟时间和识别规则调好再开。</item>
+        <item>点「不需要，删除」时，先把原图复制进应用内的回收站，再删相册里的原件；备份失败就不会删除。回收站默认保留 7 天（1／3／5／7／30 天可选），可以一键还原。注意：卸载应用会连回收站一起清空。</item>
+        <item>下面这个开关决定现在就开始监控，还是先进设置页把询问时间、默认保留天数和识别规则调好再开。</item>
     </string-array>
 </resources>

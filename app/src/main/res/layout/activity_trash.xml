@@ -16,7 +16,7 @@
         android:padding="24dp"
         android:gravity="center"
         android:text="@string/trash_empty"
-        android:textColor="@color/muted"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:visibility="gone" />
 
     <androidx.recyclerview.widget.RecyclerView

@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.view.View
 import android.widget.LinearLayout
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
 import com.changakira.screenshotbye.R
 import com.changakira.screenshotbye.ScreenshotByeApp
 import com.changakira.screenshotbye.core.Settings
@@ -23,7 +22,7 @@ import com.changakira.screenshotbye.service.WatchService
  * 直接把用户扔进一面权限开关墙，大多数人会关掉就走。所以先把「它什么时候会问你、
  * 删除前会不会备份、不授权会怎样」讲明白，最后一页再问要不要立刻开启监控。
  */
-class OnboardingActivity : AppCompatActivity() {
+class OnboardingActivity : ThemedActivity() {
 
     private lateinit var b: ActivityOnboardingBinding
     private lateinit var settings: Settings

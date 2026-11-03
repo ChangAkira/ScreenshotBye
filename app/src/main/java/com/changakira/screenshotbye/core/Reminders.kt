@@ -63,7 +63,8 @@ object Reminders {
      * 至少 5 分钟，避免用户刚清完通知栏就被第二次铃声砸到。
      */
     fun scheduleAlertRetry(ctx: Context, delayMinutes: Int) {
-        val minutes = delayMinutes.coerceIn(5, 180).toLong()
+        // 补提醒不能贴着上一声立刻再来（1 分钟是档位下限），也不能拖到像没安排一样
+        val minutes = delayMinutes.coerceIn(1, 180).toLong()
         val request = OneTimeWorkRequestBuilder<AlertRetryWorker>()
             .setInitialDelay(minutes, TimeUnit.MINUTES)
             .addTag(TAG)

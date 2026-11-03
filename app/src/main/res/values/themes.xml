@@ -1,25 +1,212 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <style name="Theme.ScreenshotBye" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/seed</item>
+    <style name="Theme.ScreenshotBye.Base" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:statusBarColor">?attr/colorSurface</item>
-        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <item name="android:navigationBarColor">?attr/colorSurface</item>
+        <item name="android:windowLightStatusBar">@bool/light_status_bar</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">@bool/light_status_bar</item>
+        <item name="android:textColorLink">?attr/colorPrimary</item>
     </style>
 
-    <style name="Theme.Translucent" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.ScreenshotBye.Beige" parent="Theme.ScreenshotBye.Base">
+        <item name="colorPrimary">@color/beige_primary</item>
+        <item name="colorOnPrimary">@color/beige_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/beige_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/beige_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/beige_secondary</item>
+        <item name="colorOnSecondary">@color/beige_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/beige_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/beige_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/beige_tertiary</item>
+        <item name="colorOnTertiary">@color/beige_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/beige_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/beige_onTertiaryContainer</item>
+        <item name="colorError">@color/beige_error</item>
+        <item name="colorOnError">@color/beige_onError</item>
+        <item name="colorErrorContainer">@color/beige_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/beige_onErrorContainer</item>
+        <item name="android:colorBackground">@color/beige_background</item>
+        <item name="colorOnBackground">@color/beige_onBackground</item>
+        <item name="colorSurface">@color/beige_surface</item>
+        <item name="colorOnSurface">@color/beige_onSurface</item>
+        <item name="colorSurfaceVariant">@color/beige_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/beige_onSurfaceVariant</item>
+        <item name="colorSurfaceContainerLowest">@color/beige_surfaceContainerLowest</item>
+        <item name="colorSurfaceContainerLow">@color/beige_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/beige_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/beige_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/beige_surfaceContainerHighest</item>
+        <item name="colorSurfaceBright">@color/beige_surfaceBright</item>
+        <item name="colorSurfaceDim">@color/beige_surfaceDim</item>
+        <item name="colorSurfaceInverse">@color/beige_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/beige_inverseOnSurface</item>
+        <item name="colorPrimaryInverse">@color/beige_inversePrimary</item>
+        <item name="colorOutline">@color/beige_outline</item>
+        <item name="colorOutlineVariant">@color/beige_outlineVariant</item>
+    </style>
+    <!-- 默认配色就是米白；换主题由 ThemedActivity 在 onCreate 前 setTheme 覆盖 -->
+    <style name="Theme.ScreenshotBye" parent="Theme.ScreenshotBye.Beige" />
+    <style name="Theme.ScreenshotBye.Slate" parent="Theme.ScreenshotBye.Base">
+        <item name="colorPrimary">@color/slate_primary</item>
+        <item name="colorOnPrimary">@color/slate_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/slate_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/slate_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/slate_secondary</item>
+        <item name="colorOnSecondary">@color/slate_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/slate_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/slate_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/slate_tertiary</item>
+        <item name="colorOnTertiary">@color/slate_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/slate_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/slate_onTertiaryContainer</item>
+        <item name="colorError">@color/slate_error</item>
+        <item name="colorOnError">@color/slate_onError</item>
+        <item name="colorErrorContainer">@color/slate_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/slate_onErrorContainer</item>
+        <item name="android:colorBackground">@color/slate_background</item>
+        <item name="colorOnBackground">@color/slate_onBackground</item>
+        <item name="colorSurface">@color/slate_surface</item>
+        <item name="colorOnSurface">@color/slate_onSurface</item>
+        <item name="colorSurfaceVariant">@color/slate_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/slate_onSurfaceVariant</item>
+        <item name="colorSurfaceContainerLowest">@color/slate_surfaceContainerLowest</item>
+        <item name="colorSurfaceContainerLow">@color/slate_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/slate_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/slate_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/slate_surfaceContainerHighest</item>
+        <item name="colorSurfaceBright">@color/slate_surfaceBright</item>
+        <item name="colorSurfaceDim">@color/slate_surfaceDim</item>
+        <item name="colorSurfaceInverse">@color/slate_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/slate_inverseOnSurface</item>
+        <item name="colorPrimaryInverse">@color/slate_inversePrimary</item>
+        <item name="colorOutline">@color/slate_outline</item>
+        <item name="colorOutlineVariant">@color/slate_outlineVariant</item>
+    </style>
+    <style name="Theme.ScreenshotBye.Terracotta" parent="Theme.ScreenshotBye.Base">
+        <item name="colorPrimary">@color/terracotta_primary</item>
+        <item name="colorOnPrimary">@color/terracotta_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/terracotta_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/terracotta_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/terracotta_secondary</item>
+        <item name="colorOnSecondary">@color/terracotta_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/terracotta_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/terracotta_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/terracotta_tertiary</item>
+        <item name="colorOnTertiary">@color/terracotta_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/terracotta_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/terracotta_onTertiaryContainer</item>
+        <item name="colorError">@color/terracotta_error</item>
+        <item name="colorOnError">@color/terracotta_onError</item>
+        <item name="colorErrorContainer">@color/terracotta_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/terracotta_onErrorContainer</item>
+        <item name="android:colorBackground">@color/terracotta_background</item>
+        <item name="colorOnBackground">@color/terracotta_onBackground</item>
+        <item name="colorSurface">@color/terracotta_surface</item>
+        <item name="colorOnSurface">@color/terracotta_onSurface</item>
+        <item name="colorSurfaceVariant">@color/terracotta_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/terracotta_onSurfaceVariant</item>
+        <item name="colorSurfaceContainerLowest">@color/terracotta_surfaceContainerLowest</item>
+        <item name="colorSurfaceContainerLow">@color/terracotta_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/terracotta_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/terracotta_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/terracotta_surfaceContainerHighest</item>
+        <item name="colorSurfaceBright">@color/terracotta_surfaceBright</item>
+        <item name="colorSurfaceDim">@color/terracotta_surfaceDim</item>
+        <item name="colorSurfaceInverse">@color/terracotta_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/terracotta_inverseOnSurface</item>
+        <item name="colorPrimaryInverse">@color/terracotta_inversePrimary</item>
+        <item name="colorOutline">@color/terracotta_outline</item>
+        <item name="colorOutlineVariant">@color/terracotta_outlineVariant</item>
+    </style>
+    <style name="Theme.ScreenshotBye.Indigo" parent="Theme.ScreenshotBye.Base">
+        <item name="colorPrimary">@color/indigo_primary</item>
+        <item name="colorOnPrimary">@color/indigo_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/indigo_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/indigo_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/indigo_secondary</item>
+        <item name="colorOnSecondary">@color/indigo_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/indigo_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/indigo_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/indigo_tertiary</item>
+        <item name="colorOnTertiary">@color/indigo_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/indigo_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/indigo_onTertiaryContainer</item>
+        <item name="colorError">@color/indigo_error</item>
+        <item name="colorOnError">@color/indigo_onError</item>
+        <item name="colorErrorContainer">@color/indigo_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/indigo_onErrorContainer</item>
+        <item name="android:colorBackground">@color/indigo_background</item>
+        <item name="colorOnBackground">@color/indigo_onBackground</item>
+        <item name="colorSurface">@color/indigo_surface</item>
+        <item name="colorOnSurface">@color/indigo_onSurface</item>
+        <item name="colorSurfaceVariant">@color/indigo_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/indigo_onSurfaceVariant</item>
+        <item name="colorSurfaceContainerLowest">@color/indigo_surfaceContainerLowest</item>
+        <item name="colorSurfaceContainerLow">@color/indigo_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/indigo_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/indigo_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/indigo_surfaceContainerHighest</item>
+        <item name="colorSurfaceBright">@color/indigo_surfaceBright</item>
+        <item name="colorSurfaceDim">@color/indigo_surfaceDim</item>
+        <item name="colorSurfaceInverse">@color/indigo_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/indigo_inverseOnSurface</item>
+        <item name="colorPrimaryInverse">@color/indigo_inversePrimary</item>
+        <item name="colorOutline">@color/indigo_outline</item>
+        <item name="colorOutlineVariant">@color/indigo_outlineVariant</item>
+    </style>
+    <style name="Theme.ScreenshotBye.Graphite" parent="Theme.ScreenshotBye.Base">
+        <item name="colorPrimary">@color/graphite_primary</item>
+        <item name="colorOnPrimary">@color/graphite_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/graphite_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/graphite_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/graphite_secondary</item>
+        <item name="colorOnSecondary">@color/graphite_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/graphite_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/graphite_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/graphite_tertiary</item>
+        <item name="colorOnTertiary">@color/graphite_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/graphite_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/graphite_onTertiaryContainer</item>
+        <item name="colorError">@color/graphite_error</item>
+        <item name="colorOnError">@color/graphite_onError</item>
+        <item name="colorErrorContainer">@color/graphite_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/graphite_onErrorContainer</item>
+        <item name="android:colorBackground">@color/graphite_background</item>
+        <item name="colorOnBackground">@color/graphite_onBackground</item>
+        <item name="colorSurface">@color/graphite_surface</item>
+        <item name="colorOnSurface">@color/graphite_onSurface</item>
+        <item name="colorSurfaceVariant">@color/graphite_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/graphite_onSurfaceVariant</item>
+        <item name="colorSurfaceContainerLowest">@color/graphite_surfaceContainerLowest</item>
+        <item name="colorSurfaceContainerLow">@color/graphite_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/graphite_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/graphite_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/graphite_surfaceContainerHighest</item>
+        <item name="colorSurfaceBright">@color/graphite_surfaceBright</item>
+        <item name="colorSurfaceDim">@color/graphite_surfaceDim</item>
+        <item name="colorSurfaceInverse">@color/graphite_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/graphite_inverseOnSurface</item>
+        <item name="colorPrimaryInverse">@color/graphite_inversePrimary</item>
+        <item name="colorOutline">@color/graphite_outline</item>
+        <item name="colorOutlineVariant">@color/graphite_outlineVariant</item>
+    </style>
+
+    <style name="Theme.Translucent" parent="Theme.ScreenshotBye.Beige">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowAnimationStyle">@null</item>
         <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
 
+    <!-- 文字颜色一律走主题属性：夜间模式靠 ?attr 自动换，硬写 @color/ink 会让深底上看不清 -->
     <style name="SectionTitle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textSize">15sp</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/ink</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
         <item name="android:paddingBottom">6dp</item>
     </style>
 
@@ -27,7 +214,32 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textSize">12sp</item>
-        <item name="android:textColor">@color/muted</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
         <item name="android:lineSpacingExtra">2dp</item>
     </style>
+
+    <style name="SettingRowLabel">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="SettingRowValue">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+
+    <style name="SectionChevron">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:text">></item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">?attr/colorOutline</item>
+        <item name="android:layout_marginStart">6dp</item>
+    </style>
+
 </resources>

@@ -82,10 +82,11 @@ object Diagnostics {
             row("电池优化白名单", Perms.canIgnoreBattery(app), "")
 
             section("提醒节流")
-            line("重复提醒间隔：${if (settings.alertRepeatMinutes == 0) "关闭" else "${settings.alertRepeatMinutes} 分钟"}")
+            line("首次询问：入库后 ${settings.delayMinutes} 分钟")
+            line("重复提醒间隔：${if (settings.alertRepeatMinutes == 0) "关闭（只问一次）" else "${settings.alertRepeatMinutes} 分钟"}")
             line("最多提醒次数：${settings.alertMaxTimes}")
             line("上次出声提醒：" + ago(settings.lastAlertAt, now))
-            line("未回答过期：${if (settings.askExpiryDays == 0) "永不" else "${settings.askExpiryDays} 天后按保留处理"}")
+            line("默认保留：${if (settings.askExpiryDays == 0) "继续等待处理，不会自动出队" else "${settings.askExpiryDays} 天没回答就当作保留"}")
 
             section("待确认队列（${store.all().size}）")
             val all = store.all()

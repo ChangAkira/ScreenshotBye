@@ -5,7 +5,7 @@ package com.changakira.screenshotbye.media
  *
  * 为什么不用 Android 14 的 DETECT_SCREEN_CAPTURE：那个回调只在「用户截取本应用自己的
  * Activity」时触发，且不返回截图文件，无法用于全局截图清理。因此这里以 MediaStore 的
- * 入库事件为主信号，用「所在目录 / 文件名 / 用户自定义关键词」三条规则识别截图。
+ * 入库事件为主信号，用「所在目录 / 文件名」两条规则识别截图。
  */
 object ScreenshotRule {
 
@@ -44,7 +44,6 @@ object ScreenshotRule {
         folderLabel: String,
         relativePath: String?,
         allowVideo: Boolean,
-        extraKeywords: Set<String>,
         matchByFolder: Boolean,
         matchByName: Boolean,
     ): Boolean {
@@ -59,11 +58,7 @@ object ScreenshotRule {
             folderIsScreenshot(folderLabel, relativePath)
         ) return true
 
-        if (matchByName && NAME_PATTERNS.any { it.containsMatchIn(displayName) }) return true
-
-        return extraKeywords.any {
-            it.isNotBlank() && (displayName.contains(it, true) || folderLabel.contains(it, true))
-        }
+        return matchByName && NAME_PATTERNS.any { it.containsMatchIn(displayName) }
     }
 
     private fun folderIsScreenshot(folderLabel: String, relativePath: String?): Boolean {

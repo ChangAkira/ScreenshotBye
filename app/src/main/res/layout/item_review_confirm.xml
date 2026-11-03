@@ -37,7 +37,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:maxLines="2"
-            android:textColor="@color/muted"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="11sp" />
     </LinearLayout>
 

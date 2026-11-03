@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  首页只做三件事：权限、使用引导、进设置。
+  可调项全部搬到 SettingsActivity，参考仓库也是这个分法（首页 = 授权 + 一个「设置」入口）。
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
-
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -19,13 +18,36 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingHorizontal="24dp"
+            android:paddingTop="28dp"
+            android:paddingBottom="24dp">
 
-            <!-- 运行状态 + 权限 -->
-            <com.google.android.material.card.MaterialCardView
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp">
+                android:text="@string/app_name"
+                android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                android:textColor="?attr/colorOnSurface" />
+
+            <TextView
+                style="@style/BodyHint"
+                android:layout_marginTop="8dp"
+                android:textSize="14sp"
+                android:text="@string/home_subtitle" />
+
+            <TextView
+                android:id="@+id/statusText"
+                style="@style/BodyHint"
+                android:layout_marginTop="10dp"
+                android:textSize="13sp"
+                android:text="@string/main_stopped" />
+
+            <!-- 权限 -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.Material3.CardView.Filled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -33,25 +55,8 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <TextView style="@style/SectionTitle" android:text="@string/main_status" />
-
                     <TextView
-                        android:id="@+id/statusText"
-                        style="@style/BodyHint"
-                        android:textSize="13sp"
-                        android:text="@string/main_stopped" />
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/watchSwitch"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/main_watch_switch" />
-
-                    <TextView
-                        android:id="@+id/permTitle"
                         style="@style/SectionTitle"
-                        android:layout_marginTop="16dp"
                         android:text="@string/main_permissions" />
 
                     <LinearLayout
@@ -59,224 +64,40 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/guideBtn"
-                        style="@style/Widget.Material3.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="end"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/main_open_guide" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/diagBtn"
-                        style="@style/Widget.Material3.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="end"
-                        android:text="@string/main_open_diag" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- 询问设置 -->
-            <com.google.android.material.card.MaterialCardView
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/askPermsBtn"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp">
+                android:layout_marginTop="20dp"
+                android:text="@string/home_request_perms" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView style="@style/SectionTitle" android:text="@string/main_ask_settings" />
-
-                    <TextView
-                        android:id="@+id/delayLabel"
-                        style="@style/BodyHint"
-                        android:textSize="13sp"
-                        android:text="@string/main_delay" />
-
-                    <com.google.android.material.slider.Slider
-                        android:id="@+id/delaySlider"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:stepSize="1"
-                        android:value="5"
-                        android:valueFrom="1"
-                        android:valueTo="60" />
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/trashSwitch"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/main_trash_switch" />
-
-                    <TextView
-                        android:id="@+id/trashDaysLabel"
-                        style="@style/BodyHint"
-                        android:layout_marginTop="10dp"
-                        android:textSize="13sp"
-                        android:text="@string/main_trash_days" />
-
-                    <com.google.android.material.slider.Slider
-                        android:id="@+id/trashDaysSlider"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:stepSize="1"
-                        android:value="7"
-                        android:valueFrom="1"
-                        android:valueTo="30" />
-
-                    <TextView
-                        android:id="@+id/expiryLabel"
-                        style="@style/BodyHint"
-                        android:layout_marginTop="10dp"
-                        android:textSize="13sp"
-                        android:text="@string/main_expiry" />
-
-                    <com.google.android.material.slider.Slider
-                        android:id="@+id/expirySlider"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:stepSize="1"
-                        android:value="3"
-                        android:valueFrom="0"
-                        android:valueTo="14" />
-
-                    <TextView
-                        style="@style/BodyHint"
-                        android:textSize="12sp"
-                        android:text="@string/main_expiry_hint" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- 提醒强度 -->
-            <com.google.android.material.card.MaterialCardView
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/settingsBtn"
+                style="@style/Widget.Material3.Button.TonalButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp">
+                android:layout_marginTop="12dp"
+                android:text="@string/home_open_settings" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView style="@style/SectionTitle" android:text="@string/main_alert_settings" />
-
-                    <TextView
-                        android:id="@+id/repeatLabel"
-                        style="@style/BodyHint"
-                        android:textSize="13sp"
-                        android:text="@string/main_repeat" />
-
-                    <com.google.android.material.slider.Slider
-                        android:id="@+id/repeatSlider"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:stepSize="1"
-                        android:value="20"
-                        android:valueFrom="0"
-                        android:valueTo="120" />
-
-                    <TextView
-                        android:id="@+id/maxTimesLabel"
-                        style="@style/BodyHint"
-                        android:layout_marginTop="6dp"
-                        android:textSize="13sp"
-                        android:text="@string/main_max_times" />
-
-                    <com.google.android.material.slider.Slider
-                        android:id="@+id/maxTimesSlider"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:stepSize="1"
-                        android:value="5"
-                        android:valueFrom="1"
-                        android:valueTo="10" />
-
-                    <TextView
-                        style="@style/BodyHint"
-                        android:layout_marginTop="6dp"
-                        android:textSize="12sp"
-                        android:text="@string/main_alert_hint" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/notifySettingsBtn"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/main_open_channel_settings" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- 识别规则 -->
-            <com.google.android.material.card.MaterialCardView
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/guideBtn"
+                style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp">
+                android:layout_marginTop="12dp"
+                android:text="@string/main_open_guide" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView style="@style/SectionTitle" android:text="@string/main_rules" />
-
-                    <com.google.android.material.checkbox.MaterialCheckBox
-                        android:id="@+id/ruleFolder"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/main_rule_folder" />
-
-                    <com.google.android.material.checkbox.MaterialCheckBox
-                        android:id="@+id/ruleName"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/main_rule_name" />
-
-                    <com.google.android.material.checkbox.MaterialCheckBox
-                        android:id="@+id/ruleVideo"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/main_rule_video" />
-
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:hint="@string/main_keywords"
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/keywordsInput"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:imeOptions="actionDone"
-                            android:inputType="text"
-                            android:maxLines="2" />
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/saveRulesBtn"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:text="@string/main_save" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- 待确认列表 -->
+            <!-- 国产 ROM 的硬限制，只在没放行时占位置 -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/oemCard"
+                style="@style/Widget.Material3.CardView.Filled"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp">
+                android:layout_marginTop="20dp"
+                android:visibility="gone">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -285,92 +106,37 @@
                     android:padding="16dp">
 
                     <TextView
-                        android:id="@+id/pendingTitle"
                         style="@style/SectionTitle"
-                        android:text="@string/app_name" />
+                        android:textSize="14sp"
+                        android:text="@string/home_oem_title" />
 
                     <TextView
-                        android:id="@+id/pendingEmpty"
                         style="@style/BodyHint"
-                        android:text="@string/main_pending_empty" />
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/pendingList"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:nestedScrollingEnabled="false"
-                        android:overScrollMode="never" />
+                        android:text="@string/home_oem_body" />
 
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/openReviewBtn"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/main_open_review" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- 回收站 -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView style="@style/SectionTitle" android:text="@string/main_trash" />
-
-                    <TextView
-                        android:id="@+id/trashSummary"
-                        style="@style/BodyHint"
-                        android:textSize="13sp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/openTrashBtn"
+                        android:id="@+id/oemBtn"
                         style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/main_open_trash" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- 日志 -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView style="@style/SectionTitle" android:text="@string/main_log" />
-
-                    <TextView
-                        android:id="@+id/logText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:fontFamily="monospace"
-                        android:textSize="11sp"
-                        android:maxLines="40"
-                        android:scrollbars="vertical"
-                        android:textIsSelectable="true" />
+                        android:layout_marginTop="10dp"
+                        android:text="@string/home_battery_settings" />
 
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/clearLogBtn"
-                        style="@style/Widget.Material3.Button.TextButton"
-                        android:layout_width="wrap_content"
+                        android:id="@+id/oemAutostartBtn"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/main_clear_log" />
+                        android:layout_marginTop="8dp"
+                        android:text="@string/home_autostart_settings" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:id="@+id/versionText"
+                style="@style/BodyHint"
+                android:layout_marginTop="20dp"
+                android:gravity="center" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

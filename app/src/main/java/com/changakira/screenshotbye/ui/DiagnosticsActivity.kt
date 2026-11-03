@@ -4,7 +4,6 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.os.Bundle
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import com.changakira.screenshotbye.R
 import com.changakira.screenshotbye.databinding.ActivityDiagnosticsBinding
 import com.changakira.screenshotbye.diagnostic.Diagnostics
@@ -19,7 +18,7 @@ import java.util.concurrent.Executors
  * 反馈问题时能直接给出证据。「发送测试提醒」按当前提醒强度走真实渠道，用来区分
  * 是应用没发通知，还是系统把横幅和声音压掉了。
  */
-class DiagnosticsActivity : AppCompatActivity() {
+class DiagnosticsActivity : ThemedActivity() {
 
     private lateinit var b: ActivityDiagnosticsBinding
     private val io = Executors.newSingleThreadExecutor { r -> Thread(r, "shot-diag").apply { isDaemon = true } }

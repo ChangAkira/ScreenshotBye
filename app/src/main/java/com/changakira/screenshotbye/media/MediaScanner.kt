@@ -213,7 +213,6 @@ class MediaScanner(
             folderLabel = h.folder,
             relativePath = h.relativePath,
             allowVideo = settings.includeVideo,
-            extraKeywords = settings.extraKeywords,
             matchByFolder = settings.matchByFolder,
             matchByName = settings.matchByName,
         )

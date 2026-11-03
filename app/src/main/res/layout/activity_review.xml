@@ -16,7 +16,7 @@
         android:gravity="center"
         android:padding="32dp"
         android:text="@string/review_empty"
-        android:textColor="@color/muted"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:visibility="gone" />
 
     <FrameLayout
@@ -58,7 +58,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:textColor="@color/muted"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="11sp" />
 
             <TextView
@@ -67,7 +67,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:gravity="end"
-                android:textColor="@color/muted"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="11sp" />
         </LinearLayout>
 

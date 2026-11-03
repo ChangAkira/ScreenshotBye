@@ -16,8 +16,36 @@ class Settings private constructor(private val sp: SharedPreferences) {
         }
 
         const val DEFAULT_DELAY_MIN = 5
-        const val DEFAULT_ALERT_REPEAT_MIN = 20
+        const val DEFAULT_ALERT_REPEAT_MIN = 5
+        const val DEFAULT_ALERT_MAX_TIMES = 3
         const val DEFAULT_ASK_EXPIRY_DAYS = 3
+        const val DEFAULT_TRASH_DAYS = 7
+
+        /**
+         * 固定档位。旋钮只在这几个值之间吸附，理由和参考仓库一样：
+         * 「8 分钟」和「12 分钟」体感没区别，连续滑块等于让用户猜。
+         * 旧版本存的是 1–60 / 0–120 这种连续值，读取时一律吸附到最近的一格，不做迁移脚本。
+         */
+        val DELAY_PRESETS = listOf(2, 5, 15, 30, 90)
+        val EXPIRY_PRESETS = listOf(0, 1, 3, 5, 7)
+        val REPEAT_PRESETS = listOf(0, 1, 2, 5, 10)
+        val MAX_TIMES_PRESETS = listOf(1, 2, 3)
+        val TRASH_PRESETS = listOf(1, 3, 5, 7, 30)
+
+        /** 吸附到最近的一格。档位升序遍历 + 严格小于，平局时留下较小的那一档。 */
+        fun nearest(value: Int, presets: List<Int>): Int {
+            var best = presets.first()
+            var bestGap = Int.MAX_VALUE
+            presets.forEach {
+                val gap = kotlin.math.abs(it - value)
+                if (gap < bestGap) {
+                    bestGap = gap
+                    best = it
+                }
+            }
+            return best
+        }
+
         private const val MAX_SEEN = 800
 
         private const val K_ENABLED = "watch_enabled"
@@ -26,7 +54,7 @@ class Settings private constructor(private val sp: SharedPreferences) {
         private const val K_TRASH_DAYS = "trash_days"
         private const val K_BY_FOLDER = "match_by_folder"
         private const val K_BY_NAME = "match_by_name"
-        private const val K_KEYWORDS = "extra_keywords"
+        private const val K_THEME = "theme_palette"
         private const val K_INCLUDE_VIDEO = "include_video"
         private const val K_BASELINE = "baseline_date_added"
         private const val K_SEEN = "seen_ids"
@@ -59,34 +87,38 @@ class Settings private constructor(private val sp: SharedPreferences) {
         get() = sp.getBoolean(K_ENABLED, true)
         set(v) = sp.edit().putBoolean(K_ENABLED, v).apply()
 
-    /** 检测到截图后，过多少分钟询问「还需要这张截图吗」。 */
+    /**
+     * 检测到截图后，过多少分钟询问「还需要这张截图吗」。
+     * 读写都吸附到 DELAY_PRESETS，所以旧版 1–60 的连续值进来也不会带出界。
+     */
     var delayMinutes: Int
-        get() = sp.getInt(K_DELAY, DEFAULT_DELAY_MIN).coerceIn(1, 720)
-        set(v) = sp.edit().putInt(K_DELAY, v.coerceIn(1, 720)).apply()
+        get() = nearest(sp.getInt(K_DELAY, DEFAULT_DELAY_MIN), DELAY_PRESETS)
+        set(v) = sp.edit().putInt(K_DELAY, nearest(v, DELAY_PRESETS)).apply()
 
     /** 删除前先备份到应用私有目录，可在回收站找回。 */
     var useTrash: Boolean
         get() = sp.getBoolean(K_TRASH, true)
         set(v) = sp.edit().putBoolean(K_TRASH, v).apply()
 
+    /** 回收站保留天数，同样是固定档位。 */
     var trashDays: Int
-        get() = sp.getInt(K_TRASH_DAYS, 7).coerceIn(1, 90)
-        set(v) = sp.edit().putInt(K_TRASH_DAYS, v.coerceIn(1, 90)).apply()
+        get() = nearest(sp.getInt(K_TRASH_DAYS, DEFAULT_TRASH_DAYS), TRASH_PRESETS)
+        set(v) = sp.edit().putInt(K_TRASH_DAYS, nearest(v, TRASH_PRESETS)).apply()
 
     /** 还有没回答的截图时，隔多少分钟再提醒一次；0 表示只问一次不再重复。 */
     var alertRepeatMinutes: Int
-        get() = sp.getInt(K_ALERT_REPEAT, DEFAULT_ALERT_REPEAT_MIN).coerceIn(0, 180)
-        set(v) = sp.edit().putInt(K_ALERT_REPEAT, v.coerceIn(0, 180)).apply()
+        get() = nearest(sp.getInt(K_ALERT_REPEAT, DEFAULT_ALERT_REPEAT_MIN), REPEAT_PRESETS)
+        set(v) = sp.edit().putInt(K_ALERT_REPEAT, nearest(v, REPEAT_PRESETS)).apply()
 
     /** 同一批待确认截图最多提醒几次，超过就只留通知不再出声，避免变成骚扰。 */
     var alertMaxTimes: Int
-        get() = sp.getInt(K_ALERT_MAX, 5).coerceIn(1, 20)
-        set(v) = sp.edit().putInt(K_ALERT_MAX, v.coerceIn(1, 20)).apply()
+        get() = nearest(sp.getInt(K_ALERT_MAX, DEFAULT_ALERT_MAX_TIMES), MAX_TIMES_PRESETS)
+        set(v) = sp.edit().putInt(K_ALERT_MAX, nearest(v, MAX_TIMES_PRESETS)).apply()
 
-    /** 一直不回答的询问过多少天按「保留」处理；0 表示永不过期。 */
+    /** 一直不回答的询问过多少天按「保留」处理；0 表示继续等待处理，不过期。 */
     var askExpiryDays: Int
-        get() = sp.getInt(K_ASK_EXPIRY, DEFAULT_ASK_EXPIRY_DAYS).coerceIn(0, 30)
-        set(v) = sp.edit().putInt(K_ASK_EXPIRY, v.coerceIn(0, 30)).apply()
+        get() = nearest(sp.getInt(K_ASK_EXPIRY, DEFAULT_ASK_EXPIRY_DAYS), EXPIRY_PRESETS)
+        set(v) = sp.edit().putInt(K_ASK_EXPIRY, nearest(v, EXPIRY_PRESETS)).apply()
 
     /** 上一次真正发出提醒（出声/震动）的时刻，用于节流；队列为空时归零。 */
     var lastAlertAt: Long
@@ -129,10 +161,13 @@ class Settings private constructor(private val sp: SharedPreferences) {
         get() = sp.getBoolean(K_INCLUDE_VIDEO, false)
         set(v) = sp.edit().putBoolean(K_INCLUDE_VIDEO, v).apply()
 
-    /** 自定义关键词，逗号分隔；命中即视为截图（用于兼容小众 ROM / 第三方截图工具）。 */
-    var extraKeywords: Set<String>
-        get() = sp.getString(K_KEYWORDS, "")!!.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
-        set(v) = sp.edit().putString(K_KEYWORDS, v.joinToString(",")).apply()
+    /**
+     * 配色主题 id（beige / slate / terracotta / indigo / graphite）。
+     * 深色模式不在这里管，跟着系统走，所以一套主题必须备好亮暗两份颜色。
+     */
+    var themePalette: String
+        get() = sp.getString(K_THEME, "beige") ?: "beige"
+        set(v) = sp.edit().putString(K_THEME, v).apply()
 
     /** 首次启用时记下时间基线，避免把历史截图全当成新截图。 */
     var baselineDateAdded: Long

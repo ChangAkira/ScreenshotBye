@@ -15,16 +15,58 @@
 
 ## 一次询问会发生什么
 
-1. 引导页走完、打开**后台监控截图**，之后每次开机它都会自己在后台跑起来（常驻前台服务 + 开机自启 + 看门狗）。
-2. 你截了一张图。系统把它写进相册并通知 MediaStore，`ContentObserver` 收到变化，350ms 防抖后按 `DATE_ADDED` 水位线做一次增量查询，用「所在目录 / 文件名 / 自定义关键词」三条规则判断这是不是截图。
-3. 是截图 → 记进待确认清单，并用 WorkManager 排一个 N 分钟后的一次性任务（默认 5 分钟，可调 1–60）。任务持久化在 WorkManager 数据库里，进程被杀、设备重启都照样会到点。
+1. 引导页走完、在设置页打开**后台监控截图**，之后每次开机它都会自己在后台跑起来（常驻前台服务 + 开机自启 + 看门狗）。
+2. 你截了一张图。系统把它写进相册并通知 MediaStore，`ContentObserver` 收到变化，350ms 防抖后按 `DATE_ADDED` 水位线做一次增量查询，用「所在目录 / 文件名」两条规则判断这是不是截图。
+3. 是截图 → 记进待确认清单，并用 WorkManager 排一个 N 分钟后的一次性任务（默认 5 分钟，档位 2／5／15／30／90）。任务持久化在 WorkManager 数据库里，进程被杀、设备重启都照样会到点。
 4. 到点 → **通知栏只出现一条**提醒。连截十张也合并成一条「10 张截图待确认」，不会刷屏；同一条通知会按节流规则重新出声（见「提醒方式与自检」）。
 5. 点通知进入逐个确认页：一张一张看，三个选择——`还要留着` / `10 分钟后再问` / `不需要，删除`，左右滑动切换。看完进入反选屏，勾着的这批一次处理。
 6. 删除时先把原图复制进应用内回收站，再删相册里的原件；**备份失败就不会删除**。没给「所有文件访问」时，整批共用一次系统删除确认弹窗。
-7. 一直没回答的询问不会永远挂着：超过设定天数（默认 3 天）自动按「保留」出队。
+7. 一直没回答的询问默认不会永远挂着：超过设定天数（默认 3 天）自动按「保留」出队；这一档设成 0 就是「继续等待处理」，条目一直留在队列里。
 
 > 通知上也有快捷按钮，直接处理最早到期那一张，不用点开应用；第三个按钮 `全部稍后再问` 把整批往后推 10 分钟。
 > 常驻的监控通知在有待确认截图时会变成入口：点它直接进逐个确认页，不用再从主页找按钮。
+
+## 界面
+
+页面分成三层，首页只回答「现在能不能正常干活」：
+
+- **首页**：应用简介、运行状态、权限清单（缺哪项点哪项）、`请求权限`、`使用引导`、`设置` 入口；
+  只有在电池优化还没放行时，才多出一块「为保障稳定运行」的国产 ROM 提示。
+- **设置页**（四段）：服务与识别规则 → 询问与提醒（四个旋钮）→ 回收站 → 主题颜色与日志。
+- **二级页面**：待确认截图（逐个确认）、回收站、事件日志、运行自检。
+
+可调项里除了回收站保留天数，全是**固定档位吸附旋钮**：可选值本来就三五个，摊成一圈数字，
+怎么滑都只会停在格子之一，切档时「咔」一下短震动。滑块的问题在于「8 分钟」和「12 分钟」
+体感没有区别，却让用户在一条连续轨道上猜哪一格才是 15 分钟 —— 所以旧版的六根滑块换成了旋钮，
+自定义关键词那一栏也一并去掉了。旋钮没有额外提示文字，也没有跳转系统设置的按钮：
+声音、震动、横幅本来就归系统的通知设置管，要调去自检页跳。
+
+深色模式同样不在应用里做开关，跟随系统；五套配色每套都备了亮、暗两份色表，
+文字颜色一律走 `?attr/colorOnSurface` / `colorOnSurfaceVariant` / `colorOutline`，
+不是硬写的深灰 —— 之前夜间模式有些字看不清就是这个原因。
+
+## 设置项
+
+| 位置 | 设置 | 形式 | 可选值 | 默认 |
+| --- | --- | --- | --- | --- |
+| 首页 | 权限 | 状态行 + `去开启` | 读取相册 / 通知 / 所有文件访问 /（≤Android 10）存储写入 | — |
+| 首页 | 使用引导、设置入口 | 按钮 | — | — |
+| 设置 ① | 后台监控截图 | 开关 | — | 开 |
+| 设置 ① | 识别规则 | 复选 | 按截图目录 / 按文件名 / 含录屏视频 | 目录 + 文件名 |
+| 设置 ① | 待确认截图 | 二级页面（行尾显示待处理张数） | — | — |
+| 设置 ② | 首次询问 | 旋钮 | 2 / 5 / 15 / 30 / 90 分钟 | 5 |
+| 设置 ② | 默认保留 | 旋钮 | 0（继续等待处理）/ 1 / 3 / 5 / 7 天 | 3 |
+| 设置 ② | 间隔 | 旋钮 | 0（只问一次）/ 1 / 2 / 5 / 10 分钟 | 5 |
+| 设置 ② | 重复 | 旋钮 | 1 / 2 / 3 次 | 3 |
+| 设置 ③ | 回收站 | 标题带 `>`，进二级页面 | — | — |
+| 设置 ③ | 删除前先备份到回收站 | 开关 | — | 开 |
+| 设置 ③ | 回收站保留天数 | 滑杆（走档位下标） | 1 / 3 / 5 / 7 / 30 天 | 7 |
+| 设置 ④ | 主题颜色 | 色块，点一下当场换色 | 米白 / 青灰 / 陶土 / 靛蓝 / 石墨 | 米白 |
+| 设置 ④ | 事件日志 | 二级页面 | 复制、清空 | — |
+| 设置 ④ | 运行自检 | 二级页面 | 通知/权限/服务/队列状态报告 + 测试提醒，可复制 | — |
+
+旧版本存的是 1–60 / 0–120 这类连续值，读到新档位时会自动吸附到最近的一格（平局留下较小的那档），
+不需要卸载重装，也不做迁移脚本。
 
 ## 提醒方式与自检
 
@@ -32,14 +74,14 @@
 v1.0.3 把这个档位**撤掉了**：声音、震动、横幅、锁屏显示本来就归系统的通知设置管，应用再做一层开关只是把同一个设置
 复制一遍，还容易和 ROM 自己的开关打架。现在只剩一条「截图待确认」渠道，响不响、震不震由你在系统里定。
 
-- **一条提醒渠道 + 一键直达系统设置**：主页和自检页都有 `在系统设置里管理提醒方式`，直接跳到这条渠道的系统页面
+- **一条提醒渠道 + 一键直达系统设置**：自检页有 `在系统设置里管理提醒方式`，直接跳到这条渠道的系统页面
   （Android 8 起声音、震动、横幅、锁屏显示都归渠道所有，应用内改不了，也不该改）。
   1.0.2 短暂建过的三条强度渠道在启动时会被删掉，系统设置里不会留下重复项；渠道 id 没变，你在系统里调过的铃声和横幅
   开关仍然生效。
 - **会重新出声的询问**：同一条通知默认只在第一次响，后面的截图到期就完全无感。现在按节流规则重发提醒——
-  连拍保护 90 秒（几秒内多张一起到期只响一次）、可设间隔（默认 20 分钟，0 = 不重复）、可设最多次数（默认 5 次，
+  连拍保护 90 秒（几秒内多张一起到期只响一次）、间隔档位 0／1／2／5／10 分钟（默认 5，0 = 只问一次不再重复）、次数档位 1／2／3（默认 3，
   到了就只更新通知不再出声）。通知被划掉不等于回答了，条目留在队列里并安排一次补提醒；`稍后再问` 会把次数清零。
-- **应用内自检页**：主页 `自检` 一份纯文本报告——通知权限、渠道实际 importance、当前勿扰状态、监控服务是否活着、
+- **应用内自检页**：设置页 `运行自检` 一份纯文本报告——通知权限、渠道实际 importance、当前勿扰状态、监控服务是否活着、
   内容观察器和最近扫描的时间戳、相册水位线是否落后、到点任务的状态、队列里每一条的状态和已提醒次数、
   以及哪些条件正在挡住提醒。`发一条测试提醒` 走真实渠道真发一条，用来区分「应用没发」还是「系统压掉了」。
 - **闪退留痕**：应用自己挂了 `Thread.setDefaultUncaughtExceptionHandler`，把最后一条未捕获异常的类名、消息和前六层
@@ -53,23 +95,6 @@ v1.0.3 把这个档位**撤掉了**：声音、震动、横幅、锁屏显示本
 
 ⚠️ v1.0.0 的包用的是 debug 签名，和 v1.0.1 起不是同一把密钥，**覆盖安装会失败**，请先卸载旧版再装新版（回收站里的备份会随卸载丢失，先还原出来）。从 v1.0.1 起所有 release 使用同一把密钥，可以正常增量升级。
 
-## 设置项
-
-| 设置 | 形式 | 范围 | 默认 |
-| --- | --- | --- | --- |
-| 后台监控截图 | 开关 | — | 开 |
-| 多久后询问 | 滑杆 | 1 – 60 分钟 | 5 |
-| 重复提醒间隔 | 滑杆 | 0 – 120 分钟（0 = 不重复） | 20 |
-| 最多提醒次数 | 滑杆 | 1 – 10 次 | 5 |
-| 提醒方式（声音/震动/横幅/锁屏） | 一键跳转系统通知设置 | 由系统管，应用不代做决定 | 系统默认（横幅+声音） |
-| 未回答自动过期 | 滑杆 | 0 – 14 天（0 = 永不过期） | 3 |
-| 删除前备份到回收站 | 开关 | — | 开 |
-| 回收站保留天数 | 滑杆 | 1 – 30 天 | 7 |
-| 识别规则 | 复选 | 按目录 / 按文件名 / 额外关键词 / 含录屏视频 | 目录 + 文件名 |
-| 待确认清单 | 列表 | 逐个确认、预览、单张删除或保留 | — |
-| 自检 | 页面 | 通知/权限/服务/队列状态报告 + 测试提醒，可复制 | — |
-| 事件日志 | 文本 | 记录「检测到 / 已询问 / 已删除 / 失败」，方便定位是没检测到还是检测到没问 | — |
-
 ## 权限与真实限制
 
 这个应用要的权限比普通应用多，逐条说清楚为什么：
@@ -82,6 +107,7 @@ v1.0.3 把这个档位**撤掉了**：声音、震动、横幅、锁屏显示本
 | 所有文件访问（`MANAGE_EXTERNAL_STORAGE`） | **静默删除** | 强烈建议。不授权时删除会退化成系统弹窗二次确认，这是 Android 11+ 的规定：不是你创建的文件，不能由应用悄悄删掉 |
 | 存储写入（Android 10 及以下） | 直删文件 | 该版本区间必需 |
 | 忽略电池优化 / 自启动白名单 | 防国产 ROM 杀后台 | 建议，不设就会中断监测 |
+| 震动（`VIBRATE`，普通权限） | 旋钮切档时那一下「咔」 | 不需要用户授权，没有震动马达就跳过 |
 | 前台服务 `specialUse` | 常驻监听相册 | 必需，只有一条常驻通知 |
 
 Manifest 里没有 `INTERNET` 权限，应用在系统层面就无法联网：图片字节只在「生成预览」和「备份」时留在本机，不上传、不做任何内容分析，也没有统计和账号。
@@ -176,10 +202,14 @@ app/src/main/java/com/changakira/screenshotbye/
   notify/      Channels(常驻 + 一条提醒渠道，顺带清理已废弃的强度渠道), Notify, ActionReceiver(通知按钮与划掉事件)
   diagnostic/  Diagnostics(纯文本自检报告 + 测试提醒)
   perm/        Perms(权限状态、OEM 跳转、直达通知渠道设置)
-  ui/          MainActivity, ReviewActivity(逐个确认+批量反选), TrashActivity, DiagnosticsActivity,
-               DeleteConfirmActivity(系统删除确认中转), OnboardingActivity(首次引导), Adapters, Thumbs
+  ui/          MainActivity(首页：权限与入口), SettingsActivity(设置四段), ReviewActivity(逐个确认+批量反选),
+               TrashActivity, LogActivity, DiagnosticsActivity, OnboardingActivity(首次引导),
+               DeleteConfirmActivity(系统删除确认中转), Adapters, Thumbs,
+               ThemedActivity(在 super.onCreate 前 setTheme), theme/Palette(五套配色), widget/DetentDial(固定档位旋钮)
+app/src/main/res/ values/colors_palettes.xml + values-night/colors_palettes.xml(每套配色的亮暗两份色表),
+               values/themes.xml(一套配色一个 style), values/bools.xml + values-night/bools.xml(状态栏图标明暗)
 app/src/test/java/com/changakira/screenshotbye/
-               AppSmokeTest(把上面这些真跑一遍)
+               AppSmokeTest(启动路径、队列、提醒)、UiReflowTest(档位吸附、设置页/日志页真起来、配色在 onCreate 前生效)
 ```
 
 `DeleteConfirmActivity` 是必需的：Android 11+ 的 `MediaStore.createDeleteRequest` 只能由 Activity 发起，
@@ -196,6 +226,8 @@ ScreenshotBye keeps an eye on your camera roll for you. When a new screenshot sh
 On Android 11 and later, deleting files the app didn't create requires either the "all files access" grant or a system confirmation dialog; ScreenshotBye backs up first and asks the system once per batch, never silently. Detection uses a `MediaStore` content observer plus a `DATE_ADDED` watermark (Android 14's `DETECT_SCREEN_CAPTURE` only fires for your own visible activity and gives you no file), timing uses WorkManager so it survives process death, and a watchdog plus boot receiver bring the foreground service back when aggressive ROMs kill it.
 
 No `INTERNET` permission at all — photos, settings and trash stay on the device. Requires Android 8.0+.
+
+The UI is split the way the reference app splits it: a permissions-only home screen (plus a guide button and a settings entry), and a four-part settings screen — service & detection rules & pending shots, then four fixed-detent snapping knobs (ask after 2/5/15/30/90 min, keep for 0/1/3/5/7 days where 0 means "keep waiting", re-alert every 0/1/2/5/10 min, up to 1/2/3 times), then the trash (its retention stays a slider over 1/3/5/7/30 days), then five colour palettes and the event log. Continuous sliders invite "is 8 minutes different from 12?" — detents remove the question; values saved by older builds snap to the nearest detent on read, so nothing needs migrating. Palettes (beige / slate / terracotta / indigo / graphite) ship a light and a dark colour table each and dark mode simply follows the system, with all text routed through theme attributes so night mode is actually legible.
 
 Asks re-alert instead of firing once and going silent: a 90-second burst guard, a configurable repeat interval and a per-item alert cap, all applied to a single notification channel — sound, vibration, heads-up banner and lock-screen behaviour are owned by the system notification settings, and the app just links straight to them rather than duplicating a switch you can already flip in Android itself. (v1.0.2 tried a three-level "alert intensity" picker backed by three channels; since channel settings are immutable once created, that meant three parallel copies of one system setting, so it's gone — the retired channels get deleted on startup and any ringtone or banner choice you'd already made carries over.) Swiping the notification away schedules a follow-up rather than muting the item forever, unanswered asks expire into "kept" after a configurable number of days, and stuck `DELETING` entries fall back into the queue. A built-in diagnostics screen dumps notification permission and channel importance, DND state, service liveness, observer and scan timestamps, WorkManager job states, per-item queue state and the last uncaught crash (captured synchronously, stack frames and all) as copyable plain text, plus a "send test alert" button that posts through the real channel — useful when the question is whether the app didn't fire or the ROM ate the banner.
 
