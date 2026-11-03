@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  首页只做三件事：权限、使用引导、进设置。
-  可调项全部搬到 SettingsActivity，参考仓库也是这个分法（首页 = 授权 + 一个「设置」入口）。
+  首页只做两件事：权限、进设置。授予权限仿照参考仓库只用一个按钮，
+  不再逐行配「授权」；使用引导挪进了设置页「主题颜色」下方，首页不重复放入口。
+  可调项全部在 SettingsActivity，参考仓库也是这个分法（首页 = 授权 + 一个「设置」入口）。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -81,14 +82,6 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:text="@string/home_open_settings" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/guideBtn"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/main_open_guide" />
 
             <!-- 国产 ROM 的硬限制，只在没放行时占位置 -->
             <com.google.android.material.card.MaterialCardView

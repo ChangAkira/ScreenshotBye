@@ -26,7 +26,7 @@ import com.google.android.material.color.MaterialColors
 import java.util.concurrent.Executors
 
 /**
- * 设置页三段：服务与识别规则 / 询问与提醒 / 外观与日志。
+ * 设置页四块，照参考仓库的分卡：启用服务 / 识别规则与待确认 / 旋钮 / 主题颜色与引导日志。
  *
  * 询问、保留、间隔、重复用固定档位旋钮而不是滑块：可选值就三五个，摊成一圈数字比让用户
  * 在一条连续轨道上找「15 分钟那一格」快得多，也不会出现 8 分钟和 12 分钟这种没区别的取值。
@@ -142,10 +142,11 @@ class SettingsActivity : ThemedActivity() {
         b.timesDial.setOnValueChangeListener { settings.alertMaxTimes = it }
     }
 
-    // ---- ③ 外观 + 日志 + 自检 ----
+    // ---- ④ 主题颜色 + 使用引导 + 日志 + 自检 ----
 
     private fun wireAppearance() {
         buildSwatches()
+        b.guideRow.setOnClickListener { startActivity(Intent(this, OnboardingActivity::class.java)) }
         b.logRow.setOnClickListener { startActivity(Intent(this, LogActivity::class.java)) }
         b.diagRow.setOnClickListener { startActivity(Intent(this, DiagnosticsActivity::class.java)) }
     }

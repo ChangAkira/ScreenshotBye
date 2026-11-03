@@ -348,14 +348,24 @@ class DetentDial @JvmOverloads constructor(
                 downX = event.x
                 downY = event.y
                 dragging = false
-                parent?.requestDisallowInterceptTouchEvent(true)
+                // 这里先不抢触摸：设置页整个套在 NestedScrollView 里，DOWN 就 disallow
+                // 会让「手指落在旋钮上就没法滚动整页」——旋钮占了半屏，等于半页滑不动。
                 return true
             }
 
             MotionEvent.ACTION_MOVE -> {
-                if (!dragging && abs(event.x - downX) < touchSlop && abs(event.y - downY) < touchSlop) return true
-                dragging = true
-                select(indexAt(event.x, event.y))
+                if (!dragging) {
+                    val dx = event.x - downX
+                    val dy = event.y - downY
+                    // 竖直方向明显主导且超过 touchSlop：是滚动意图，交还给父容器去滚页面
+                    if (abs(dy) > touchSlop && abs(dy) > abs(dx)) return false
+                    // 横向/斜向超过 touchSlop：确认是在拨旋钮，这时才把触摸抢下来
+                    if (abs(dx) > touchSlop || abs(dy) > touchSlop) {
+                        dragging = true
+                        parent?.requestDisallowInterceptTouchEvent(true)
+                    }
+                }
+                if (dragging) select(indexAt(event.x, event.y))
                 return true
             }
 

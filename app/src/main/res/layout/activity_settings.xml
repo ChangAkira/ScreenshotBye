@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  设置页三段：服务与识别 / 询问与提醒（旋钮）/ 外观与日志。
+  设置页四块，照参考仓库的分卡方式：
+    ① 启用服务（独立一卡，只有一个开关行）
+    ② 识别规则 + 待确认截图
+    ③ 询问与提醒（两两并排的固定档位旋钮）
+    ④ 主题颜色 + 使用引导 + 事件日志 + 运行自检
   文案一律不给提示语，档位本身就把可选值摊在屏幕上了。
   删除的去向不在这里设置：Android 11+ 一律交给系统的照片回收站，应用不存副本、也没有可调的保留期。
+  整页套在 NestedScrollView 里可滚动；旋钮只在确认是「拨」的手势时才抢触摸，竖直滑动让给页面滚动。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -27,7 +32,7 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- ① 服务 + 识别规则 + 待确认截图 -->
+            <!-- ① 启用服务：独立一卡，和参考仓库的第一块一致 -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.Material3.CardView.Filled"
                 android:layout_width="match_parent"
@@ -58,11 +63,21 @@
                             android:layout_height="wrap_content"
                             android:contentDescription="@string/main_watch_switch" />
                     </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-                    <com.google.android.material.divider.MaterialDivider
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginVertical="4dp" />
+            <!-- ② 识别规则 + 待确认截图 -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.Material3.CardView.Filled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingVertical="8dp">
 
                     <TextView
                         style="@style/SectionTitle"
@@ -132,7 +147,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- ② 询问与提醒：两两并排的固定档位旋钮 -->
+            <!-- ③ 询问与提醒：两两并排的固定档位旋钮 -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.Material3.CardView.Filled"
                 android:layout_width="match_parent"
@@ -197,7 +212,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- ③ 主题颜色 + 日志 + 自检 -->
+            <!-- ④ 主题颜色 + 使用引导 + 日志 + 自检 -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.Material3.CardView.Filled"
                 android:layout_width="match_parent"
@@ -226,6 +241,27 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginVertical="8dp" />
+
+                    <LinearLayout
+                        android:id="@+id/guideRow"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:minHeight="48dp"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="16dp">
+
+                        <TextView
+                            style="@style/SettingRowLabel"
+                            android:text="@string/main_open_guide" />
+
+                        <TextView
+                            style="@style/SectionChevron"
+                            android:contentDescription="@string/home_open" />
+                    </LinearLayout>
 
                     <LinearLayout
                         android:id="@+id/logRow"

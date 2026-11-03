@@ -4,7 +4,7 @@
   <p>截图常常只是临时用一下，用完就忘在相册里。这个应用持续在后台盯着相册，过一段时间问你一句「还需要这张截图吗」，回答不需要就删掉它——删掉之后进的是系统相册自己的回收站，反悔可以在相册里还原。</p>
   <p>
     <img alt="platform" src="https://img.shields.io/badge/Android-8.0%2B-green"/>
-    <img alt="release" src="https://img.shields.io/badge/release-v1.0.4-blue"/>
+    <img alt="release" src="https://img.shields.io/badge/release-v1.0.5-blue"/>
     <img alt="lang" src="https://img.shields.io/badge/Kotlin-2.0.21-orange"/>
     <img alt="offline" src="https://img.shields.io/badge/联网-不需要-informational"/>
     <img alt="license" src="https://img.shields.io/badge/License-MIT-lightgrey"/>
@@ -15,7 +15,7 @@
 
 ## 一次询问会发生什么
 
-1. 引导页走完、在设置页打开**后台监控截图**，之后每次开机它都会自己在后台跑起来（常驻前台服务 + 开机自启 + 看门狗）。
+1. 引导页走完、在设置页打开**启用服务**，之后每次开机它都会自己在后台跑起来（常驻前台服务 + 开机自启 + 看门狗）。
 2. 你截了一张图。系统把它写进相册并通知 MediaStore，`ContentObserver` 收到变化，350ms 防抖后按 `DATE_ADDED` 水位线做一次增量查询，用「所在目录 / 文件名」两条规则判断这是不是截图。
 3. 是截图 → 记进待确认清单，并用 WorkManager 排一个 N 分钟后的一次性任务（默认 5 分钟，档位 2／5／15／30／90）。任务持久化在 WorkManager 数据库里，进程被杀、设备重启都照样会到点。
 4. 到点 → **通知栏只出现一条**提醒。连截十张也合并成一条「10 张截图待确认」，不会刷屏；同一条通知会按节流规则重新出声（见「提醒方式与自检」）。
@@ -31,10 +31,12 @@
 
 页面分成三层，首页只回答「现在能不能正常干活」：
 
-- **首页**：应用简介、运行状态、权限清单（缺哪项点哪项）、`请求权限`、`使用引导`、`设置` 入口；
-  只有在电池优化还没放行时，才多出一块「为保障稳定运行」的国产 ROM 提示。
-- **设置页**（三段）：服务与识别规则 → 询问与提醒（四个旋钮）→ 主题颜色与日志。
-- **二级页面**：待确认截图（逐个确认）、事件日志、运行自检。
+- **首页**：应用简介、运行状态、权限清单（只读展示授予状态）、一个 `请求权限` 按钮（缺什么一次问齐，
+  仿照参考仓库不再逐行配「授权」）、`设置` 入口；只有在电池优化还没放行时，才多出一块
+  「为保障稳定运行」的国产 ROM 提示。
+- **设置页**（四块，照参考仓库的分卡）：启用服务 → 识别规则与待确认截图 → 询问与提醒（四个旋钮）
+  → 主题颜色、使用引导、事件日志与运行自检。
+- **二级页面**：待确认截图（逐个确认）、使用引导、事件日志、运行自检。
 
 删除的去向不在设置页里：它只有一条路，就是系统的照片回收站（Android 10 及以下没有回收站）。
 
@@ -52,18 +54,19 @@
 
 | 位置 | 设置 | 形式 | 可选值 | 默认 |
 | --- | --- | --- | --- | --- |
-| 首页 | 权限 | 状态行 + `去开启` | 读取相册 / 通知 /（≤Android 10）存储写入 | — |
-| 首页 | 使用引导、设置入口 | 按钮 | — | — |
-| 设置 ① | 后台监控截图 | 开关 | — | 开 |
-| 设置 ① | 识别规则 | 复选 | 按截图目录 / 按文件名 / 含录屏视频 | 目录 + 文件名 |
-| 设置 ① | 待确认截图 | 二级页面（行尾显示待处理张数） | — | — |
-| 设置 ② | 首次询问 | 旋钮 | 2 / 5 / 15 / 30 / 90 分钟 | 5 |
-| 设置 ② | 默认保留 | 旋钮 | 0（继续等待处理）/ 1 / 3 / 5 / 7 天 | 3 |
-| 设置 ② | 间隔 | 旋钮 | 0（只问一次）/ 1 / 2 / 5 / 10 分钟 | 5 |
-| 设置 ② | 重复 | 旋钮 | 1 / 2 / 3 次 | 3 |
-| 设置 ③ | 主题颜色 | 色块，点一下当场换色 | 米白 / 青灰 / 陶土 / 靛蓝 / 石墨 | 米白 |
-| 设置 ③ | 事件日志 | 二级页面 | 复制、清空 | — |
-| 设置 ③ | 运行自检 | 二级页面 | 通知/权限/服务/队列状态报告 + 测试提醒，可复制 | — |
+| 首页 | 权限 | 状态行（只读） | 读取相册 / 通知 /（≤Android 10）存储写入 | — |
+| 首页 | 请求权限、设置入口 | 按钮 | — | — |
+| 设置 ① | 启用服务 | 开关 | — | 开 |
+| 设置 ② | 识别规则 | 复选 | 按截图目录 / 按文件名 / 含录屏视频 | 目录 + 文件名 |
+| 设置 ② | 待确认截图 | 二级页面（行尾显示待处理张数） | — | — |
+| 设置 ③ | 首次询问 | 旋钮 | 2 / 5 / 15 / 30 / 90 分钟 | 5 |
+| 设置 ③ | 默认保留 | 旋钮 | 0（继续等待处理）/ 1 / 3 / 5 / 7 天 | 3 |
+| 设置 ③ | 间隔 | 旋钮 | 0（只问一次）/ 1 / 2 / 5 / 10 分钟 | 5 |
+| 设置 ③ | 重复 | 旋钮 | 1 / 2 / 3 次 | 3 |
+| 设置 ④ | 主题颜色 | 色块，点一下当场换色 | 米白 / 青灰 / 陶土 / 靛蓝 / 石墨 | 米白 |
+| 设置 ④ | 使用引导 | 二级页面 | 首次启动的分页说明，随时可重看 | — |
+| 设置 ④ | 事件日志 | 二级页面 | 复制、清空 | — |
+| 设置 ④ | 运行自检 | 二级页面 | 通知/权限/服务/队列状态报告 + 测试提醒，可复制 | — |
 
 旧版本存的是 1–60 / 0–120 这类连续值，读到新档位时会自动吸附到最近的一格（平局留下较小的那档），
 不需要卸载重装，也不做迁移脚本。
@@ -89,13 +92,23 @@ v1.0.3 把这个档位**撤掉了**：声音、震动、横幅、锁屏显示本
 
 ## 下载
 
-最新 release：[v1.0.4](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.4) —
-直接安装 [ScreenshotBye-v1.0.4.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.4/ScreenshotBye-v1.0.4.apk)
+最新 release：[v1.0.5](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.5) —
+直接安装 [ScreenshotBye-v1.0.5.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.5/ScreenshotBye-v1.0.5.apk)
 （release 签名，minSdk 26 / Android 8.0 起）。v1.0.1 起都是同一把密钥，**直接覆盖安装即可**，待确认清单和设置都保留。
 
+v1.0.5 继续向参考仓库看齐，全是界面与交互：
+
+- **首页授予权限只用一个按钮**：权限行改成只读展示授予状态，不再逐行配「授权」，缺什么点那一个
+  `请求权限` 一次问齐（和参考仓库一致）。
+- **设置页第一行是「启用服务」**，独立成一块，和参考仓库的第一块对齐。
+- **使用引导从首页挪进设置页**，放在「主题颜色」下方，随时能重看。
+- **修好设置页滑不动**：旋钮原来一按下就把触摸抢走，手指落在旋钮上整页都滚不了；现在只有确认是
+  「拨」的手势才抢触摸，竖直滑动交还给页面滚动。
+- 设置页按参考仓库分成四块：启用服务 / 识别规则与待确认 / 旋钮 / 主题颜色与引导日志。
+
 v1.0.4 做了两件事：页面照参考仓库重排（权限页与设置页分开，可调项改成固定档位吸附旋钮，夜间模式对比度修好），
-以及**撤掉应用自建回收站、改为依赖系统相册自己的回收站**。设置页从四段变三段，`MANAGE_EXTERNAL_STORAGE`
-一并撤掉，Android 11 及以上的删除一律走系统的「移入回收站」确认框（一批只弹一次）。
+以及**撤掉应用自建回收站、改为依赖系统相册自己的回收站**，`MANAGE_EXTERNAL_STORAGE` 一并撤掉，
+Android 11 及以上的删除一律走系统的「移入回收站」确认框（一批只弹一次）。
 
 ⚠️ v1.0.0 的包用的是 debug 签名，和 v1.0.1 起不是同一把密钥，**覆盖安装会失败**，请先卸载旧版再装新版。
 
@@ -235,7 +248,7 @@ On Android 11 and later, deleting files the app didn't create requires either th
 
 No `INTERNET` permission at all — photos and settings stay on the device. Requires Android 8.0+. On Android 10 and below there is no system trash, so a delete there is final.
 
-The UI is split the way the reference app splits it: a permissions-only home screen (plus a guide button and a settings entry), and a three-part settings screen — service & detection rules & pending shots, then four fixed-detent snapping knobs (ask after 2/5/15/30/90 min, keep for 0/1/3/5/7 days where 0 means "keep waiting", re-alert every 0/1/2/5/10 min, up to 1/2/3 times), then five colour palettes and the event log. Deletion has no settings of its own any more: it goes through the system photo trash. Continuous sliders invite "is 8 minutes different from 12?" — detents remove the question; values saved by older builds snap to the nearest detent on read, so nothing needs migrating. Palettes (beige / slate / terracotta / indigo / graphite) ship a light and a dark colour table each and dark mode simply follows the system, with all text routed through theme attributes so night mode is actually legible.
+The UI is split the way the reference app splits it: a permissions-only home screen with a single "request permissions" button (the rows just show granted/denied, no per-row grant buttons) plus a settings entry, and a four-card settings screen — an "enable service" switch, detection rules and pending shots, four fixed-detent snapping knobs (ask after 2/5/15/30/90 min, keep for 0/1/3/5/7 days where 0 means "keep waiting", re-alert every 0/1/2/5/10 min, up to 1/2/3 times), then colour palettes, the onboarding guide, the event log and the self-check. Deletion has no settings of its own any more: it goes through the system photo trash. Continuous sliders invite "is 8 minutes different from 12?" — detents remove the question; values saved by older builds snap to the nearest detent on read, so nothing needs migrating. Palettes (beige / slate / terracotta / indigo / graphite) ship a light and a dark colour table each and dark mode simply follows the system, with all text routed through theme attributes so night mode is actually legible.
 
 Asks re-alert instead of firing once and going silent: a 90-second burst guard, a configurable repeat interval and a per-item alert cap, all applied to a single notification channel — sound, vibration, heads-up banner and lock-screen behaviour are owned by the system notification settings, and the app just links straight to them rather than duplicating a switch you can already flip in Android itself. (v1.0.2 tried a three-level "alert intensity" picker backed by three channels; since channel settings are immutable once created, that meant three parallel copies of one system setting, so it's gone — the retired channels get deleted on startup and any ringtone or banner choice you'd already made carries over.) Swiping the notification away schedules a follow-up rather than muting the item forever, unanswered asks expire into "kept" after a configurable number of days, and stuck `DELETING` entries fall back into the queue. A built-in diagnostics screen dumps notification permission and channel importance, DND state, service liveness, observer and scan timestamps, WorkManager job states, per-item queue state and the last uncaught crash (captured synchronously, stack frames and all) as copyable plain text, plus a "send test alert" button that posts through the real channel — useful when the question is whether the app didn't fire or the ROM ate the banner.
 

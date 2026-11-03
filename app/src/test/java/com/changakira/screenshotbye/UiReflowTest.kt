@@ -81,7 +81,7 @@ class UiReflowTest {
     // ---- 页面 ----
 
     @Test
-    fun `设置页三段都在，旋钮停在当前档位上`() {
+    fun `设置页四块都在，旋钮停在当前档位上`() {
         val s = Settings.of(ctx)
         s.delayMinutes = 15
         s.askExpiryDays = 0
@@ -96,14 +96,37 @@ class UiReflowTest {
         assertEquals(5, (activity.findViewById<View>(R.id.swatchRow) as ViewGroup).childCount)
         assertNotNull(activity.findViewById<View>(R.id.pendingRow))
         assertNotNull(activity.findViewById<View>(R.id.logRow))
-        // 回收站整个没了：删除去向归系统相册管，设置页不该再留任何一块空壳
+        // 使用引导从首页挪进了设置页，放在「主题颜色」下方
+        assertNotNull(activity.findViewById<View>(R.id.guideRow))
+        // 第一行就是「启用服务」
         val texts = activity.findViewById<View>(android.R.id.content).flatten()
             .filterIsInstance<android.widget.TextView>().map { it.text.toString() }
+        assertTrue(texts.any { it == ctx.getString(R.string.main_watch_switch) })
+        // 回收站整个没了：删除去向归系统相册管，设置页不该再留任何一块空壳
         assertFalse(texts.any { "回收站" in it })
         // 行尾的计数在 onResume 就该填好，不能是空白
         assertFalse(activity.findViewById<android.widget.TextView>(R.id.pendingValue).text.isBlank())
         assertFalse(activity.findViewById<android.widget.TextView>(R.id.logValue).text.isBlank())
         assertEquals(15, s.delayMinutes)
+    }
+
+    @Test
+    fun `竖直滑动旋钮不拨档也不抢页面滚动`() {
+        val activity = Robolectric.buildActivity(SettingsActivity::class.java).setup().get()
+        val dial = activity.findViewById<DetentDial>(R.id.askDial)
+        val width = 600
+        dial.measure(
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.AT_MOST)
+        )
+        dial.layout(0, 0, width, dial.measuredHeight)
+        val before = dial.value
+        // 手指落在旋钮上竖直往下划：这是滚动意图，旋钮不该改值、也不该把触摸抢下来
+        dial.dispatchTouchEvent(MotionEvent.obtain(0L, 1L, MotionEvent.ACTION_DOWN, width / 2f, 120f, 0))
+        dial.dispatchTouchEvent(MotionEvent.obtain(0L, 2L, MotionEvent.ACTION_MOVE, width / 2f, 320f, 0))
+        dial.dispatchTouchEvent(MotionEvent.obtain(0L, 3L, MotionEvent.ACTION_CANCEL, width / 2f, 320f, 0))
+        assertEquals("竖直滑动不该改变档位", before, dial.value)
+        assertEquals(before, Settings.of(ctx).delayMinutes)
     }
 
     @Test
@@ -183,12 +206,16 @@ class UiReflowTest {
     }
 
     @Test
-    fun `首页只剩权限与入口`() {
+    fun `首页只剩权限与入口，授予只靠一个按钮`() {
         val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
         assertNotNull(activity.findViewById<View>(R.id.askPermsBtn))
         assertNotNull(activity.findViewById<View>(R.id.settingsBtn))
-        assertNotNull(activity.findViewById<View>(R.id.guideBtn))
-        // Android 11+ 只要「读相册」和「通知」两行：删除经系统弹窗，不再要所有文件访问
+        // 使用引导挪进了设置页，首页不再放入口（按钮 id 已删，用文案判断）
+        val homeTexts = activity.findViewById<View>(android.R.id.content).flatten()
+            .filterIsInstance<android.widget.TextView>().map { it.text.toString() }
+        assertFalse(homeTexts.any { it == ctx.getString(R.string.main_open_guide) })
+        // Android 11+ 只要「读相册」和「通知」两行：删除经系统弹窗，不再要所有文件访问；
+        // 行只读展示授予状态，逐行不再有「授权」按钮
         assertEquals(2, (activity.findViewById<View>(R.id.permContainer) as ViewGroup).childCount)
     }
 

@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
-import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -26,7 +25,8 @@ import java.util.concurrent.Executors
 /**
  * 首页只管一件事：能不能正常干活。
  *
- * 权限、状态、引导、进设置的入口，其它可调项都在 SettingsActivity，
+ * 授予权限仿照参考仓库只用一个按钮（缺什么一次问齐），权限行只读展示授予状态、
+ * 不再逐行配「授权」；使用引导挪进了设置页。其它可调项都在 SettingsActivity，
  * 免得打开应用先被一堆滑块淹没。
  */
 class MainActivity : ThemedActivity() {
@@ -53,7 +53,6 @@ class MainActivity : ThemedActivity() {
 
         b.askPermsBtn.setOnClickListener { onAskPerms() }
         b.settingsBtn.setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
-        b.guideBtn.setOnClickListener { startActivity(Intent(this, OnboardingActivity::class.java)) }
         b.oemBtn.setOnClickListener { Perms.requestIgnoreBattery(this) }
         b.oemAutostartBtn.setOnClickListener { Perms.openOemAutoStart(this) }
         b.versionText.text = getString(R.string.home_version, versionName(), versionCode())
@@ -125,20 +124,11 @@ class MainActivity : ThemedActivity() {
     }
 
     private fun buildPermissionRows() {
+        // 只读展示授予状态：授予动作统一交给下面那一个「请求权限」按钮，逐行不再配按钮
         val rows = listOf(
-            Row(getString(R.string.perm_read_media), Perms.hasMediaRead(this)) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-                    askPerms.launch(arrayOf(Manifest.permission.READ_MEDIA_IMAGES))
-                else askPerms.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
-            },
-            Row(getString(R.string.perm_notification), Perms.hasNotification(this)) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-                    askPerms.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
-                else Perms.openAppNotificationSettings(this)
-            },
-            Row(getString(R.string.perm_legacy_write), Perms.canDeleteSilently(this), visible = Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
-                askPerms.launch(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE))
-            },
+            Row(getString(R.string.perm_read_media), Perms.hasMediaRead(this)),
+            Row(getString(R.string.perm_notification), Perms.hasNotification(this)),
+            Row(getString(R.string.perm_legacy_write), Perms.canDeleteSilently(this), visible = Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q),
         )
         b.permContainer.removeAllViews()
         rows.filter { it.visible }.forEach { addPermRow(it) }
@@ -149,17 +139,9 @@ class MainActivity : ThemedActivity() {
         /** null 表示系统没提供可查询的开关状态，只能让用户自己去确认 */
         val granted: Boolean?,
         val visible: Boolean = true,
-        val onClick: () -> Unit,
     )
 
     private fun addPermRow(row: Row) {
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = dp(6) }
-        }
         val label = TextView(this).apply {
             val name = row.label
             val status = when (row.granted) {
@@ -173,7 +155,9 @@ class MainActivity : ThemedActivity() {
             setTextColor(
                 MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant)
             )
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = dp(6) }
             if (status.isNotEmpty()) {
                 val span = SpannableString(name + status)
                 if (row.granted == false) {
@@ -189,19 +173,7 @@ class MainActivity : ThemedActivity() {
                 text = name
             }
         }
-        val button = com.google.android.material.button.MaterialButton(
-            this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle
-        ).apply {
-            text = getString(if (row.granted == true) R.string.perm_go_grant else R.string.perm_grant_now)
-            textSize = 12f
-            isSingleLine = true
-            setMinHeight(dp(36))
-            minWidth = dp(88)
-        }
-        button.setOnClickListener { row.onClick() }
-        container.addView(label)
-        container.addView(button)
-        b.permContainer.addView(container)
+        b.permContainer.addView(label)
     }
 
     private fun versionName(): String = runCatching {
