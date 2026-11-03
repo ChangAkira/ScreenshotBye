@@ -2,6 +2,7 @@ package com.changakira.screenshotbye.ui
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import com.changakira.screenshotbye.R
 import com.changakira.screenshotbye.core.Settings
 import com.changakira.screenshotbye.ui.theme.Palette
 
@@ -36,7 +37,7 @@ abstract class ThemedActivity : AppCompatActivity() {
         val settings = Settings.of(this)
         if (settings.themePalette == palette.id) return
         settings.themePalette = palette.id
-        settings.appendLog("主题颜色切换为 ${getString(palette.nameRes)}")
+        settings.appendLog(getString(R.string.log_theme_changed, getString(palette.nameRes)))
         recreate()
     }
 }

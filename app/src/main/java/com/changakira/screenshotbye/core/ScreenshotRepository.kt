@@ -1,6 +1,7 @@
 package com.changakira.screenshotbye.core
 
 import android.content.Context
+import com.changakira.screenshotbye.R
 import com.changakira.screenshotbye.media.DeleteGateway
 import com.changakira.screenshotbye.media.DeleteMode
 import com.changakira.screenshotbye.media.DeleteResult
@@ -58,7 +59,7 @@ class ScreenshotRepository(ctx: Context) {
         )
         store.upsert(shot)
         Reminders.schedule(app, shot.mediaId, settings.delayMinutes)
-        settings.appendLog("检测到截图 ${shot.name}，${settings.delayMinutes} 分钟后询问")
+        settings.appendLog(app.getString(R.string.log_detected, shot.name, settings.delayMinutes))
         WatchService.refreshNotification(app)
     }
 
@@ -76,19 +77,19 @@ class ScreenshotRepository(ctx: Context) {
     fun onReminderFired(mediaId: Long): Boolean {
         val shot = store.find(mediaId) ?: return false
         store.upsert(shot.copy(state = ShotState.ASKED, stateAt = System.currentTimeMillis()))
-        settings.appendLog("已询问：${shot.name}")
+        settings.appendLog(app.getString(R.string.log_asked, shot.name))
         refreshReviewNotification(app, newDue = true)
         return true
     }
 
     fun decide(mediaId: Long, decision: Decision): DecisionOutcome {
         val shot = store.find(mediaId)
-            ?: return DecisionOutcome.Error("这条记录已经处理过了")
+            ?: return DecisionOutcome.Error(app.getString(R.string.err_record_gone))
         return when (decision) {
             Decision.KEEP -> {
                 Reminders.cancel(app, mediaId)
                 store.remove(mediaId)
-                settings.appendLog("保留 ${shot.name}")
+                settings.appendLog(app.getString(R.string.log_kept, shot.name))
                 updateReviewNotification(app)
                 DecisionOutcome.Kept
             }
@@ -107,7 +108,7 @@ class ScreenshotRepository(ctx: Context) {
         val due = dueQueue()
         due.forEach { snooze(it, refresh = false) }
         if (due.isNotEmpty()) {
-            settings.appendLog("整批稍后再问：${due.size} 张")
+            settings.appendLog(app.getString(R.string.log_snooze_all, due.size))
             updateReviewNotification(app)
         }
         return due.size
@@ -118,7 +119,7 @@ class ScreenshotRepository(ctx: Context) {
         // 用户主动要求再问，提醒次数清零，否则封顶规则会让「稍后再问」变成永久静音
         store.upsert(shot.copy(state = ShotState.WAITING, askAt = askAt, stateAt = System.currentTimeMillis(), askCount = 0))
         Reminders.rescheduleAt(app, shot.mediaId, askAt)
-        settings.appendLog("稍后再问 ${shot.name}")
+        settings.appendLog(app.getString(R.string.log_snoozed, shot.name))
         if (refresh) updateReviewNotification(app)
     }
 
@@ -128,14 +129,14 @@ class ScreenshotRepository(ctx: Context) {
             DeleteResult.Removed -> {
                 store.remove(shot.mediaId)
                 Notify.notify(app, Notify.reviewNotifId(shot.mediaId), Notify.deleted(app, shot))
-                settings.appendLog("已删除 ${shot.name}")
+                settings.appendLog(app.getString(R.string.log_deleted, shot.name))
                 updateReviewNotification(app)
                 DecisionOutcome.Deleted
             }
 
             DeleteResult.NeedsConfirm -> {
                 markDeleting(shot)
-                settings.appendLog("等待系统确认：${shot.name}")
+                settings.appendLog(app.getString(R.string.log_wait_system, shot.name))
                 updateReviewNotification(app)
                 DecisionOutcome.NeedsSystemConfirm
             }
@@ -143,7 +144,7 @@ class ScreenshotRepository(ctx: Context) {
             is DeleteResult.Failed -> {
                 // 权限被拒时保留条目，让用户能重试，绝不静默丢弃
                 store.upsert(shot.copy(state = ShotState.ASKED, stateAt = System.currentTimeMillis()))
-                settings.appendLog("删除失败：${r.reason}")
+                settings.appendLog(app.getString(R.string.log_delete_failed, r.reason))
                 updateReviewNotification(app)
                 DecisionOutcome.Error(r.reason)
             }
@@ -168,7 +169,7 @@ class ScreenshotRepository(ctx: Context) {
                 DeleteResult.Removed -> {
                     store.remove(id)
                     deleted++
-                    settings.appendLog("已删除 ${shot.name}")
+                    settings.appendLog(app.getString(R.string.log_deleted, shot.name))
                 }
 
                 DeleteResult.NeedsConfirm -> {
@@ -176,16 +177,16 @@ class ScreenshotRepository(ctx: Context) {
                     awaiting += id
                 }
 
-                is DeleteResult.Failed -> failed += "${shot.name}：${r.reason}"
+                is DeleteResult.Failed -> failed += app.getString(R.string.log_batch_item_failed, shot.name, r.reason)
             }
         }
 
         settings.appendLog(
             when {
-                awaiting.isNotEmpty() -> "已准备 ${awaiting.size} 张，等待系统确认"
-                deleted > 0 -> "批量删除 $deleted 张"
+                awaiting.isNotEmpty() -> app.getString(R.string.log_batch_prepared, awaiting.size)
+                deleted > 0 -> app.getString(R.string.log_batch_deleted, deleted)
                 else -> null
-            } ?: "批量删除：无成功项"
+            } ?: app.getString(R.string.log_batch_none)
         )
         updateReviewNotification(app)
         return BatchPlan(deleted, awaiting, failed)
@@ -205,12 +206,13 @@ class ScreenshotRepository(ctx: Context) {
                 store.remove(id)
                 done++
                 settings.appendLog(
-                    if (mode == DeleteMode.TRASH) "已移入系统回收站：${shot.name}" else "系统确认后已删除：${shot.name}"
+                    if (mode == DeleteMode.TRASH) app.getString(R.string.log_trashed, shot.name)
+                    else app.getString(R.string.log_confirmed_deleted, shot.name)
                 )
             } else {
                 store.upsert(shot.copy(state = ShotState.ASKED, stateAt = System.currentTimeMillis()))
                 cancelled++
-                settings.appendLog("你在系统弹窗中取消了删除：${shot.name}")
+                settings.appendLog(app.getString(R.string.log_cancelled_in_dialog, shot.name))
             }
         }
         updateReviewNotification(app)
@@ -231,20 +233,20 @@ class ScreenshotRepository(ctx: Context) {
             when (shot.state) {
                 ShotState.WAITING -> if (shot.askAt <= now - LATE_GRACE_MS) {
                     store.upsert(shot.copy(state = ShotState.ASKED, stateAt = now))
-                    settings.appendLog("补发已到期的询问：${shot.name}")
+                    settings.appendLog(app.getString(R.string.log_catch_up, shot.name))
                     changed++
                 }
 
                 ShotState.ASKED -> if (expiryMs > 0L && now - shot.sinceStateAt >= expiryMs) {
                     Reminders.cancel(app, shot.mediaId)
                     store.remove(shot.mediaId)
-                    settings.appendLog("超过 ${settings.askExpiryDays} 天未回答，按保留处理：${shot.name}")
+                    settings.appendLog(app.getString(R.string.log_expired_keep, settings.askExpiryDays, shot.name))
                     changed++
                 }
 
                 ShotState.DELETING -> if (now - shot.sinceStateAt >= DELETING_TIMEOUT_MS) {
                     store.upsert(shot.copy(state = ShotState.ASKED, stateAt = now))
-                    settings.appendLog("系统确认超时未完成，退回待确认：${shot.name}")
+                    settings.appendLog(app.getString(R.string.log_confirm_timeout, shot.name))
                     changed++
                 }
             }

@@ -9,7 +9,11 @@ package com.changakira.screenshotbye.media
  */
 object ScreenshotRule {
 
-    /** 各 ROM 的截图目录名（AOSP / 小米 / 华为 / OPPO / vivo / 三星 / 荣耀，含中文目录）。 */
+    /**
+     * 各 ROM 的截图目录名（AOSP / 小米 / 华为 / OPPO / vivo / 三星 / 荣耀，含中文目录）。
+     * 这些是文件系统上的真实目录名，属于识别用的匹配数据而不是界面文案，
+     * 因此不走字符串资源——一旦被翻译就会匹配不上。
+     */
     private val FOLDER_NAMES = setOf(
         "screenshot", "screenshots", "screenshot_2", "scrollshot",
         "screen_capture", "screenrecord",

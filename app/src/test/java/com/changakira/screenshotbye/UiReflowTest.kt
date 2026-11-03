@@ -271,4 +271,140 @@ class UiReflowTest {
         assertEquals(Palette.Beige, Palette.current(ctx))
         assertEquals(Palette.Indigo, Palette.fromId("indigo"))
     }
+
+    // ---- 本轮回归：旋钮让位滚动 / 页面背景 / 关于页 / 文案不硬编码 ----
+
+    /** 量出一个能接住触摸的旋钮：Robolectric 不跑布局，得手动 measure + layout。 */
+    private fun laidOutDial(activity: SettingsActivity, id: Int): DetentDial {
+        val dial = activity.findViewById<DetentDial>(id)
+        val width = 600
+        dial.measure(
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.AT_MOST)
+        )
+        dial.layout(0, 0, width, dial.measuredHeight)
+        return dial
+    }
+
+    private fun down(dial: DetentDial, x: Float, y: Float): Boolean {
+        val e = MotionEvent.obtain(0L, 1L, MotionEvent.ACTION_DOWN, x, y, 0)
+        val handled = dial.onTouchEvent(e)
+        e.recycle()
+        return handled
+    }
+
+    @Test
+    fun `只有旋钮圆轨附近才吃触摸，卡片空白处照样能上下滑`() {
+        val activity = Robolectric.buildActivity(SettingsActivity::class.java).setup().get()
+        val dial = laidOutDial(activity, R.id.askDial)
+        val w = dial.width.toFloat()
+        val h = dial.height.toFloat()
+        // 轨道正上方那点：必须吃下触摸，否则旋钮拨不动
+        assertTrue("轨道上要能拨", down(dial, w / 2f, 20f))
+        // 圆心、四角这些空白处一律不吃，让 NestedScrollView 接管竖直滑动
+        assertFalse("圆心空白处要让给页面滚动", down(dial, w / 2f, h / 2f))
+        assertFalse("左上角要让给页面滚动", down(dial, 1f, 1f))
+        assertFalse("右下角要让给页面滚动", down(dial, w - 1f, h - 1f))
+    }
+
+    @Test
+    fun `前三个旋钮的单位是「分钟后」和「天后」`() {
+        val app = "http://schemas.android.com/apk/res-auto"
+        val android = "http://schemas.android.com/apk/res/android"
+        val parser = ctx.resources.getLayout(R.layout.activity_settings)
+        val units = mutableMapOf<String, Int>()
+        var ev = parser.eventType
+        while (ev != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
+            if (ev == org.xmlpull.v1.XmlPullParser.START_TAG) {
+                val id = parser.getAttributeResourceValue(android, "id", 0)
+                val unit = parser.getAttributeResourceValue(app, "dialUnit", 0)
+                if (id != 0 && unit != 0) units[ctx.resources.getResourceEntryName(id)] = unit
+            }
+            ev = parser.next()
+        }
+        parser.close()
+        assertEquals(R.string.unit_minutes, units["askDial"])
+        assertEquals(R.string.unit_days, units["keepDial"])
+        assertEquals(R.string.unit_minutes, units["gapDial"])
+        assertEquals(R.string.unit_times, units["timesDial"])
+        assertEquals("分钟后", ctx.getString(R.string.unit_minutes))
+        assertEquals("天后", ctx.getString(R.string.unit_days))
+    }
+
+    @Test
+    fun `页面背景也不跟着主题配色走`() {
+        fun windowBg(paletteId: String): Int {
+            dropSingleton(Settings::class.java)
+            Settings.of(ctx).themePalette = paletteId
+            val activity = Robolectric.buildActivity(SettingsActivity::class.java).setup().get()
+            val out = TypedValue()
+            assertTrue(activity.theme.resolveAttribute(android.R.attr.windowBackground, out, true))
+            return out.resourceId
+        }
+        assertEquals(R.color.page_background, windowBg("terracotta"))
+        assertEquals(R.color.page_background, windowBg("indigo"))
+        // 首页同理：背景是那个固定色，主题色只落在按钮和旋钮上
+        dropSingleton(Settings::class.java)
+        Settings.of(ctx).themePalette = "graphite"
+        val home = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+        val out = TypedValue()
+        assertTrue(home.theme.resolveAttribute(android.R.attr.windowBackground, out, true))
+        assertEquals(R.color.page_background, out.resourceId)
+        assertEquals(ctx.getColor(R.color.page_background), home.getColor(out.resourceId))
+    }
+
+    @Test
+    fun `应用描述不带句号`() {
+        assertFalse(ctx.getString(R.string.home_subtitle).endsWith("。"))
+    }
+
+    @Test
+    fun `设置页自检下面有「关于」，点进去是占位正文加版本号`() {
+        val activity = Robolectric.buildActivity(SettingsActivity::class.java).setup().get()
+        val aboutRow = activity.findViewById<View>(R.id.aboutRow)
+        assertNotNull(aboutRow)
+        // 顺序：运行自检在前，关于在后
+        val labels = activity.findViewById<View>(android.R.id.content).flatten()
+            .filterIsInstance<android.widget.TextView>().map { it.text.toString() }
+        assertTrue(
+            "关于要排在运行自检后面",
+            labels.indexOf(ctx.getString(R.string.main_open_diag)) <
+                labels.indexOf(ctx.getString(R.string.main_open_about))
+        )
+        aboutRow.performClick()
+        assertEquals(
+            com.changakira.screenshotbye.ui.AboutActivity::class.java.name,
+            Shadows.shadowOf(activity).nextStartedActivity.component?.className
+        )
+
+        val about = Robolectric.buildActivity(com.changakira.screenshotbye.ui.AboutActivity::class.java)
+            .setup().get()
+        val texts = about.findViewById<View>(android.R.id.content).flatten()
+            .filterIsInstance<android.widget.TextView>().map { it.text.toString() }
+        assertTrue(texts.any { it == ctx.getString(R.string.about_placeholder) })
+        assertTrue("关于页要写清版本", texts.any { it.startsWith("版本 ") })
+    }
+
+    @Test
+    fun `界面文案一律走字符串资源，源码里不再硬编码`() {
+        val root = listOf("src/main/java", "app/src/main/java")
+            .map { java.io.File(it) }.firstOrNull { it.isDirectory }
+        assertNotNull("找不到主源码目录", root)
+        val cjk = Regex("[\\u4e00-\\u9fff]")
+        val literal = Regex("\"((?:[^\"\\\\]|\\\\.)*)\"")
+        // 只有这两处例外：目录名/文件名匹配规则，翻译了就识别不出截图
+        val allowedFiles = setOf("ScreenshotRule.kt", "MediaScanner.kt")
+        val offenders = mutableListOf<String>()
+        root!!.walkTopDown().filter { it.extension == "kt" }.forEach { f ->
+            if (f.name in allowedFiles) return@forEach
+            f.readLines().forEachIndexed { i, raw ->
+                val line = raw.trim()
+                if (line.startsWith("//") || line.startsWith("*") || line.startsWith("/*")) return@forEachIndexed
+                literal.findAll(raw).forEach { m ->
+                    if (cjk.containsMatchIn(m.groupValues[1])) offenders.add("${f.name}:${i + 1} ${m.groupValues[1]}")
+                }
+            }
+        }
+        assertTrue("这些中文文案还留在代码里：$offenders", offenders.isEmpty())
+    }
 }

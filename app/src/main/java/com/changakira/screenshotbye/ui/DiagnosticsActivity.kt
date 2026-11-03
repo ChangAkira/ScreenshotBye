@@ -60,7 +60,9 @@ class DiagnosticsActivity : ThemedActivity() {
         b.reportText.setText(R.string.diag_loading)
         io.execute {
             val text = runCatching { Diagnostics.collect(this) }
-                .getOrElse { e -> "采集失败：${e.javaClass.simpleName} ${e.message}" }
+                .getOrElse { e ->
+                    getString(R.string.diag_collect_failed, e.javaClass.simpleName, e.message ?: "")
+                }
             runOnUiThread {
                 busy = false
                 if (isFinishing || isDestroyed) return@runOnUiThread

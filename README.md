@@ -4,7 +4,7 @@
   <p>截图常常只是临时用一下，用完就忘在相册里。这个应用持续在后台盯着相册，过一段时间问你一句「还需要这张截图吗」，回答不需要就删掉它——删掉之后进的是系统相册自己的回收站，反悔可以在相册里还原。</p>
   <p>
     <img alt="platform" src="https://img.shields.io/badge/Android-8.0%2B-green"/>
-    <img alt="release" src="https://img.shields.io/badge/release-v1.0.7-blue"/>
+    <img alt="release" src="https://img.shields.io/badge/release-v1.0.8-blue"/>
     <img alt="lang" src="https://img.shields.io/badge/Kotlin-2.0.21-orange"/>
     <img alt="offline" src="https://img.shields.io/badge/联网-不需要-informational"/>
     <img alt="license" src="https://img.shields.io/badge/License-MIT-lightgrey"/>
@@ -94,9 +94,22 @@ v1.0.3 把这个档位**撤掉了**：声音、震动、横幅、锁屏显示本
 
 ## 下载
 
-最新 release：[v1.0.7](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.7) —
-直接安装 [ScreenshotBye-v1.0.7.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.7/ScreenshotBye-v1.0.7.apk)
+最新 release：[v1.0.8](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.8) —
+直接安装 [ScreenshotBye-v1.0.8.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.8/ScreenshotBye-v1.0.8.apk)
 （release 签名，minSdk 26 / Android 8.0 起）。v1.0.1 起都是同一把密钥，**直接覆盖安装即可**，待确认清单和设置都保留。
+
+v1.0.8 修掉了设置页最后那点别扭，并把文案从代码里全部搬出来：
+
+- **设置页在卡片内的空白处也能上下滑了**：上一版旋钮一按下就吃触摸，而它的可点区域是整个方形包围盒，
+  比画出来的圆环大得多，于是卡片里一大片空白都滑不动。现在只有落在圆轨附近（环带内）的按下才归旋钮，
+  其余一律不吃，交给 `NestedScrollView` 滚动。
+- **页面背景也不再跟随主题颜色**：主题配色只管按钮、旋钮这些控件。首页与设置页的背景统一取一个固定色
+  （浅色 `#F6F5F4` / 深色 `#171718`），五套配色共用，状态栏与导航栏同色。
+- **新增「关于」页**：设置页 → 运行自检下面一行进入，显示应用名、版本号与说明正文（当前为占位文本）。
+- 前三个旋钮的单位改成「分钟后」「天后」，应用描述去掉句末句号。
+- **所有界面文案抽到 `strings.xml`**：事件日志、删除失败原因、自检报告全文、通知动作日志、无障碍描述
+  都改成带格式参数的字符串资源，源码里不再硬编码中文（只有目录名/文件名匹配规则例外——那是识别数据，
+  翻译了就匹配不上）。有一条单元测试会扫源码，防止硬编码回潮。
 
 v1.0.7 继续向参考仓库看齐，并做了一处后台常驻的大改进：
 

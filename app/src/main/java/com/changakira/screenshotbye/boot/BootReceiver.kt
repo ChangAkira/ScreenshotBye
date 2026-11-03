@@ -3,6 +3,7 @@ package com.changakira.screenshotbye.boot
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.changakira.screenshotbye.R
 import com.changakira.screenshotbye.ScreenshotByeApp
 import com.changakira.screenshotbye.core.Settings
 import com.changakira.screenshotbye.notify.Channels
@@ -21,7 +22,7 @@ class BootReceiver : BroadcastReceiver() {
                 if (!Settings.of(app).enabled) return
                 WatchService.start(app)
                 ScreenshotByeApp.scheduleWatchdog(app)
-                Settings.of(app).appendLog("开机自启：监控已恢复")
+                Settings.of(app).appendLog(app.getString(R.string.log_boot_restored))
             }
         }
     }

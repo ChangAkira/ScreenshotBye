@@ -27,6 +27,7 @@ import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * 固定档位吸附旋钮。Views 版，照搬参考仓库 Compose 的 DetentDial：240° 弧、120° 缺口朝下、
@@ -48,6 +49,16 @@ class DetentDial @JvmOverloads constructor(
 
         /** 弧的张角，留 120° 缺口朝下，读数正好放在圆心 */
         const val ANGLE_SWEEP = 240f
+
+        /** 轨道半径占旋钮方框的比例，和 onDraw 里保持一致 */
+        const val TRACK_RADIUS_RATIO = 0.363f
+
+        /**
+         * 可拨动的环带半宽（占方框比例）。只有落点距圆心在 [轨道半径-带宽, 轨道半径+带宽+档位数字外扩]
+         * 这一段环带里，才算「点在圆形轨道附近」，由旋钮消费；环带以内（圆心读数区）和以外（方框四角空白）
+         * 都交还给父容器滚动。这样卡片里除了轨道那圈，其余空白都能上下滑动。
+         */
+        const val TRACK_BAND = 0.17f
     }
 
     private var presets = intArrayOf(1, 2, 3)
@@ -102,7 +113,7 @@ class DetentDial @JvmOverloads constructor(
         override fun onPopulateNodeForVirtualView(id: Int, node: AccessibilityNodeInfoCompat) {
             val box = box()
             node.setBoundsInParent(hitRect(id, box))
-            node.contentDescription = "${presets[id]} $unit"
+            node.contentDescription = context.getString(R.string.dial_value_desc, presets[id], unit)
             node.isCheckable = true
             node.isChecked = id == index
             node.setCollectionItemInfo(CollectionItemInfoCompat.obtain(id, 1, 0, presets.size, false, false))
@@ -135,7 +146,7 @@ class DetentDial @JvmOverloads constructor(
     // ---- 对外接口 ----
 
     fun setPresets(values: List<Int>) {
-        require(values.size >= 2) { "DetentDial 至少需要两个档位" }
+        require(values.size >= 2) { context.getString(R.string.dial_error_two_presets) }
         presets = values.toIntArray()
         index = nearestIndex(value)
         contentDescription = describe()
@@ -214,7 +225,7 @@ class DetentDial @JvmOverloads constructor(
         if (dial <= 0) return
         val cx = box[0] + dial / 2f
         val cy = box[1] + dial / 2f
-        val r = dial * 0.363f
+        val r = dial * TRACK_RADIUS_RATIO
         val stroke = dial * 0.047f
 
         label?.let {
@@ -337,9 +348,10 @@ class DetentDial @JvmOverloads constructor(
         onValueChange?.invoke(presets[index])
     }
 
-    private fun describe(): String = buildString {
-        label?.let { append(it).append("，") }
-        append("当前 ").append(presets[index]).append(" ").append(unit)
+    private fun describe(): String {
+        val l = label
+        return if (l != null) context.getString(R.string.dial_desc_with_label, l, presets[index], unit)
+        else context.getString(R.string.dial_desc, presets[index], unit)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -348,6 +360,9 @@ class DetentDial @JvmOverloads constructor(
                 downX = event.x
                 downY = event.y
                 dragging = false
+                // 只有按在圆形轨道那圈环带上才由旋钮接管；圆心读数区和方框四角的空白都交还父容器，
+                // 让整页能正常上下滑动（设置页套在 NestedScrollView 里）。
+                if (!nearTrack(event.x, event.y)) return false
                 parent?.requestDisallowInterceptTouchEvent(true)
                 return true
             }
@@ -373,6 +388,23 @@ class DetentDial @JvmOverloads constructor(
             }
         }
         return super.onTouchEvent(event)
+    }
+
+    /** 落点是否落在旋钮的圆形轨道环带附近（圆心读数区与四角空白都算「不在轨道上」）。 */
+    private fun nearTrack(x: Float, y: Float): Boolean {
+        val box = box()
+        val dial = box[2]
+        if (dial <= 0) return false
+        val cx = box[0] + dial / 2f
+        val cy = box[1] + dial / 2f
+        val dx = x - cx
+        val dy = y - cy
+        val dist = sqrt(dx * dx + dy * dy)
+        val r = dial * TRACK_RADIUS_RATIO
+        val inner = (r - dial * TRACK_BAND).coerceAtLeast(0f)
+        // 外沿多留一点，把挂在弧外侧的档位数字也罩进来
+        val outer = r + dial * (TRACK_BAND + 0.09f)
+        return dist in inner..outer
     }
 
     /**

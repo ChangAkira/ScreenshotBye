@@ -3,6 +3,7 @@ package com.changakira.screenshotbye.service
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.changakira.screenshotbye.R
 import com.changakira.screenshotbye.core.ScreenshotRepository
 import com.changakira.screenshotbye.core.Settings
 import com.changakira.screenshotbye.notify.Notify
@@ -33,10 +34,10 @@ class WatchdogWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(c
 
         return try {
             WatchService.start(app)
-            settings.appendLog("看门狗：已重新拉起监控")
+            settings.appendLog(app.getString(R.string.log_watchdog_restarted))
             Result.success()
         } catch (e: Exception) {
-            settings.appendLog("看门狗：拉起失败，需用户手动恢复（${e.javaClass.simpleName}）")
+            settings.appendLog(app.getString(R.string.log_watchdog_failed, e.javaClass.simpleName))
             Notify.notify(app, Notify.ID_RECOVERY, Notify.recoveryNeeded(app))
             Result.success()
         }

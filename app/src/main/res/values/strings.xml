@@ -49,7 +49,7 @@
 
 
     <!-- 首页：权限 + 引导 + 设置入口 -->
-    <string name="home_subtitle">截图一段时间后由你来决定是否删除。</string>
+    <string name="home_subtitle">截图一段时间后由你来决定是否删除</string>
     <string name="home_request_perms">请求权限</string>
     <string name="home_request_perms_done">权限已授予</string>
     <string name="home_open_settings">设置</string>
@@ -76,8 +76,8 @@
     <string name="dial_keep_default">默认保留</string>
     <string name="dial_gap">间隔</string>
     <string name="dial_repeat_times">重复</string>
-    <string name="unit_minutes">分钟</string>
-    <string name="unit_days">天</string>
+    <string name="unit_minutes">分钟后</string>
+    <string name="unit_days">天后</string>
     <string name="unit_times">次</string>
 
     <!-- 配色名称 -->
@@ -92,9 +92,6 @@
     <string name="log_copy">复制日志</string>
     <string name="log_empty">暂无日志。</string>
     <string name="log_cleared">日志已清空</string>
-
-    <string name="cancel">取消</string>
-    <string name="confirm">确定</string>
 
     <string name="toast_needs_confirm">请点通知里的确认，或再按一次删除</string>
     <string name="toast_no_delete_support">这台设备既不给回收站入口，也不给删除确认入口，请在相册里手动删除</string>
@@ -135,6 +132,155 @@
     <string name="diag_copy">复制诊断文本</string>
     <string name="diag_copied">已复制，反馈问题时可直接粘贴</string>
     <string name="diag_open_notify_settings">打开系统通知设置</string>
+
+    <!-- 关于 -->
+    <string name="main_open_about">关于</string>
+    <string name="about_title">关于</string>
+    <string name="about_version">版本 %1$s (%2$d)</string>
+    <string name="about_placeholder">这里之后会写清楚：这个应用是什么、截图怎么被识别、删除交给谁、以及遇到问题去哪儿反馈。当前是占位文本。</string>
+    <string name="about_license">开源许可：MIT</string>
+
+    <!-- 事件日志（写进日志页，用户在自检报告里也会看到） -->
+    <string name="log_detected">检测到截图 %1$s，%2$d 分钟后询问</string>
+    <string name="log_asked">已询问：%1$s</string>
+    <string name="log_kept">保留 %1$s</string>
+    <string name="log_snoozed">稍后再问 %1$s</string>
+    <string name="log_snooze_all">整批稍后再问：%1$d 张</string>
+    <string name="log_deleted">已删除 %1$s</string>
+    <string name="log_wait_system">等待系统确认：%1$s</string>
+    <string name="log_delete_failed">删除失败：%1$s</string>
+    <string name="log_batch_item_failed">%1$s：%2$s</string>
+    <string name="log_batch_prepared">已准备 %1$d 张，等待系统确认</string>
+    <string name="log_batch_deleted">批量删除 %1$d 张</string>
+    <string name="log_batch_none">批量删除：无成功项</string>
+    <string name="log_trashed">已移入系统回收站：%1$s</string>
+    <string name="log_confirmed_deleted">系统确认后已删除：%1$s</string>
+    <string name="log_cancelled_in_dialog">你在系统弹窗中取消了删除：%1$s</string>
+    <string name="log_catch_up">补发已到期的询问：%1$s</string>
+    <string name="log_expired_keep">超过 %1$d 天未回答，按保留处理：%2$s</string>
+    <string name="log_confirm_timeout">系统确认超时未完成，退回待确认：%1$s</string>
+    <string name="log_rules_updated">识别规则已更新</string>
+    <string name="log_watch_on">监控已开启</string>
+    <string name="log_watch_off">监控已关闭</string>
+    <string name="log_service_stopped">监控服务已停止</string>
+    <string name="log_baseline_set">已设定检测基线，只处理此后新增的截图</string>
+    <string name="log_register_observer_failed">注册相册监听失败：%1$s</string>
+    <string name="log_query_failed">读取相册失败：%1$s</string>
+    <string name="log_channel_service_failed">监控渠道创建失败：%1$s</string>
+    <string name="log_channel_review_failed">提醒渠道创建失败：%1$s</string>
+    <string name="log_unknown_action">未知通知动作：%1$s</string>
+    <string name="log_action_failed">处理通知动作失败：%1$s</string>
+    <string name="log_dismissed_reschedule">询问通知被划掉，已安排稍后补提醒</string>
+    <string name="log_watchdog_restarted">看门狗：已重新拉起监控</string>
+    <string name="log_watchdog_failed">看门狗：拉起失败，需用户手动恢复（%1$s）</string>
+    <string name="log_watchdog_schedule_failed">看门狗排期失败：%1$s</string>
+    <string name="log_theme_changed">主题颜色切换为 %1$s</string>
+    <string name="log_onboarding_enabled">引导完成后开启监控</string>
+    <string name="log_boot_restored">开机自启：监控已恢复</string>
+
+    <!-- 删除失败原因 -->
+    <string name="err_need_write_perm">Android 10 及以下需要存储写入权限才能删除</string>
+    <string name="err_system_denied">系统拒绝删除该文件</string>
+    <string name="err_denied_reason">删除被拒绝：%1$s</string>
+    <string name="err_delete_exception">删除异常：%1$s</string>
+    <string name="err_row_not_removed">相册记录未移除，删除未完成</string>
+    <string name="err_record_gone">这条记录已经处理过了</string>
+
+    <!-- 旋钮无障碍描述 -->
+    <string name="dial_desc_with_label">%1$s，当前 %2$d %3$s</string>
+    <string name="dial_desc">当前 %1$d %2$s</string>
+    <string name="dial_value_desc">%1$d %2$s</string>
+    <string name="dial_error_two_presets">DetentDial 至少需要两个档位</string>
+
+    <!-- 自检报告 -->
+    <string name="diag_report_title">%1$s 自检</string>
+    <string name="diag_version_line">版本 %1$s（build %2$d）</string>
+    <string name="diag_version_unknown">版本未知</string>
+    <string name="diag_system_line">系统 %1$s (API %2$d) · %3$s %4$s</string>
+    <string name="diag_time_line">时间 %1$s</string>
+    <string name="diag_section_fmt">== %1$s</string>
+    <string name="diag_row_fmt">%1$s %2$s</string>
+    <string name="diag_row_detail_fmt">（%1$s）</string>
+    <string name="diag_mark_ok" translatable="false">✓</string>
+    <string name="diag_mark_bad" translatable="false">✗</string>
+    <string name="diag_sec_notify">通知能不能出来</string>
+    <string name="diag_sec_crash">上次未捕获异常</string>
+    <string name="diag_sec_watch">监控是否在跑</string>
+    <string name="diag_sec_perms">权限</string>
+    <string name="diag_sec_throttle">提醒节流</string>
+    <string name="diag_sec_queue">待确认队列（%1$d）</string>
+    <string name="diag_sec_delete">删除去向</string>
+    <string name="diag_sec_recent">最近事件</string>
+    <string name="diag_row_notify_master">通知总开关</string>
+    <string name="diag_row_dnd">打扰模式</string>
+    <string name="diag_row_fg_service">前台服务存活</string>
+    <string name="diag_row_master_switch">总开关</string>
+    <string name="diag_row_read_media">读取相册</string>
+    <string name="diag_row_notify_perm">通知权限</string>
+    <string name="diag_row_write_perm">存储写入权限（决定能否直接删除）</string>
+    <string name="diag_row_battery">电池优化白名单</string>
+    <string name="diag_detail_notify_off">系统里已关闭本应用通知</string>
+    <string name="diag_detail_service_down">服务没在跑，看门狗会尝试拉起</string>
+    <string name="diag_detail_no_write_perm">没有写权限就删不掉</string>
+    <string name="diag_channel_line">提醒渠道：%1$s · importance=%2$s</string>
+    <string name="diag_channel_note1">声音、震动、横幅、锁屏显示都归这条渠道管，在系统通知设置里改，应用不代做决定。</string>
+    <string name="diag_channel_note2">「发送测试提醒」走同一条渠道真发一条，用来区分「应用没发」还是「系统压掉了」。</string>
+    <string name="diag_crash_note">（复制整份报告反馈即可，这条记录比界面截图有用得多）</string>
+    <string name="diag_last_observer">最近一次相册监听回调：%1$s</string>
+    <string name="diag_last_scan">最近一次扫描：%1$s</string>
+    <string name="diag_watermark">检测水位线（DATE_ADDED）：%1$s</string>
+    <string name="diag_newest_unreadable">相册最新条目：读不到（缺媒体权限或被系统拒绝）</string>
+    <string name="diag_newest">相册最新条目：%1$s（水位线滞后 %2$d 秒）</string>
+    <string name="diag_seen_count">已登记媒体 id 数：%1$d</string>
+    <string name="diag_work_retry">定时任务：%1$s</string>
+    <string name="diag_work_watchdog">看门狗：%1$s</string>
+    <string name="diag_work_unscheduled">未排期</string>
+    <string name="diag_work_query_failed">查询失败</string>
+    <string name="diag_throttle_first">首次询问：入库后 %1$d 分钟</string>
+    <string name="diag_throttle_repeat">重复提醒间隔：%1$s</string>
+    <string name="diag_throttle_repeat_off">关闭（只问一次）</string>
+    <string name="diag_throttle_repeat_min">%1$d 分钟</string>
+    <string name="diag_throttle_max">最多提醒次数：%1$d</string>
+    <string name="diag_throttle_last_alert">上次出声提醒：%1$s</string>
+    <string name="diag_keep">默认保留：%1$s</string>
+    <string name="diag_keep_wait">继续等待处理，不会自动出队</string>
+    <string name="diag_keep_days">%1$d 天没回答就当作保留</string>
+    <string name="diag_queue_empty">空</string>
+    <string name="diag_queue_item">#%1$d %2$s · %3$s · 到期 %4$s · 已提醒 %5$d 次</string>
+    <string name="diag_queue_item_gone">#%1$d %2$s · %3$s · 到期 %4$s · 已提醒 %5$d 次 · 原图已不在</string>
+    <string name="diag_delete_r_plus">Android 11+：系统弹窗确认后移入系统相册的回收站，保留多久由系统决定，本应用不存副本</string>
+    <string name="diag_delete_legacy">Android 10 及以下：系统没有回收站，删掉即消失</string>
+    <string name="diag_recent_empty">（空）</string>
+    <string name="diag_block_notify_off">本应用通知总开关已关闭</string>
+    <string name="diag_block_no_perm">缺少通知权限（Android 13+）</string>
+    <string name="diag_block_dnd">系统处于勿扰/静音模式：%1$s</string>
+    <string name="diag_block_no_channel">提醒渠道不存在，去系统通知设置里确认</string>
+    <string name="diag_block_low_importance">提醒渠道已被系统设为「%1$s」，横幅和声音是在这里被关掉的，需要在系统通知设置里调回「高」</string>
+    <string name="diag_block_sep">；</string>
+    <string name="diag_importance_fmt">%1$d（%2$s）</string>
+    <string name="diag_channel_missing">不存在</string>
+    <string name="diag_dnd_all">全部允许</string>
+    <string name="diag_dnd_priority">仅优先级（勿扰）</string>
+    <string name="diag_dnd_none">全部静音</string>
+    <string name="diag_dnd_alarms">仅闹钟</string>
+    <string name="diag_dnd_limited">受限（通知栏折叠/静音类模式）</string>
+    <string name="diag_unknown">未知</string>
+    <string name="diag_imp_none">已关闭</string>
+    <string name="diag_imp_min">最低</string>
+    <string name="diag_imp_low">低（不弹横幅）</string>
+    <string name="diag_imp_default">默认</string>
+    <string name="diag_imp_high">高（会弹横幅）</string>
+    <string name="diag_state_waiting">计时中</string>
+    <string name="diag_state_asked">待回答</string>
+    <string name="diag_state_deleting">等系统确认</string>
+    <string name="diag_never">从未</string>
+    <string name="diag_time_ago_fmt">%1$s（%2$s）</string>
+    <string name="diag_future_sec">未来 %1$d 秒后</string>
+    <string name="diag_ago_sec">%1$d 秒前</string>
+    <string name="diag_ago_min">%1$d 分钟前</string>
+    <string name="diag_ago_hour">%1$d 小时前</string>
+    <string name="diag_ago_day">%1$d 天前</string>
+    <string name="diag_collect_failed">采集失败：%1$s %2$s</string>
 
     <!-- 首次引导 -->
     <string name="main_open_guide">使用引导</string>

@@ -3,6 +3,7 @@ package com.changakira.screenshotbye.notify
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.changakira.screenshotbye.R
 import com.changakira.screenshotbye.core.Decision
 import com.changakira.screenshotbye.core.Reminders
 import com.changakira.screenshotbye.core.Settings
@@ -33,10 +34,10 @@ class ActionReceiver : BroadcastReceiver() {
                         Settings.of(app).enabled = false
                         WatchService.stop(app)
                     }
-                    else -> Settings.of(app).appendLog("未知通知动作：${intent.action}")
+                    else -> Settings.of(app).appendLog(app.getString(R.string.log_unknown_action, intent.action))
                 }
             } catch (e: Exception) {
-                Settings.of(app).appendLog("处理通知动作失败：${e.javaClass.simpleName}")
+                Settings.of(app).appendLog(app.getString(R.string.log_action_failed, e.javaClass.simpleName))
             } finally {
                 finish.finish()
             }
@@ -55,7 +56,7 @@ class ActionReceiver : BroadcastReceiver() {
         if (ScreenshotRepository(app).dueQueue().isEmpty()) return
         settings.lastAlertAt = 0L
         Reminders.scheduleAlertRetry(app, settings.alertRepeatMinutes)
-        settings.appendLog("询问通知被划掉，已安排稍后补提醒")
+        settings.appendLog(app.getString(R.string.log_dismissed_reschedule))
     }
 
     private companion object {

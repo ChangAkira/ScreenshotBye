@@ -5,6 +5,7 @@ import android.content.IntentSender
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import com.changakira.screenshotbye.R
 import com.changakira.screenshotbye.core.PendingShot
 import com.changakira.screenshotbye.perm.Perms
 import java.io.File
@@ -48,23 +49,23 @@ class DeleteGateway(ctx: Context) {
     fun deleteNow(shot: PendingShot): DeleteResult {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) return DeleteResult.NeedsConfirm
         if (!Perms.canDeleteSilently(app)) {
-            return DeleteResult.Failed("Android 10 及以下需要存储写入权限才能删除")
+            return DeleteResult.Failed(app.getString(R.string.err_need_write_perm))
         }
         try {
             resolver.delete(shot.contentUri, null, null)
         } catch (e: SecurityException) {
             // RecoverableSecurityException 是 API 29 才有的类，直接在 catch 里写类型
             // 会让 Android 8/9 在异常传播时报类找不到，因此按类名判断。
-            return if (isRecoverable(e)) DeleteResult.Failed("系统拒绝删除该文件")
-            else DeleteResult.Failed("删除被拒绝：${e.message ?: e.javaClass.simpleName}")
+            return if (isRecoverable(e)) DeleteResult.Failed(app.getString(R.string.err_system_denied))
+            else DeleteResult.Failed(app.getString(R.string.err_denied_reason, e.message ?: e.javaClass.simpleName))
         } catch (e: Exception) {
-            return DeleteResult.Failed("删除异常：${e.javaClass.simpleName}")
+            return DeleteResult.Failed(app.getString(R.string.err_delete_exception, e.javaClass.simpleName))
         }
         // 极少数 ROM 只删了 MediaStore 行、文件仍在；有写权限时补一刀
         shot.absolutePath?.let { path ->
             runCatching { File(path).takeIf { it.exists() }?.delete() }
         }
-        return if (exists(shot.contentUri)) DeleteResult.Failed("相册记录未移除，删除未完成")
+        return if (exists(shot.contentUri)) DeleteResult.Failed(app.getString(R.string.err_row_not_removed))
         else DeleteResult.Removed
     }
 

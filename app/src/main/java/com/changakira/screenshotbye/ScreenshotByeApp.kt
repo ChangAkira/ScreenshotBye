@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.changakira.screenshotbye.R
 import com.changakira.screenshotbye.core.Settings
 import com.changakira.screenshotbye.notify.Channels
 import com.changakira.screenshotbye.service.WatchdogWorker
@@ -18,7 +19,7 @@ class ScreenshotByeApp : Application() {
         Channels.ensure(this)
         // 看门狗：即使服务被 ROM 杀掉，也能在下个周期把它拉回来（拉不动时发通知求助）
         if (settings.enabled) runCatching { scheduleWatchdog(this) }
-            .onFailure { settings.appendLog("看门狗排期失败：${it.javaClass.simpleName}") }
+            .onFailure { settings.appendLog(getString(R.string.log_watchdog_schedule_failed, it.javaClass.simpleName)) }
     }
 
     /**

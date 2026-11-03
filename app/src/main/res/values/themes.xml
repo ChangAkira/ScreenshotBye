@@ -2,8 +2,14 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
     <style name="Theme.ScreenshotBye.Base" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="android:statusBarColor">?attr/colorSurface</item>
-        <item name="android:navigationBarColor">?attr/colorSurface</item>
+        <!--
+          页面背景与状态栏/导航栏都钉死成中性的 @color/page_background，不随主题配色变化：
+          主题颜色只管按钮、旋钮等控件。windowBackground 是所有页面根布局的默认底色，
+          这样主页与设置页的背景都不再跟配色绑定（暗色版见 values-night/page_background）。
+        -->
+        <item name="android:windowBackground">@color/page_background</item>
+        <item name="android:statusBarColor">@color/page_background</item>
+        <item name="android:navigationBarColor">@color/page_background</item>
         <item name="android:windowLightStatusBar">@bool/light_status_bar</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">@bool/light_status_bar</item>
         <item name="android:textColorLink">?attr/colorPrimary</item>

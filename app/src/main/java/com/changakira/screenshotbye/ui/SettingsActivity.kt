@@ -87,7 +87,7 @@ class SettingsActivity : ThemedActivity() {
             settings.matchByFolder = b.ruleFolder.isChecked
             settings.matchByName = b.ruleName.isChecked
             settings.includeVideo = b.ruleVideo.isChecked
-            settings.appendLog("识别规则已更新")
+            settings.appendLog(getString(R.string.log_rules_updated))
             // 规则一变，之前被漏掉/误收的条目要重新过一遍，否则得等到下一次相册变动
             WatchService.rescan(this)
             toast(getString(R.string.settings_rules_saved))
@@ -109,13 +109,13 @@ class SettingsActivity : ThemedActivity() {
             settings.enabled = true
             WatchService.start(this)
             ScreenshotByeApp.scheduleWatchdog(this)
-            settings.appendLog("监控已开启")
+            settings.appendLog(getString(R.string.log_watch_on))
         } else {
             settings.enabled = false
             WatchService.stop(this)
             ScreenshotByeApp.cancelWatchdog(this)
             Notify.cancel(this, Notify.ID_RECOVERY)
-            settings.appendLog("监控已关闭")
+            settings.appendLog(getString(R.string.log_watch_off))
         }
         toast(getString(if (on) R.string.settings_watch_toast_on else R.string.settings_watch_toast_off))
     }
@@ -167,6 +167,7 @@ class SettingsActivity : ThemedActivity() {
         }
         b.logRow.setOnClickListener { startActivity(Intent(this, LogActivity::class.java)) }
         b.diagRow.setOnClickListener { startActivity(Intent(this, DiagnosticsActivity::class.java)) }
+        b.aboutRow.setOnClickListener { startActivity(Intent(this, AboutActivity::class.java)) }
     }
 
     private fun buildSwatches() {

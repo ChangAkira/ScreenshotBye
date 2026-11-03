@@ -114,7 +114,7 @@ class OnboardingActivity : ThemedActivity() {
         settings.enabled = true
         WatchService.start(this)
         ScreenshotByeApp.scheduleWatchdog(this)
-        settings.appendLog("引导完成后开启监控")
+        settings.appendLog(getString(R.string.log_onboarding_enabled))
     }
 
     private fun openMain() {

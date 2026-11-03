@@ -13,6 +13,7 @@ import android.os.FileObserver
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
+import com.changakira.screenshotbye.R
 import com.changakira.screenshotbye.core.Settings
 import java.io.File
 import java.util.concurrent.Executors
@@ -67,7 +68,7 @@ class MediaScanner(
         if (watermarkSec <= 0L) {
             watermarkSec = System.currentTimeMillis() / 1000L
             settings.baselineDateAdded = watermarkSec
-            onNote("已设定检测基线，只处理此后新增的截图")
+            onNote(app.getString(R.string.log_baseline_set))
         }
 
         val obs = object : ContentObserver(ui) {
@@ -80,7 +81,7 @@ class MediaScanner(
         observer = obs
         for (uri in watchedUris()) {
             runCatching { resolver.registerContentObserver(uri, true, obs) }
-                .onFailure { onNote("注册相册监听失败：${it.javaClass.simpleName}") }
+                .onFailure { onNote(app.getString(R.string.log_register_observer_failed, it.javaClass.simpleName)) }
         }
         startFileObserver()
         scheduleScan(STARTUP_SCAN_DELAY_MS)
@@ -166,7 +167,7 @@ class MediaScanner(
         }
 
         return runCatching { resolver.query(base, columns.toTypedArray(), queryArgs, null) }
-            .onFailure { onNote("读取相册失败：${it.javaClass.simpleName}") }
+            .onFailure { onNote(app.getString(R.string.log_query_failed, it.javaClass.simpleName)) }
             .getOrNull()
             ?.use { it.readHits(video) }
             ?: emptyList()
@@ -241,6 +242,7 @@ class MediaScanner(
         private const val DEBOUNCE_MS = 350L
         private const val STARTUP_SCAN_DELAY_MS = 1200L
         private const val SCAN_LIMIT = 400
+        // 文件名匹配用的关键词，不是界面文案，不进字符串资源（翻译了就匹配不上）
         private val NAME_HINTS = listOf("screenshot", "screen_shot", "screenshot_", "截图", "screenrecord")
     }
 }

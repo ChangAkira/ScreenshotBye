@@ -6,6 +6,8 @@
       主题颜色只作用于按钮、旋钮等控件（colorPrimary），卡片/底衬保持中性——对齐参考仓库的观感。
     -->
     <color name="card_surface">#EEEDEB</color>
+    <!-- 页面背景：同样不随主题配色变化，比卡片略浅一档的中性色（夜间见 values-night）。 -->
+    <color name="page_background">#F6F5F4</color>
     <color name="beige_primary">#8B7D6B</color>
     <color name="beige_onPrimary">#FFFFFF</color>
     <color name="beige_primaryContainer">#EBE8E4</color>

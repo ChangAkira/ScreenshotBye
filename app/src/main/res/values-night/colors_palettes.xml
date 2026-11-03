@@ -3,6 +3,8 @@
 <resources>
     <!-- 卡片背景的夜间中性色，同样不随主题配色变化 -->
     <color name="card_surface">#2F2E30</color>
+    <!-- 页面背景的夜间中性色：比卡片更暗一档，保持「页面 < 卡片」的层次 -->
+    <color name="page_background">#171718</color>
     <color name="beige_primary">#C4B6A3</color>
     <color name="beige_onPrimary">#171412</color>
     <color name="beige_primaryContainer">#49423A</color>

@@ -52,7 +52,7 @@ object Channels {
                     setShowBadge(false)
                 }
             )
-        }.onFailure { settings.appendLog("监控渠道创建失败：${it.javaClass.simpleName}") }
+        }.onFailure { settings.appendLog(ctx.getString(R.string.log_channel_service_failed, it.javaClass.simpleName)) }
 
         runCatching {
             nm.createNotificationChannel(
@@ -60,7 +60,7 @@ object Channels {
                     REVIEW, ctx.getString(R.string.ch_review), NotificationManager.IMPORTANCE_HIGH
                 ).apply { description = ctx.getString(R.string.ch_review_desc) }
             )
-        }.onFailure { settings.appendLog("提醒渠道创建失败：${it.javaClass.simpleName}") }
+        }.onFailure { settings.appendLog(ctx.getString(R.string.log_channel_review_failed, it.javaClass.simpleName)) }
 
         RETIRED.forEach { id ->
             if (nm.getNotificationChannel(id) != null) runCatching { nm.deleteNotificationChannel(id) }

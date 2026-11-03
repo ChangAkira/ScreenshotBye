@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
+import com.changakira.screenshotbye.R
 import com.changakira.screenshotbye.core.PendingShotStore
 import com.changakira.screenshotbye.core.Reminders
 import com.changakira.screenshotbye.core.Settings
@@ -84,7 +85,7 @@ class WatchService : Service() {
 
     override fun onDestroy() {
         stopWatching()
-        settings.appendLog("监控服务已停止")
+        settings.appendLog(getString(R.string.log_service_stopped))
         super.onDestroy()
     }
 
