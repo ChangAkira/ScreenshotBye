@@ -12,7 +12,7 @@ import com.changakira.screenshotbye.service.WatchService
 import java.util.concurrent.Executors
 
 /**
- * 通知上的「不需要，删除 / 还要留着 / 稍后再问」由这里处理。
+ * 通知上的「删除 / 保留 / 稍后」由这里处理。
  *
  * 复制备份 + 删除可能在毫秒级之外，因此用 goAsync() 把广播生命周期延长到后台线程结束，
  * 否则 receiver 一返回就销毁，删除会被中途掐断。
@@ -54,6 +54,8 @@ class ActionReceiver : BroadcastReceiver() {
     internal fun onNotificationDismissed(app: Context) {
         val settings = Settings.of(app)
         if (ScreenshotRepository(app).dueQueue().isEmpty()) return
+        // 次数为 0 就是「不重复」：到此为止，不排补提醒
+        if (settings.alertMaxTimes <= 0) return
         settings.lastAlertAt = 0L
         Reminders.scheduleAlertRetry(app, settings.alertRepeatMinutes)
         settings.appendLog(app.getString(R.string.log_dismissed_reschedule))

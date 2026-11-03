@@ -112,7 +112,13 @@ object Diagnostics {
             section(app, R.string.diag_sec_perms)
             row(app, R.string.diag_row_read_media, Perms.hasMediaRead(app), "")
             row(app, R.string.diag_row_notify_perm, Perms.hasNotification(app), "")
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val allFiles = Perms.hasAllFilesAccess(app)
+                row(
+                    app, R.string.diag_row_all_files, allFiles,
+                    app.getString(if (allFiles) R.string.diag_detail_all_files_on else R.string.diag_detail_all_files_off)
+                )
+            } else {
                 row(
                     app, R.string.diag_row_write_perm, Perms.canDeleteSilently(app),
                     if (Perms.canDeleteSilently(app)) "" else app.getString(R.string.diag_detail_no_write_perm)
@@ -123,13 +129,15 @@ object Diagnostics {
             section(app, R.string.diag_sec_throttle)
             line(app.getString(R.string.diag_throttle_first, settings.delayMinutes))
             line(
+                app.getString(R.string.diag_throttle_repeat, settings.alertRepeatMinutes)
+            )
+            line(
                 app.getString(
-                    R.string.diag_throttle_repeat,
-                    if (settings.alertRepeatMinutes == 0) app.getString(R.string.diag_throttle_repeat_off)
-                    else app.getString(R.string.diag_throttle_repeat_min, settings.alertRepeatMinutes)
+                    R.string.diag_throttle_max,
+                    if (settings.alertMaxTimes <= 0) app.getString(R.string.diag_repeat_never)
+                    else app.getString(R.string.diag_repeat_times, settings.alertMaxTimes)
                 )
             )
-            line(app.getString(R.string.diag_throttle_max, settings.alertMaxTimes))
             line(app.getString(R.string.diag_throttle_last_alert, ago(app, settings.lastAlertAt, now)))
             line(
                 app.getString(
@@ -155,8 +163,11 @@ object Diagnostics {
 
             section(app, R.string.diag_sec_delete)
             line(
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) app.getString(R.string.diag_delete_r_plus)
-                else app.getString(R.string.diag_delete_legacy)
+                when {
+                    Perms.canDeleteSilently(app) -> app.getString(R.string.diag_delete_silent)
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> app.getString(R.string.diag_delete_r_plus)
+                    else -> app.getString(R.string.diag_delete_legacy_no_perm)
+                }
             )
 
             section(app, R.string.diag_sec_recent)

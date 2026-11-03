@@ -13,7 +13,7 @@ enum class Decision { DELETE, KEEP, SNOOZE }
 
 /** 一次决策的结果，UI 用它决定 Toast 文案。 */
 sealed interface DecisionOutcome {
-    /** Android 10 及以下直接删掉了；Android 11+ 只会返回 NeedsSystemConfirm。 */
+    /** 有静默删除权限时直接删掉了；否则 Android 11+ 返回 NeedsSystemConfirm。 */
     data object Deleted : DecisionOutcome
     data object Kept : DecisionOutcome
     data object Snoozed : DecisionOutcome
@@ -24,7 +24,7 @@ sealed interface DecisionOutcome {
 
 /**
  * 批量处置的结果。
- * @param deleted 已直接删掉的张数（只有 Android 10 及以下有写权限时才可能）
+ * @param deleted 不经系统弹窗就删掉的张数（需要 WRITE 或「所有文件访问」）
  * @param awaitingConfirm 需要一次系统弹窗确认的媒体 id，调用方拿去拉起回收站请求
  * @param failed 失败原因，逐条写进事件日志
  */
@@ -299,10 +299,10 @@ class ScreenshotRepository(ctx: Context) {
         val last = settings.lastAlertAt
         if (last == 0L) return true
         // 提醒够次数了就只留通知不出声，避免变成骚扰
-        if (due.minOf { it.askCount } >= settings.alertMaxTimes) return false
+        // askCount 记的是已经问过的次数，第一次不算重复，所以比较的是「次数 + 1」
+        if (due.minOf { it.askCount } > settings.alertMaxTimes) return false
         if (newDue) return now - last >= BURST_GUARD_MS
-        val repeat = settings.alertRepeatMinutes
-        return repeat > 0 && now - last >= repeat * 60_000L
+        return now - last >= settings.alertRepeatMinutes * 60_000L
     }
 
     companion object {

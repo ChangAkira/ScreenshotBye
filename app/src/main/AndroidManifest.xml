@@ -16,6 +16,13 @@
     <!-- Android 11+ 发起 createTrashRequest / createDeleteRequest 的前置条件 -->
     <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
 
+    <!--
+      「所有文件访问」是可选的特殊访问，不在应用里申请，只给一个跳转入口：
+      授了它，删除就绕开系统确认弹窗直接生效；不授，Android 11+ 一律走系统弹窗、原件进回收站。
+      代价写在设置页和自检里——直删不进回收站，相册里找不回来。
+    -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+
     <!-- 持久后台监听 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />

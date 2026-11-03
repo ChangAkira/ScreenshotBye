@@ -37,15 +37,14 @@ class DiagnosticsActivity : ThemedActivity() {
 
         b.refreshBtn.setOnClickListener { reload() }
         b.testBtn.setOnClickListener {
-            if (Diagnostics.sendTest(this)) {
-                toast(getString(R.string.diag_test_sent))
-            } else {
+            // 发成功了什么都不说：那条测试通知本身就是结果。只有发不出去才解释原因
+            if (!Diagnostics.sendTest(this)) {
                 val why = Diagnostics.alertBlockers(this)
                 Toast.makeText(
                     this,
                     if (why.isEmpty()) getString(R.string.diag_test_blocked_unknown)
                     else getString(R.string.diag_test_blocked, why),
-                    Toast.LENGTH_LONG,
+                    Toast.LENGTH_SHORT,
                 ).show()
             }
         }
@@ -73,10 +72,8 @@ class DiagnosticsActivity : ThemedActivity() {
     }
 
     private fun copyReport() {
-        if (report.isEmpty()) {
-            toast(getString(R.string.diag_loading))
-            return
-        }
+        // 报告还没采完时点复制就是没复制到东西，不必再念一句「正在采集」
+        if (report.isEmpty()) return
         val cm = getSystemService(ClipboardManager::class.java) ?: return
         cm.setPrimaryClip(ClipData.newPlainText(getString(R.string.diag_title), report))
         toast(getString(R.string.diag_copied))

@@ -2,6 +2,7 @@ package com.changakira.screenshotbye.ui
 
 import android.content.Intent
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -51,6 +52,7 @@ class SettingsActivity : ThemedActivity() {
         repo = ScreenshotRepository(this)
 
         wireService()
+        wireDeletePermission()
         wireDials()
         wireAppearance()
 
@@ -71,6 +73,8 @@ class SettingsActivity : ThemedActivity() {
         super.onResume()
         // 待确认张数、日志条数读的都是本地偏好，同步刷就行
         refreshCounts()
+        // 「所有文件访问」是在系统页面里改的，回到本页必须重新读一次状态
+        refreshDeletePermission()
         io.execute { runCatching { repo.sweepStale() } }
     }
 
@@ -90,7 +94,6 @@ class SettingsActivity : ThemedActivity() {
             settings.appendLog(getString(R.string.log_rules_updated))
             // 规则一变，之前被漏掉/误收的条目要重新过一遍，否则得等到下一次相册变动
             WatchService.rescan(this)
-            toast(getString(R.string.settings_rules_saved))
         }
         b.ruleFolder.setOnCheckedChangeListener(onRule)
         b.ruleName.setOnCheckedChangeListener(onRule)
@@ -101,6 +104,7 @@ class SettingsActivity : ThemedActivity() {
 
     private fun setWatching(on: Boolean) {
         if (on) {
+            // 缺读取权限时监控确实跑不起来，这一条必须说；开没开则由开关本身表达，不再弹吐司
             if (!Perms.hasMediaRead(this)) {
                 toast(getString(R.string.toast_need_read_media))
                 b.watchSwitch.isChecked = false
@@ -117,7 +121,24 @@ class SettingsActivity : ThemedActivity() {
             Notify.cancel(this, Notify.ID_RECOVERY)
             settings.appendLog(getString(R.string.log_watch_off))
         }
-        toast(getString(if (on) R.string.settings_watch_toast_on else R.string.settings_watch_toast_off))
+    }
+
+    /**
+     * 「删除免确认」= Android 11+ 的「所有文件访问」。它是特殊访问，只能跳系统页让用户手动打开，
+     * 应用侧不能弹窗申请；10 及以下没有这一项（那时靠 WRITE 直删），整行连分隔线一起藏掉。
+     */
+    private fun wireDeletePermission() {
+        val shows = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+        b.allFilesRow.visibility = if (shows) View.VISIBLE else View.GONE
+        b.allFilesDivider.visibility = if (shows) View.VISIBLE else View.GONE
+        b.allFilesRow.setOnClickListener { Perms.openAllFilesAccess(this) }
+    }
+
+    private fun refreshDeletePermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+        b.allFilesValue.setText(
+            if (Perms.hasAllFilesAccess(this)) R.string.settings_all_files_on else R.string.settings_all_files_off
+        )
     }
 
     // ---- ② 旋钮 ----
@@ -147,11 +168,15 @@ class SettingsActivity : ThemedActivity() {
         b.gapDial.value = settings.alertRepeatMinutes
         b.gapDial.setOnValueChangeListener {
             settings.alertRepeatMinutes = it
-            if (it > 0) Reminders.scheduleAlertRetry(this, it) else Reminders.cancelAlertRetry(this)
+            if (settings.alertMaxTimes > 0) Reminders.scheduleAlertRetry(this, it) else Reminders.cancelAlertRetry(this)
         }
 
         b.timesDial.value = settings.alertMaxTimes
-        b.timesDial.setOnValueChangeListener { settings.alertMaxTimes = it }
+        b.timesDial.setOnValueChangeListener {
+            settings.alertMaxTimes = it
+            // 0 档就是「不重复」：不重复就不再有任何补提醒，间隔那格说了不算
+            if (it <= 0) Reminders.cancelAlertRetry(this) else Reminders.scheduleAlertRetry(this, settings.alertRepeatMinutes)
+        }
     }
 
     // ---- ④ 主题颜色 + 使用引导 + 日志 + 自检 ----

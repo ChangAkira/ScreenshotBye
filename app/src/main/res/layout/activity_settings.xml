@@ -6,7 +6,7 @@
     ③ 询问与提醒（两两并排的固定档位旋钮）
     ④ 主题颜色 + 使用引导 + 事件日志 + 运行自检
   文案一律不给提示语，档位本身就把可选值摊在屏幕上了。
-  删除的去向不在这里设置：Android 11+ 一律交给系统的照片回收站，应用不存副本、也没有可调的保留期。
+  删除默认交给系统的照片回收站；想要少一次系统弹窗，就在第二卡拉「所有文件访问」，代价是不进回收站。
   整页套在 NestedScrollView 里可滚动；旋钮只在确认是「拨」的手势时才抢触摸，竖直滑动让给页面滚动。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -139,6 +139,38 @@
                             style="@style/SectionChevron"
                             android:contentDescription="@string/home_open" />
                     </LinearLayout>
+
+                    <com.google.android.material.divider.MaterialDivider
+                        android:id="@+id/allFilesDivider"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginVertical="4dp" />
+
+                    <!-- 删除免确认：授了「所有文件访问」就不再弹系统框，代价是原件不进回收站 -->
+                    <LinearLayout
+                        android:id="@+id/allFilesRow"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:minHeight="48dp"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="16dp">
+
+                        <TextView
+                            style="@style/SettingRowLabel"
+                            android:text="@string/settings_all_files" />
+
+                        <TextView
+                            android:id="@+id/allFilesValue"
+                            style="@style/SettingRowValue" />
+
+                        <TextView
+                            style="@style/SectionChevron"
+                            android:contentDescription="@string/home_open" />
+                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -192,7 +224,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             app:dialLabel="@string/dial_gap"
-                            app:dialPresets="0,1,2,5,10"
+                            app:dialPresets="1,2,5,10,20"
                             app:dialUnit="@string/unit_minutes" />
 
                         <com.changakira.screenshotbye.ui.widget.DetentDial
@@ -201,7 +233,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             app:dialLabel="@string/dial_repeat_times"
-                            app:dialPresets="1,2,3"
+                            app:dialPresets="0,1,2"
                             app:dialUnit="@string/unit_times" />
                     </LinearLayout>
                 </LinearLayout>

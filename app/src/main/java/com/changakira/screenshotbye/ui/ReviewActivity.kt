@@ -147,7 +147,7 @@ class ReviewActivity : ThemedActivity() {
         }
     }
 
-    /** 留着 / 稍后再问：立刻落库，然后把这张移出本轮。 */
+    /** 留着 / 稍后：立刻落库，然后把这张移出本轮。 */
     private fun answer(decision: Decision) {
         if (busy || items.isEmpty()) return
         val shot = items[index]
@@ -156,16 +156,11 @@ class ReviewActivity : ThemedActivity() {
             val outcome = repo.decide(shot.mediaId, decision)
             runOnUiThread {
                 busy = false
-                when (outcome) {
-                    is DecisionOutcome.Error -> {
-                        toast(outcome.reason)
-                        return@runOnUiThread
-                    }
-
-                    DecisionOutcome.NeedsSystemConfirm ->
-                        toast(getString(R.string.toast_needs_confirm))
-
-                    else -> Unit
+                // 只有真出错才要说，并且这张留在原地等重试；
+                // 正常答完不弹回执——卡片翻到下一张，本身就是「记下了」的反馈
+                if (outcome is DecisionOutcome.Error) {
+                    toast(outcome.reason)
+                    return@runOnUiThread
                 }
                 items = items.filterNot { it.mediaId == shot.mediaId }
                 marked.remove(shot.mediaId)
@@ -211,12 +206,9 @@ class ReviewActivity : ThemedActivity() {
     }
 
     private fun commitDeletes() {
-        if (busy) return
         val ids = confirmAdapter.checkedIds()
-        if (ids.isEmpty()) {
-            toast(getString(R.string.review_none_selected))
-            return
-        }
+        // 按钮上写着「删除 N 张」，一张没勾就是「删除 0 张」，不必再弹一句吐司
+        if (ids.isEmpty() || busy) return
         busy = true
         io.execute {
             val plan = repo.deleteBatch(ids)
@@ -234,18 +226,17 @@ class ReviewActivity : ThemedActivity() {
                     finish()
                     return@runOnUiThread
                 }
-                val msg = when {
+                // 直删成功不报数：页面关掉、清单清空就是结果。只有失败要说，否则用户不知道那几张还在
+                when {
                     plan.deleted > 0 && plan.failed.isNotEmpty() ->
-                        getString(R.string.review_done_partial, plan.deleted, plan.failed.size)
+                        toast(getString(R.string.review_done_partial, plan.deleted, plan.failed.size))
 
-                    plan.deleted > 0 -> getString(R.string.review_done_deleted, plan.deleted)
+                    plan.deleted > 0 -> finish()
 
-                    plan.failed.isNotEmpty() -> plan.failed.first()
+                    plan.failed.isNotEmpty() -> toast(plan.failed.first())
 
-                    else -> getString(R.string.review_nothing)
+                    else -> Unit
                 }
-                toast(msg)
-                if (plan.deleted > 0) finish()
             }
         }
     }

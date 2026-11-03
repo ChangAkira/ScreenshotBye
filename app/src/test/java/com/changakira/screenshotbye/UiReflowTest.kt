@@ -8,8 +8,11 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.test.core.app.ApplicationProvider
+import androidx.work.WorkManager
 import androidx.work.testing.WorkManagerTestInitHelper
 import com.changakira.screenshotbye.core.PendingShotStore
+import com.changakira.screenshotbye.core.Reminders
+import com.changakira.screenshotbye.core.ScreenshotRepository
 import com.changakira.screenshotbye.core.Settings
 import com.changakira.screenshotbye.core.ShotState
 import com.changakira.screenshotbye.ui.LogActivity
@@ -65,8 +68,8 @@ class UiReflowTest {
     fun `可调项只有那几档，读写都会吸附`() {
         assertEquals(listOf(2, 5, 15, 30, 90), Settings.DELAY_PRESETS)
         assertEquals(listOf(0, 1, 3, 5, 7), Settings.EXPIRY_PRESETS)
-        assertEquals(listOf(0, 1, 2, 5, 10), Settings.REPEAT_PRESETS)
-        assertEquals(listOf(1, 2, 3), Settings.MAX_TIMES_PRESETS)
+        assertEquals(listOf(1, 2, 5, 10, 20), Settings.REPEAT_PRESETS)
+        assertEquals(listOf(0, 1, 2), Settings.MAX_TIMES_PRESETS)
 
         val s = Settings.of(ctx)
         assertEquals("默认仍然是 5 分钟问一次", 5, s.delayMinutes)
@@ -89,13 +92,13 @@ class UiReflowTest {
         s.delayMinutes = 15
         s.askExpiryDays = 0
         s.alertRepeatMinutes = 2
-        s.alertMaxTimes = 3
+        s.alertMaxTimes = 1
 
         val activity = Robolectric.buildActivity(SettingsActivity::class.java).setup().get()
         assertEquals(15, activity.findViewById<DetentDial>(R.id.askDial).value)
         assertEquals(0, activity.findViewById<DetentDial>(R.id.keepDial).value)
         assertEquals(2, activity.findViewById<DetentDial>(R.id.gapDial).value)
-        assertEquals(3, activity.findViewById<DetentDial>(R.id.timesDial).value)
+        assertEquals(1, activity.findViewById<DetentDial>(R.id.timesDial).value)
         assertEquals(5, (activity.findViewById<View>(R.id.swatchRow) as ViewGroup).childCount)
         assertNotNull(activity.findViewById<View>(R.id.pendingRow))
         assertNotNull(activity.findViewById<View>(R.id.logRow))
@@ -105,8 +108,20 @@ class UiReflowTest {
         val texts = activity.findViewById<View>(android.R.id.content).flatten()
             .filterIsInstance<android.widget.TextView>().map { it.text.toString() }
         assertTrue(texts.any { it == ctx.getString(R.string.main_watch_switch) })
-        // 回收站整个没了：删除去向归系统相册管，设置页不该再留任何一块空壳
-        assertFalse(texts.any { "回收站" in it })
+        // 「删除免确认」这一行只在 Android 11+ 出现，值里当场写清代价
+        val allFiles = activity.findViewById<View>(R.id.allFilesRow)
+        assertEquals(
+            "Android 11 以下没有「所有文件访问」，整行该藏起来",
+            View.VISIBLE, allFiles.visibility
+        )
+        assertTrue(
+            texts.any { it == ctx.getString(R.string.settings_all_files) },
+        )
+        assertEquals(
+            "Robolectric 里没授过这个权限，应当显示未授予",
+            ctx.getString(R.string.settings_all_files_off),
+            activity.findViewById<android.widget.TextView>(R.id.allFilesValue).text.toString()
+        )
         // 行尾的计数在 onResume 就该填好，不能是空白
         assertFalse(activity.findViewById<android.widget.TextView>(R.id.pendingValue).text.isBlank())
         assertFalse(activity.findViewById<android.widget.TextView>(R.id.logValue).text.isBlank())
@@ -305,6 +320,10 @@ class UiReflowTest {
         assertFalse("圆心空白处要让给页面滚动", down(dial, w / 2f, h / 2f))
         assertFalse("左上角要让给页面滚动", down(dial, 1f, 1f))
         assertFalse("右下角要让给页面滚动", down(dial, w - 1f, h - 1f))
+        // 弧只张 240°，正下方那 120° 连轨道都没画——那一片同样得让给页面滚动
+        assertFalse("弧下方的缺口是空白，不该吃触摸", down(dial, w / 2f, h - 20f))
+        assertFalse("弧下方偏左也是空白", down(dial, w / 2f - 55f, h - 25f))
+        assertFalse("弧下方偏右也是空白", down(dial, w / 2f + 55f, h - 25f))
     }
 
     @Test
@@ -313,12 +332,17 @@ class UiReflowTest {
         val android = "http://schemas.android.com/apk/res/android"
         val parser = ctx.resources.getLayout(R.layout.activity_settings)
         val units = mutableMapOf<String, Int>()
+        val presets = mutableMapOf<String, String>()
         var ev = parser.eventType
         while (ev != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
             if (ev == org.xmlpull.v1.XmlPullParser.START_TAG) {
                 val id = parser.getAttributeResourceValue(android, "id", 0)
-                val unit = parser.getAttributeResourceValue(app, "dialUnit", 0)
-                if (id != 0 && unit != 0) units[ctx.resources.getResourceEntryName(id)] = unit
+                if (id != 0) {
+                    val name = ctx.resources.getResourceEntryName(id)
+                    parser.getAttributeResourceValue(app, "dialUnit", 0)
+                        .takeIf { it != 0 }?.let { units[name] = it }
+                    parser.getAttributeValue(app, "dialPresets")?.let { presets[name] = it }
+                }
             }
             ev = parser.next()
         }
@@ -329,6 +353,59 @@ class UiReflowTest {
         assertEquals(R.string.unit_times, units["timesDial"])
         assertEquals("分钟后", ctx.getString(R.string.unit_minutes))
         assertEquals("天后", ctx.getString(R.string.unit_days))
+        // 布局里的档位必须和 Settings 的常量一致，否则改了一头另一头还按旧格子吸附
+        assertEquals(Settings.DELAY_PRESETS.joinToString(","), presets["askDial"])
+        assertEquals(Settings.EXPIRY_PRESETS.joinToString(","), presets["keepDial"])
+        assertEquals(Settings.REPEAT_PRESETS.joinToString(","), presets["gapDial"])
+        assertEquals(Settings.MAX_TIMES_PRESETS.joinToString(","), presets["timesDial"])
+    }
+
+    @Test
+    fun `重复次数 0 档就是不重复`() {
+        val s = Settings.of(ctx)
+        s.alertMaxTimes = 0
+        assertEquals("0 档必须原样留在 0，不能吸附到 1", 0, s.alertMaxTimes)
+        // 「不重复」和间隔多大无关：间隔那一档不再兼职开关
+        s.alertRepeatMinutes = 1
+        assertEquals(0, s.alertMaxTimes)
+
+        // 已经问过一次（askCount=1）之后再不出声，只留通知
+        val now = System.currentTimeMillis()
+        val store = PendingShotStore.of(ctx)
+        store.replaceAll(
+            listOf(
+                com.changakira.screenshotbye.core.PendingShot(
+                    mediaId = 81L,
+                    uri = "content://media/external/images/media/81",
+                    name = "Screenshot_81.png",
+                    folder = "DCIM/Screenshots",
+                    relativePath = "Screenshots/Screenshot_81.png",
+                    size = 1024L,
+                    takenAt = now - 60_000L,
+                    askAt = now - 1_000L,
+                    state = ShotState.ASKED,
+                    stateAt = now - 1_000L,
+                    askCount = 1,
+                )
+            )
+        )
+        s.lastAlertAt = now - 3_600_000L
+        ScreenshotRepository(ctx).refreshReviewNotification(ctx)
+        assertEquals("不重复就不该再出声", now - 3_600_000L, s.lastAlertAt)
+        assertEquals("也不该再加提醒次数", 1, store.find(81L)?.askCount)
+
+        // 划掉通知同样不再安排补提醒
+        val infos = WorkManager.getInstance(ctx).getWorkInfosForUniqueWork(Reminders.ALERT_RETRY).get()
+        assertEquals(0, infos.size)
+    }
+
+    @Config(sdk = [29])
+    @Test
+    fun `Android 10 上没有「删除免确认」那一行`() {
+        // 那一版没有「所有文件访问」这项特殊访问，直删靠的是 WRITE 权限
+        val activity = Robolectric.buildActivity(SettingsActivity::class.java).setup().get()
+        assertEquals(View.GONE, activity.findViewById<View>(R.id.allFilesRow).visibility)
+        assertEquals(View.GONE, activity.findViewById<View>(R.id.allFilesDivider).visibility)
     }
 
     @Test
@@ -356,6 +433,31 @@ class UiReflowTest {
     @Test
     fun `应用描述不带句号`() {
         assertFalse(ctx.getString(R.string.home_subtitle).endsWith("。"))
+    }
+
+    @Test
+    fun `按钮和通知上的字数要省`() {
+        // 通知动作按钮：一两个词，别把整句话塞进去
+        mapOf(
+            R.string.act_delete to "删除",
+            R.string.act_keep to "保留",
+            R.string.act_snooze to "稍后",
+            R.string.act_snooze_all to "全部稍后",
+            R.string.notif_handle_now to "去处理",
+            R.string.notif_stop_watch to "停止监控",
+        ).forEach { (res, want) ->
+            assertEquals(want, ctx.getString(res))
+            assertTrue("「${ctx.getString(res)}」太长", ctx.getString(res).length <= 4)
+        }
+        // 通知正文一行放得下：短到不用展开
+        listOf(
+            R.string.notif_review_title, R.string.notif_watch_on, R.string.notif_watch_off,
+            R.string.notif_deleted_title, R.string.notif_confirm_title, R.string.notif_test_title,
+        ).forEach { assertTrue(ctx.getString(it).length <= 10) }
+        // 说明性的长句一律不带句号收尾的碎碎念：界面提示里最多一句
+        assertTrue(ctx.getString(R.string.notif_test_body).length < 40)
+        assertTrue(ctx.getString(R.string.home_battery_body).length < 40)
+        assertFalse(ctx.getString(R.string.review_empty).endsWith("。"))
     }
 
     @Test

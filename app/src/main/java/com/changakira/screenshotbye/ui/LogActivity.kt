@@ -37,8 +37,8 @@ class LogActivity : ThemedActivity() {
         }
         b.clearBtn.setOnClickListener {
             settings.clearLog()
+            // 清空后正文立刻变成「暂无日志。」，不用再弹一句吐司
             render()
-            toast(getString(R.string.log_cleared))
         }
     }
 

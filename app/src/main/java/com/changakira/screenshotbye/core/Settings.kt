@@ -15,7 +15,7 @@ class Settings private constructor(private val sp: SharedPreferences) {
 
         const val DEFAULT_DELAY_MIN = 5
         const val DEFAULT_ALERT_REPEAT_MIN = 5
-        const val DEFAULT_ALERT_MAX_TIMES = 3
+        const val DEFAULT_ALERT_MAX_TIMES = 2
         const val DEFAULT_ASK_EXPIRY_DAYS = 3
 
         /**
@@ -25,8 +25,8 @@ class Settings private constructor(private val sp: SharedPreferences) {
          */
         val DELAY_PRESETS = listOf(2, 5, 15, 30, 90)
         val EXPIRY_PRESETS = listOf(0, 1, 3, 5, 7)
-        val REPEAT_PRESETS = listOf(0, 1, 2, 5, 10)
-        val MAX_TIMES_PRESETS = listOf(1, 2, 3)
+        val REPEAT_PRESETS = listOf(1, 2, 5, 10, 20)
+        val MAX_TIMES_PRESETS = listOf(0, 1, 2)
 
         /** 吸附到最近的一格。档位升序遍历 + 严格小于，平局时留下较小的那一档。 */
         fun nearest(value: Int, presets: List<Int>): Int {
@@ -87,12 +87,16 @@ class Settings private constructor(private val sp: SharedPreferences) {
         get() = nearest(sp.getInt(K_DELAY, DEFAULT_DELAY_MIN), DELAY_PRESETS)
         set(v) = sp.edit().putInt(K_DELAY, nearest(v, DELAY_PRESETS)).apply()
 
-    /** 还有没回答的截图时，隔多少分钟再提醒一次；0 表示只问一次不再重复。 */
+    /** 还有没回答的截图时，隔多少分钟再提醒一次。关不关由 alertMaxTimes 决定，这里不再兼职开关。 */
     var alertRepeatMinutes: Int
         get() = nearest(sp.getInt(K_ALERT_REPEAT, DEFAULT_ALERT_REPEAT_MIN), REPEAT_PRESETS)
         set(v) = sp.edit().putInt(K_ALERT_REPEAT, nearest(v, REPEAT_PRESETS)).apply()
 
-    /** 同一批待确认截图最多提醒几次，超过就只留通知不再出声，避免变成骚扰。 */
+    /**
+     * 第一次问之外还允许重复提醒几次；0 就是不重复。超过就只留通知不再出声，避免变成骚扰。
+     * 「不重复」这件事由次数表达，间隔只负责隔多久——旧版本里间隔 0 分钟兼职当开关，
+     * 于是「间隔 0」和「次数 0」两种关法并存，读起来很别扭。
+     */
     var alertMaxTimes: Int
         get() = nearest(sp.getInt(K_ALERT_MAX, DEFAULT_ALERT_MAX_TIMES), MAX_TIMES_PRESETS)
         set(v) = sp.edit().putInt(K_ALERT_MAX, nearest(v, MAX_TIMES_PRESETS)).apply()

@@ -59,6 +59,12 @@ class DetentDial @JvmOverloads constructor(
          * 都交还给父容器滚动。这样卡片里除了轨道那圈，其余空白都能上下滑动。
          */
         const val TRACK_BAND = 0.17f
+
+        /**
+         * 弧两端往外多留一点余量。弧只张 240°，下方 120° 是空的缺口——那一段连轨道都没有，
+         * 按下时必须让给页面滚动，不能被旋钮吃掉。
+         */
+        const val ARC_SLACK = 12f
     }
 
     private var presets = intArrayOf(1, 2, 3)
@@ -390,7 +396,10 @@ class DetentDial @JvmOverloads constructor(
         return super.onTouchEvent(event)
     }
 
-    /** 落点是否落在旋钮的圆形轨道环带附近（圆心读数区与四角空白都算「不在轨道上」）。 */
+    /**
+     * 落点是否落在旋钮那段真的画了轨道的弧上：既要在环带半径内，也要在 240° 的张角内。
+     * 下方 120° 是缺口，圆心读数区和方框四角同样是空白——这些都交还给父容器滚动。
+     */
     private fun nearTrack(x: Float, y: Float): Boolean {
         val box = box()
         val dial = box[2]
@@ -399,12 +408,19 @@ class DetentDial @JvmOverloads constructor(
         val cy = box[1] + dial / 2f
         val dx = x - cx
         val dy = y - cy
+        // 正圆心里按下去没有方向可言，同样算空白
+        if (dx == 0f && dy == 0f) return false
         val dist = sqrt(dx * dx + dy * dy)
         val r = dial * TRACK_RADIUS_RATIO
         val inner = (r - dial * TRACK_BAND).coerceAtLeast(0f)
         // 外沿多留一点，把挂在弧外侧的档位数字也罩进来
         val outer = r + dial * (TRACK_BAND + 0.09f)
-        return dist in inner..outer
+        if (dist !in inner..outer) return false
+        var deg = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
+        if (deg < 0f) deg += 360f
+        val rel = (deg - ANGLE_START + 360f) % 360f
+        // 落在缺口里（两端各留 ARC_SLACK 余量除外）就不该由旋钮接手
+        return rel <= ANGLE_SWEEP + ARC_SLACK || rel >= 360f - ARC_SLACK
     }
 
     /**

@@ -125,7 +125,6 @@ object Notify {
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(ctx.getString(R.string.notif_recovery_title))
             .setContentText(ctx.getString(R.string.notif_recovery_body))
-            .setStyle(NotificationCompat.BigTextStyle().bigText(ctx.getString(R.string.notif_recovery_body)))
             .setAutoCancel(true)
             .setOngoing(false)
             .setContentIntent(open)
@@ -187,11 +186,11 @@ object Notify {
         val preview = loadPreview(ctx, oldest.contentUri)
         val title = if (queue.size == 1) ctx.getString(R.string.notif_review_title)
         else ctx.getString(R.string.notif_review_title_multi, queue.size)
+        // 只报有哪几张、什么时候截的。怎么操作写在按钮上，不再额外加一句说明书
         val body = buildString {
             queue.take(4).forEach { append(it.name).append("  · ").append(formatTime(ctx, it)).append('\n') }
             if (queue.size > 4) append(ctx.getString(R.string.notif_review_more, queue.size - 4))
-            append(ctx.getString(R.string.notif_review_hint))
-        }
+        }.trimEnd()
         return NotificationCompat.Builder(ctx, Channels.REVIEW)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
@@ -234,12 +233,10 @@ object Notify {
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val body = ctx.getString(R.string.notif_test_body)
         return NotificationCompat.Builder(ctx, Channels.REVIEW)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(ctx.getString(R.string.notif_test_title))
-            .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setContentText(ctx.getString(R.string.notif_test_body))
             .setAutoCancel(true)
             .setOnlyAlertOnce(false)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
@@ -263,6 +260,9 @@ object Notify {
     /**
      * Android 11+ 的删除必须由用户在系统弹窗里点头，同意后原件进系统回收站。
      * 一批待确认的截图共用一次系统弹窗，所以这条通知带的是 id 列表。
+     *
+     * 它跟询问通知是同一批截图的两种状态，所以只更新内容、不再响第二次：
+     * 同一件事连着弹两条横幅，只会让人以为有新的东西要处理。
      */
     fun needsSystemConfirm(ctx: Context, shots: List<PendingShot>): Notification {
         val first = shots.first()
@@ -279,17 +279,17 @@ object Notify {
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(ctx.getString(R.string.notif_confirm_title))
             .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setAutoCancel(true)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setOnlyAlertOnce(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(tap)
             .build()
     }
 
     /**
      * 删除结果回执，复用同一条通知槽位，点按即消失。
-     * 只有 Android 10 及以下的直删路径会走到这里——11+ 的处置由系统弹窗负责，
-     * 回执是 DeleteConfirmActivity 的 Toast，不再多发一条通知。
+     * 走直删（有「所有文件访问」或 Android 10 及以下的 WRITE）时系统不会给任何提示，这条是唯一交代；
+     * 系统弹窗那条路径由弹窗自己演完，不再多发通知。
      */
     fun deleted(ctx: Context, shot: PendingShot): Notification {
         val open = PendingIntent.getActivity(

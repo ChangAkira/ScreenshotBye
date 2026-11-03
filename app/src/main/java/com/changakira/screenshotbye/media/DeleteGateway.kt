@@ -20,7 +20,7 @@ enum class DeleteMode {
 }
 
 sealed interface DeleteResult {
-    /** 已经直接删掉（只有 Android 10 及以下有写权限时才可能）。 */
+    /** 不经系统弹窗直接抹掉了（有 WRITE 或「所有文件访问」时才可能）。 */
     data object Removed : DeleteResult
 
     /** 需要系统弹窗确认，调用方去拿 IntentSender。 */
@@ -31,11 +31,12 @@ sealed interface DeleteResult {
 
 /**
  * 删除入口。要删的截图由系统创建、不属于本应用，所以：
- * - Android 11+：一律不自作主张。发起 MediaStore 的回收站请求，由系统弹窗让用户点头，
+ * - 拿到「所有文件访问」（Android 11+ 的特殊访问，或 10 及以下的 WRITE）时直接删，不再弹系统确认框。
+ *   这条路绕开了系统回收站：删掉就是删掉，相册里找不回来，所以入口只在设置页给一次，用户自己决定。
+ * - Android 11+ 没拿到时不自作主张：发起 MediaStore 的回收站请求，由系统弹窗让用户点头，
  *   点头之后原件进系统相册的回收站（保留多久由系统决定，本应用不再自己存副本）。
  *   个别 ROM 不支持回收站，退回永久删除请求。
- * - Android 10 及以下：没有回收站这套机制，有 WRITE 权限就直接删，删掉即消失；
- *   系统拒绝时（scoped storage）只能报错，因为低版本连删除确认弹窗都发不起来。
+ * - Android 10 及以下没有删除确认弹窗，也没有回收站：没拿到 WRITE 就直接报错，让用户去授权。
  */
 class DeleteGateway(ctx: Context) {
 
@@ -43,13 +44,13 @@ class DeleteGateway(ctx: Context) {
     private val resolver = app.contentResolver
 
     /**
-     * 单张处置。Android 11+ 永远返回 NeedsConfirm：真正动手的是系统弹窗之后的
-     * [confirmRequest]，本应用不再有任何静默删除的路径。
+     * 单张处置。没有静默删除权限时，Android 11+ 返回 [DeleteResult.NeedsConfirm]
+     * （真正动手的是系统弹窗之后的 [confirmRequest]），10 及以下返回失败。
      */
     fun deleteNow(shot: PendingShot): DeleteResult {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) return DeleteResult.NeedsConfirm
         if (!Perms.canDeleteSilently(app)) {
-            return DeleteResult.Failed(app.getString(R.string.err_need_write_perm))
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) DeleteResult.NeedsConfirm
+            else DeleteResult.Failed(app.getString(R.string.err_need_write_perm))
         }
         try {
             resolver.delete(shot.contentUri, null, null)

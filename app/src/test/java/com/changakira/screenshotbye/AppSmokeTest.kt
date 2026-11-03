@@ -121,6 +121,9 @@ class AppSmokeTest {
         val report = Diagnostics.collect(ctx)
         assertTrue(report, report.contains("提醒渠道"))
         assertTrue(report, report.contains("待确认队列"))
+        // Android 11+ 的自检必须交代「所有文件访问」和它换来的免确认直删
+        assertTrue(report, report.contains("所有文件访问"))
+        assertTrue(report, report.contains("回收站"))
     }
 
     @Test

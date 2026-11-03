@@ -75,7 +75,8 @@ class MainActivity : ThemedActivity() {
 
         // 权限还缺就继续问；全齐了把按钮按住，免得首页一直挂着个点了没反应的大按钮
         val coreMissing = !Perms.hasMediaRead(this) || !Perms.hasNotification(this)
-        // Android 11+ 不需要任何「静默删除」权限：删除请求本来就交给系统弹窗
+        // 静默删除：10 及以下靠运行期的 WRITE，Android 11+ 靠「所有文件访问」——
+        // 后者是特殊访问，弹窗问不出来，只能去设置页手动开，所以不参与这里的权限检查
         val writeMissing = Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q && !Perms.canDeleteSilently(this)
         val allGranted = !(coreMissing || writeMissing)
         b.askPermsBtn.isEnabled = !allGranted

@@ -28,15 +28,14 @@ class DeleteConfirmActivity : AppCompatActivity() {
     ) {
         val ids = mediaIds()
         val (done, cancelled) = ScreenshotRepository(this).onBatchConfirmResult(ids, mode)
+        // 全删掉了就不回执：系统弹窗刚演完这一幕，用户看得见。只有「有东西没删成」才要说，
+        // 否则用户会以为清单已经清空，实际那几张还留在待确认里。
         val msg = when {
             done > 0 && cancelled > 0 -> getString(R.string.toast_confirm_partial, done, cancelled)
-            done > 0 -> getString(
-                if (mode == DeleteMode.TRASH) R.string.toast_trashed_n else R.string.toast_deleted_n,
-                done
-            )
-            else -> getString(R.string.toast_confirm_cancelled)
+            cancelled > 0 -> getString(R.string.toast_confirm_cancelled)
+            else -> null
         }
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        if (msg != null) Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
         finish()
     }
 

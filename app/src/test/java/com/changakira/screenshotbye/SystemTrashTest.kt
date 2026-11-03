@@ -20,6 +20,7 @@ import com.changakira.screenshotbye.core.ShotState
 import com.changakira.screenshotbye.media.DeleteGateway
 import com.changakira.screenshotbye.media.DeleteMode
 import com.changakira.screenshotbye.media.DeleteResult
+import com.changakira.screenshotbye.perm.Perms
 import com.changakira.screenshotbye.ui.MainActivity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -72,7 +73,9 @@ class SystemTrashTest {
     )
 
     @Test
-    fun `Android 11 之后不再自己动手删，只交回系统`() {
+    fun `没授「所有文件访问」时 Android 11 之后不自己动手，只交回系统`() {
+        // 这一项在测试环境里必然没授（特殊访问只能用户在系统页里开），所以只能交回系统弹窗
+        assertFalse(Perms.hasAllFilesAccess(ctx))
         assertEquals(DeleteResult.NeedsConfirm, DeleteGateway(ctx).deleteNow(shot(11)))
     }
 
@@ -112,7 +115,7 @@ class SystemTrashTest {
         assertEquals(1, done)
         assertEquals(0, cancelled)
         assertNull(store.find(14L))
-        assertTrue(Settings.of(ctx).log.contains("已移入系统回收站：Screenshot_14.png"))
+        assertTrue(Settings.of(ctx).log.contains("已进回收站：Screenshot_14.png"))
     }
 
     @Config(sdk = [29])

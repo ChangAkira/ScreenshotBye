@@ -1,11 +1,13 @@
 package com.changakira.screenshotbye.perm
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.os.PowerManager
 import android.provider.Settings as SysSettings
 import androidx.core.content.ContextCompat
@@ -25,13 +27,42 @@ object Perms {
             granted(ctx, Manifest.permission.POST_NOTIFICATIONS)
 
     /**
-     * 能否不经系统弹窗就把文件从相册里抹掉。Android 11+ 恒为 false：
-     * 那一版开始删除统一交给系统弹窗，同意后原件进系统回收站，应用侧不再需要
-     * 「所有文件访问」这种过宽的权限。10 及以下有 WRITE 就能直删（10 上配合 requestLegacyExternalStorage）。
+     * 能否不经系统弹窗就把文件从相册里抹掉。
+     * - Android 11+：只有用户手动授予「所有文件访问」才为真。这时删除直接生效，
+     *   同时也绕开了系统回收站——原件没了就是没了，所以这一项只在设置页给个入口，不主动催。
+     * - Android 10 及以下：有 WRITE 就能直删（10 上配合 requestLegacyExternalStorage），那一版本来也没有回收站。
      */
     fun canDeleteSilently(ctx: Context): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.R &&
-            granted(ctx, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) hasAllFilesAccess(ctx)
+        else granted(ctx, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+
+    /**
+     * 「所有文件访问」（特殊访问）。Android 11 以下没有这一项，返回真表示无需再管。
+     * 系统方法在个别 ROM 上会抛，兜成 false——顶多少了「免确认删除」，不该把设置页带崩。
+     */
+    @SuppressLint("MissingPermission")
+    fun hasAllFilesAccess(ctx: Context): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.R ||
+            runCatching { Environment.isExternalStorageManager() }.getOrDefault(false)
+
+    /**
+     * 「所有文件访问」只能通过系统页面手动打开，应用侧无法弹窗申请。
+     * 带包名的那条 action 在部分 ROM 上不存在，失败就退回总列表页。
+     */
+    fun openAllFilesAccess(ctx: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+        val direct = Intent(SysSettings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+            .setData(Uri.fromParts("package", ctx.packageName, null))
+            .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { ctx.startActivity(direct) }.onFailure {
+            runCatching {
+                ctx.startActivity(
+                    Intent(SysSettings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            }
+        }
+    }
 
     fun canIgnoreBattery(ctx: Context): Boolean {
         val pm = ctx.getSystemService(PowerManager::class.java) ?: return true
