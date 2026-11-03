@@ -4,7 +4,7 @@
   <p>截图常常只是临时用一下，用完就忘在相册里。这个应用持续在后台盯着相册，过一段时间问你一句「还需要这张截图吗」，回答不需要就删掉它——删掉之后进的是系统相册自己的回收站，反悔可以在相册里还原。</p>
   <p>
     <img alt="platform" src="https://img.shields.io/badge/Android-8.0%2B-green"/>
-    <img alt="release" src="https://img.shields.io/badge/release-v1.0.3-blue"/>
+    <img alt="release" src="https://img.shields.io/badge/release-v1.0.4-blue"/>
     <img alt="lang" src="https://img.shields.io/badge/Kotlin-2.0.21-orange"/>
     <img alt="offline" src="https://img.shields.io/badge/联网-不需要-informational"/>
     <img alt="license" src="https://img.shields.io/badge/License-MIT-lightgrey"/>
@@ -89,9 +89,13 @@ v1.0.3 把这个档位**撤掉了**：声音、震动、横幅、锁屏显示本
 
 ## 下载
 
-最新 release：[v1.0.3](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.3) —
-直接安装 [ScreenshotBye-v1.0.3.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.3/ScreenshotBye-v1.0.3.apk)
+最新 release：[v1.0.4](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.4) —
+直接安装 [ScreenshotBye-v1.0.4.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.4/ScreenshotBye-v1.0.4.apk)
 （release 签名，minSdk 26 / Android 8.0 起）。v1.0.1 起都是同一把密钥，**直接覆盖安装即可**，待确认清单和设置都保留。
+
+v1.0.4 做了两件事：页面照参考仓库重排（权限页与设置页分开，可调项改成固定档位吸附旋钮，夜间模式对比度修好），
+以及**撤掉应用自建回收站、改为依赖系统相册自己的回收站**。设置页从四段变三段，`MANAGE_EXTERNAL_STORAGE`
+一并撤掉，Android 11 及以上的删除一律走系统的「移入回收站」确认框（一批只弹一次）。
 
 ⚠️ v1.0.0 的包用的是 debug 签名，和 v1.0.1 起不是同一把密钥，**覆盖安装会失败**，请先卸载旧版再装新版。
 
