@@ -53,6 +53,18 @@ class SettingsActivity : ThemedActivity() {
         wireService()
         wireDials()
         wireAppearance()
+
+        // 换主题色会 recreate，页面滚到一半的位置本会被清掉；这里把它接回来，
+        // 免得每次改个颜色都被弹回最上方。NestedScrollView 自带按 id 存取滚动位置，
+        // 但 fillViewport + 重建时序下不一定稳，post 到布局完成后再滚一次兜底。
+        savedInstanceState?.getInt(KEY_SCROLL_Y, -1)?.takeIf { it > 0 }?.let { y ->
+            b.settingsScroll.post { b.settingsScroll.scrollTo(0, y) }
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(KEY_SCROLL_Y, b.settingsScroll.scrollY)
     }
 
     override fun onResume() {
@@ -146,7 +158,13 @@ class SettingsActivity : ThemedActivity() {
 
     private fun wireAppearance() {
         buildSwatches()
-        b.guideRow.setOnClickListener { startActivity(Intent(this, OnboardingActivity::class.java)) }
+        b.guideRow.setOnClickListener {
+            // 从设置页进的引导，走完（跳过/开始使用）应回到已存在的主页，而不是再压一个进来
+            startActivity(
+                Intent(this, OnboardingActivity::class.java)
+                    .putExtra(OnboardingActivity.EXTRA_FROM_SETTINGS, true)
+            )
+        }
         b.logRow.setOnClickListener { startActivity(Intent(this, LogActivity::class.java)) }
         b.diagRow.setOnClickListener { startActivity(Intent(this, DiagnosticsActivity::class.java)) }
     }
@@ -201,4 +219,8 @@ class SettingsActivity : ThemedActivity() {
     }
 
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+
+    private companion object {
+        const val KEY_SCROLL_Y = "settings_scroll_y"
+    }
 }

@@ -38,7 +38,6 @@
     <string name="main_watch_switch">启用服务</string>
     <string name="main_running">服务运行中 · 已发现 %1$d 张待确认</string>
     <string name="main_stopped">未运行</string>
-    <string name="main_permissions">权限</string>
 
     <string name="main_open_diag">运行自检</string>
     <string name="main_rules">识别规则</string>
@@ -55,11 +54,12 @@
     <string name="home_request_perms_done">权限已授予</string>
     <string name="home_open_settings">设置</string>
     <string name="home_open">打开</string>
-    <string name="home_oem_title">为保障稳定运行</string>
-    <string name="home_oem_body">请允许本应用自启动与后台活动，并把电池优化设为「无限制」，否则国产 ROM 会在后台把监控杀掉，询问就发不出来。</string>
-    <string name="home_battery_settings">电池优化：设为无限制</string>
+    <string name="home_battery_title">为了确保正常运行</string>
+    <string name="home_battery_body">建议把电池优化设为「无限制」，否则系统在后台清掉监控后，到点的询问就发不出来。</string>
+    <string name="home_battery_settings">前往电池设置</string>
+    <string name="home_autostart_title">为保障稳定运行</string>
+    <string name="home_autostart_body">请允许本应用自启动与后台活动（可在系统设置里搜索「应用启动管理」）。</string>
     <string name="home_autostart_settings">允许自启动 / 后台运行</string>
-    <string name="home_version">版本 %1$s (%2$d)</string>
 
     <!-- 设置页 -->
     <string name="settings_title">设置</string>
@@ -93,13 +93,6 @@
     <string name="log_copy">复制日志</string>
     <string name="log_empty">暂无日志。</string>
     <string name="log_cleared">日志已清空</string>
-
-    <!-- 权限引导 -->
-    <string name="perm_read_media">读取相册（必需）</string>
-    <string name="perm_notification">通知权限（必需，否则收不到询问）</string>
-    <string name="perm_granted">已授予</string>
-    <string name="perm_denied">未授予</string>
-    <string name="perm_legacy_write">存储写入权限（Android 10 及以下删除所需）</string>
 
     <string name="cancel">取消</string>
     <string name="confirm">确定</string>

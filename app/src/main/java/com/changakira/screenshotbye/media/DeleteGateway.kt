@@ -88,10 +88,30 @@ class DeleteGateway(ctx: Context) {
         trash()?.let { it to DeleteMode.TRASH } ?: delete()?.let { it to DeleteMode.PERMANENT }
 
     /**
-     * 系统弹窗结束后的核对。回收站里的条目会被 MediaStore 默认过滤掉，
-     * 查不到就等于「已经离开相册」；还查得到说明用户在弹窗里点了取消。
+     * 系统弹窗结束后的核对：这张截图是否已经「离开相册」。
+     *
+     * 不能只靠 [exists] 判断——回收站语义在各家 ROM 上不一致：Android 11+ 按「集合」查询
+     * （content://media/external/images/media）时默认会把已回收的条目过滤掉，但按「单条」
+     * 直查（…/images/media/<id>）时很多 ROM 仍会把这条已回收的记录返回回来。于是「用户点了
+     * 确认、图也确实从相册消失了」会被误判成「还查得到 = 取消」。
+     *
+     * 这里改成直接读 is_trashed 列，两种行为都能覆盖：
+     * - 行没了（moveToFirst 失败）→ 被彻底删除，算离开相册；
+     * - 行还在但 is_trashed != 0 → 已进回收站，同样算离开相册；
+     * - 行还在且 is_trashed == 0 → 用户真的取消了。
+     * 列名用字面量 "is_trashed"（API 30 才有该列常量），避免在未加 SDK 判断的方法上触发 lint。
+     * 查询本身异常时按「已离开」处理，宁可少留一张也不把成功的删除回滚成取消。
      */
-    fun finalizeAfterConfirm(shot: PendingShot): Boolean = !exists(shot.contentUri)
+    fun finalizeAfterConfirm(shot: PendingShot): Boolean = runCatching {
+        resolver.query(shot.contentUri, arrayOf(MediaStore.MediaColumns._ID, IS_TRASHED), null, null, null)
+            ?.use { c ->
+                if (!c.moveToFirst()) true
+                else {
+                    val ti = c.getColumnIndex(IS_TRASHED)
+                    ti >= 0 && c.getInt(ti) != 0
+                }
+            } ?: true
+    }.getOrDefault(true)
 
     fun exists(uri: Uri): Boolean = runCatching {
         resolver.query(uri, arrayOf(MediaStore.MediaColumns._ID), null, null, null)
@@ -113,5 +133,7 @@ class DeleteGateway(ctx: Context) {
 
     private companion object {
         const val RECOVERABLE_EXCEPTION = "android.app.RecoverableSecurityException"
+        /** MediaStore.MediaColumns.IS_TRASHED 是 API 30 常量，用字面量避开 lint NewApi。 */
+        const val IS_TRASHED = "is_trashed"
     }
 }

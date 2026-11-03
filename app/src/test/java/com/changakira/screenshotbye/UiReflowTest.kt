@@ -1,6 +1,7 @@
 package com.changakira.screenshotbye
 
 import android.content.Context
+import android.content.Intent
 import android.util.TypedValue
 import android.view.MotionEvent
 import android.view.View
@@ -13,6 +14,7 @@ import com.changakira.screenshotbye.core.Settings
 import com.changakira.screenshotbye.core.ShotState
 import com.changakira.screenshotbye.ui.LogActivity
 import com.changakira.screenshotbye.ui.MainActivity
+import com.changakira.screenshotbye.ui.OnboardingActivity
 import com.changakira.screenshotbye.ui.SettingsActivity
 import com.changakira.screenshotbye.ui.theme.Palette
 import com.changakira.screenshotbye.ui.widget.DetentDial
@@ -25,6 +27,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
@@ -206,17 +209,44 @@ class UiReflowTest {
     }
 
     @Test
-    fun `首页只剩权限与入口，授予只靠一个按钮`() {
+    fun `首页照参考仓库摆，权限说明整块撤掉`() {
         val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
         assertNotNull(activity.findViewById<View>(R.id.askPermsBtn))
         assertNotNull(activity.findViewById<View>(R.id.settingsBtn))
-        // 使用引导挪进了设置页，首页不再放入口（按钮 id 已删，用文案判断）
+        // 电池优化卡（仅未放行时出现）与自启动卡（常驻）都还在
+        assertNotNull(activity.findViewById<View>(R.id.batteryCard))
+        assertNotNull(activity.findViewById<View>(R.id.autostartCard))
         val homeTexts = activity.findViewById<View>(android.R.id.content).flatten()
             .filterIsInstance<android.widget.TextView>().map { it.text.toString() }
+        // 使用引导挪进了设置页，首页不再放入口
         assertFalse(homeTexts.any { it == ctx.getString(R.string.main_open_guide) })
-        // Android 11+ 只要「读相册」和「通知」两行：删除经系统弹窗，不再要所有文件访问；
-        // 行只读展示授予状态，逐行不再有「授权」按钮
-        assertEquals(2, (activity.findViewById<View>(R.id.permContainer) as ViewGroup).childCount)
+        // 逐行的权限说明文字全部删掉：授予状态只由那一个按钮体现
+        assertFalse(homeTexts.any { "读取相册" in it || "通知权限" in it })
+    }
+
+    @Test
+    fun `从设置页重看引导，跳过只回既有主页而不新建一个`() {
+        val intent = Intent(ctx, OnboardingActivity::class.java)
+            .putExtra(OnboardingActivity.EXTRA_FROM_SETTINGS, true)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val activity = Robolectric.buildActivity(OnboardingActivity::class.java, intent).setup().get()
+        activity.findViewById<View>(R.id.skipBtn).performClick()
+        assertTrue("跳过后引导页应关闭", activity.isFinishing)
+        val started = Shadows.shadowOf(activity).nextStartedActivity
+        assertTrue(
+            "从设置页进来的引导，结束后不该再拉起一个新的 MainActivity",
+            started == null || started.component?.className != MainActivity::class.java.name
+        )
+    }
+
+    @Test
+    fun `首次启动的引导，跳过后才把主页拉起来`() {
+        val intent = Intent(ctx, OnboardingActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val activity = Robolectric.buildActivity(OnboardingActivity::class.java, intent).setup().get()
+        activity.findViewById<View>(R.id.skipBtn).performClick()
+        val started = Shadows.shadowOf(activity).nextStartedActivity
+        assertNotNull(started)
+        assertEquals(MainActivity::class.java.name, started.component?.className)
     }
 
     // ---- 配色 ----

@@ -4,7 +4,7 @@
   <p>截图常常只是临时用一下，用完就忘在相册里。这个应用持续在后台盯着相册，过一段时间问你一句「还需要这张截图吗」，回答不需要就删掉它——删掉之后进的是系统相册自己的回收站，反悔可以在相册里还原。</p>
   <p>
     <img alt="platform" src="https://img.shields.io/badge/Android-8.0%2B-green"/>
-    <img alt="release" src="https://img.shields.io/badge/release-v1.0.5-blue"/>
+    <img alt="release" src="https://img.shields.io/badge/release-v1.0.6-blue"/>
     <img alt="lang" src="https://img.shields.io/badge/Kotlin-2.0.21-orange"/>
     <img alt="offline" src="https://img.shields.io/badge/联网-不需要-informational"/>
     <img alt="license" src="https://img.shields.io/badge/License-MIT-lightgrey"/>
@@ -31,9 +31,10 @@
 
 页面分成三层，首页只回答「现在能不能正常干活」：
 
-- **首页**：应用简介、运行状态、权限清单（只读展示授予状态）、一个 `请求权限` 按钮（缺什么一次问齐，
-  仿照参考仓库不再逐行配「授权」）、`设置` 入口；只有在电池优化还没放行时，才多出一块
-  「为保障稳定运行」的国产 ROM 提示。
+- **首页**（照参考仓库 MainScreen 一比一摆）：居中标题、一句应用简介、一行运行状态，
+  然后两个整宽按钮——`请求权限`（缺什么一次问齐，授予后变成 `权限已授予` 并按住）与 `设置`；
+  下面是电池优化提示卡（仅在系统还没放行时出现）与自启动提示卡（常驻）。
+  权限不再逐行罗列说明，授予状态只由那一个按钮体现。
 - **设置页**（四块，照参考仓库的分卡）：启用服务 → 识别规则与待确认截图 → 询问与提醒（四个旋钮）
   → 主题颜色、使用引导、事件日志与运行自检。
 - **二级页面**：待确认截图（逐个确认）、使用引导、事件日志、运行自检。
@@ -54,7 +55,6 @@
 
 | 位置 | 设置 | 形式 | 可选值 | 默认 |
 | --- | --- | --- | --- | --- |
-| 首页 | 权限 | 状态行（只读） | 读取相册 / 通知 /（≤Android 10）存储写入 | — |
 | 首页 | 请求权限、设置入口 | 按钮 | — | — |
 | 设置 ① | 启用服务 | 开关 | — | 开 |
 | 设置 ② | 识别规则 | 复选 | 按截图目录 / 按文件名 / 含录屏视频 | 目录 + 文件名 |
@@ -92,9 +92,21 @@ v1.0.3 把这个档位**撤掉了**：声音、震动、横幅、锁屏显示本
 
 ## 下载
 
-最新 release：[v1.0.5](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.5) —
-直接安装 [ScreenshotBye-v1.0.5.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.5/ScreenshotBye-v1.0.5.apk)
+最新 release：[v1.0.6](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.6) —
+直接安装 [ScreenshotBye-v1.0.6.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.6/ScreenshotBye-v1.0.6.apk)
 （release 签名，minSdk 26 / Android 8.0 起）。v1.0.1 起都是同一把密钥，**直接覆盖安装即可**，待确认清单和设置都保留。
+
+v1.0.6 修了五个恼人的问题：
+
+- **修好「确认删除却被当成取消」**：之前在系统弹窗里点了确认、图也确实从相册消失，应用却提示「你选择了取消」、
+  条目不出队。根因是回收站语义各家 ROM 不一致——直查单条 MediaStore URI 时很多 ROM 仍会返回已回收的行，
+  老逻辑只按「查不查得到」判断就误判成取消。现在直接读 `is_trashed` 列：行没了、或已进回收站，都算「离开相册」。
+- **主题颜色回到首页也生效**：从设置页改完配色返回，首页只走 `onResume` 不会重建，于是还顶着旧色；
+  现在在 `onResume` 比对当前配色，变了就重建本页。
+- **改主题色不再把设置页弹回顶部**：`recreate` 会清掉滚动位置，现在存下 `scrollY` 并在重建后接回来。
+- **首页照参考仓库一比一重排**：居中一列，标题 / 简介 / 一行状态，两个整宽按钮（请求权限、设置），
+  加电池优化卡（仅未放行时出现）与自启动卡（常驻）；逐行的权限说明文字全部删掉。
+- **使用引导的栈序修好**：从设置页重看引导，选「跳过 / 开始使用」只 `finish` 回既有主页，不再新压一个 MainActivity。
 
 v1.0.5 继续向参考仓库看齐，全是界面与交互：
 
@@ -137,7 +149,7 @@ Manifest 里没有 `INTERNET` 权限，应用在系统层面就无法联网：�
 - **发现截图**：`MediaStore.ContentObserver` 挂在 `MediaStore.Images.Media.EXTERNAL_CONTENT_URI` 上，这是三方应用唯一可靠的全局截图入口。`FileObserver` 只用来提前催一次扫描，不参与判定。服务重启后从水位线续扫，覆盖停摆期间产生的截图；首次启用时把水位线设为当前时刻，不会把历史截图当新截图。
 - **计时**：WorkManager 一次性任务（每张一个 `ask-<mediaId>` 的 unique work），而不是 `Handler.postDelayed`——后者的排队任务会随进程一起消失，五分钟后就问不出来了。
 - **处置**：`ScreenshotRepository` 是唯一的决策出口，通知按钮、逐个确认页、定时任务都调它，删除逻辑只有一份。
-- **删除**：`DeleteGateway` 在 Android 11+ 永远不自已动手，只生成 `MediaStore.createTrashRequest`（回收站不支持时退回 `createDeleteRequest`），由透明中转页 `DeleteConfirmActivity` 拉起，一批一次弹窗。弹窗结束后以「相册里还查得到吗」为准：回收站里的条目会被 MediaStore 默认过滤掉，查不到就是已经离开相册，还查得到就是用户点了取消。Android 10 及以下没有回收站，有写权限就直接 `delete`。
+- **删除**：`DeleteGateway` 在 Android 11+ 永远不自已动手，只生成 `MediaStore.createTrashRequest`（回收站不支持时退回 `createDeleteRequest`），由透明中转页 `DeleteConfirmActivity` 拉起，一批一次弹窗。弹窗结束后核对「这张图是否已离开相册」：直接读 `is_trashed` 列——行查不到了（彻底删除）、或 `is_trashed != 0`（已进回收站）都算离开相册，只有行还在且未回收才算用户点了取消。之所以不靠「集合查询过滤」那一套：直查单条 URI 时很多 ROM 仍会返回已回收的行，会把成功的删除误判成取消。Android 10 及以下没有回收站，有写权限就直接 `delete`。
 - **不再自建回收站**：以前是 `filesDir/trash/` 里存一份原件副本 + `meta.json`，再配还原、过期清理任务和一整页 UI。系统从 Android 11 起已经有这个能力了，应用再存一份只是重复，还会占私有空间、让人误以为能自定义保留天数。现在保留期和还原入口都归系统相册，而且用户在相册里点还原时动的是同一条 MediaStore 记录（同一个 `_ID`），「还原后又被当成新截图问一遍」靠原有的 seen 集合就挡住了，不需要额外屏蔽名单。
 - **存活**：`BootReceiver`（开机 / 应用更新）+ 15 分钟 `WatchdogWorker`，拉不起来时发一条「点按恢复」的通知，而不是无声失败。
 - **队列卫生**：看门狗每轮先跑一次 `sweepStale()` 兜住三种「静默卡住」——`WAITING` 早过了到期时间却没被问（定时任务被 ROM 清掉）→ 立即补问；`ASKED` 超过设定天数没人回答 → 按保留出队；`DELETING` 六小时拿不到系统确认结果（弹窗开着时进程被杀）→ 退回待确认。监控关着时看门狗不在，`MainActivity.onResume` 是兜底入口。
@@ -223,7 +235,7 @@ app/src/main/java/com/changakira/screenshotbye/
   notify/      Channels(常驻 + 一条提醒渠道，顺带清理已废弃的强度渠道), Notify, ActionReceiver(通知按钮与划掉事件)
   diagnostic/  Diagnostics(纯文本自检报告 + 测试提醒)
   perm/        Perms(权限状态、OEM 跳转、直达通知渠道设置)
-  ui/          MainActivity(首页：权限与入口), SettingsActivity(设置四段), ReviewActivity(逐个确认+批量反选),
+  ui/          MainActivity(首页：一个授权按钮 + 设置入口), SettingsActivity(设置四段), ReviewActivity(逐个确认+批量反选),
                LogActivity, DiagnosticsActivity, OnboardingActivity(首次引导),
                DeleteConfirmActivity(系统删除确认中转), Adapters, Thumbs,
                ThemedActivity(在 super.onCreate 前 setTheme), theme/Palette(五套配色), widget/DetentDial(固定档位旋钮)

@@ -4,14 +4,8 @@ import android.Manifest
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.text.Spannable
-import android.text.SpannableString
-import android.text.style.ForegroundColorSpan
 import android.view.View
-import android.widget.LinearLayout
-import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.pm.PackageInfoCompat
 import com.changakira.screenshotbye.R
 import com.changakira.screenshotbye.core.Settings
 import com.changakira.screenshotbye.core.ScreenshotRepository
@@ -19,15 +13,14 @@ import com.changakira.screenshotbye.databinding.ActivityMainBinding
 import com.changakira.screenshotbye.notify.Channels
 import com.changakira.screenshotbye.perm.Perms
 import com.changakira.screenshotbye.service.WatchService
-import com.google.android.material.color.MaterialColors
 import java.util.concurrent.Executors
 
 /**
- * 首页只管一件事：能不能正常干活。
+ * 首页照参考仓库 MainScreen 一比一：居中一列，标题 / 副标题 / 一行状态，
+ * 两个整宽按钮（请求权限、设置），下面是电池优化卡（仅未放行时出现）与自启动卡（常驻）。
  *
- * 授予权限仿照参考仓库只用一个按钮（缺什么一次问齐），权限行只读展示授予状态、
- * 不再逐行配「授权」；使用引导挪进了设置页。其它可调项都在 SettingsActivity，
- * 免得打开应用先被一堆滑块淹没。
+ * 权限不再逐行说明——授予状态全部由「请求权限」这一个按钮的启用与文案体现，
+ * 缺什么一次问齐；使用引导、可调项都在 SettingsActivity。
  */
 class MainActivity : ThemedActivity() {
 
@@ -55,7 +48,6 @@ class MainActivity : ThemedActivity() {
         b.settingsBtn.setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
         b.oemBtn.setOnClickListener { Perms.requestIgnoreBattery(this) }
         b.oemAutostartBtn.setOnClickListener { Perms.openOemAutoStart(this) }
-        b.versionText.text = getString(R.string.home_version, versionName(), versionCode())
 
         if (settings.onboarded) {
             // 从旧版本升上来、还没问过权限的用户：进页面问一次，之后不再重复弹
@@ -81,19 +73,19 @@ class MainActivity : ThemedActivity() {
         b.statusText.text = if (WatchService.running) {
             getString(R.string.main_running, pending.size)
         } else getString(R.string.main_stopped)
-        buildPermissionRows()
 
         // 权限还缺就继续问；全齐了把按钮按住，免得首页一直挂着个点了没反应的大按钮
         val coreMissing = !Perms.hasMediaRead(this) || !Perms.hasNotification(this)
         // Android 11+ 不需要任何「静默删除」权限：删除请求本来就交给系统弹窗
         val writeMissing = Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q && !Perms.canDeleteSilently(this)
-        b.askPermsBtn.isEnabled = coreMissing || writeMissing
+        val allGranted = !(coreMissing || writeMissing)
+        b.askPermsBtn.isEnabled = !allGranted
         b.askPermsBtn.text = getString(
-            if (b.askPermsBtn.isEnabled) R.string.home_request_perms else R.string.home_request_perms_done
+            if (allGranted) R.string.home_request_perms_done else R.string.home_request_perms
         )
 
-        // 国产 ROM 的自启动/电池优化不归应用管，只有没放行时才占这一块位置
-        b.oemCard.visibility = if (Perms.canIgnoreBattery(this)) View.GONE else View.VISIBLE
+        // 电池优化卡只在系统没放行时出现；自启动卡常驻，和参考仓库一致
+        b.batteryCard.visibility = if (Perms.canIgnoreBattery(this)) View.GONE else View.VISIBLE
     }
 
     private fun onAskPerms() {
@@ -122,67 +114,4 @@ class MainActivity : ThemedActivity() {
             askPerms.launch(needed.distinct().toTypedArray())
         }
     }
-
-    private fun buildPermissionRows() {
-        // 只读展示授予状态：授予动作统一交给下面那一个「请求权限」按钮，逐行不再配按钮
-        val rows = listOf(
-            Row(getString(R.string.perm_read_media), Perms.hasMediaRead(this)),
-            Row(getString(R.string.perm_notification), Perms.hasNotification(this)),
-            Row(getString(R.string.perm_legacy_write), Perms.canDeleteSilently(this), visible = Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q),
-        )
-        b.permContainer.removeAllViews()
-        rows.filter { it.visible }.forEach { addPermRow(it) }
-    }
-
-    private data class Row(
-        val label: String,
-        /** null 表示系统没提供可查询的开关状态，只能让用户自己去确认 */
-        val granted: Boolean?,
-        val visible: Boolean = true,
-    )
-
-    private fun addPermRow(row: Row) {
-        val label = TextView(this).apply {
-            val name = row.label
-            val status = when (row.granted) {
-                true -> "\n" + getString(R.string.perm_granted)
-                false -> "\n" + getString(R.string.perm_denied)
-                null -> ""
-            }
-            textSize = 12f
-            setLineSpacing(dp(2).toFloat(), 1f)
-            // 走主题属性而不是 @color/muted：硬写的深灰在夜间模式的深底上几乎看不见
-            setTextColor(
-                MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant)
-            )
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = dp(6) }
-            if (status.isNotEmpty()) {
-                val span = SpannableString(name + status)
-                if (row.granted == false) {
-                    span.setSpan(
-                        ForegroundColorSpan(
-                            MaterialColors.getColor(this, com.google.android.material.R.attr.colorError)
-                        ),
-                        name.length, span.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                    )
-                }
-                text = span
-            } else {
-                text = name
-            }
-        }
-        b.permContainer.addView(label)
-    }
-
-    private fun versionName(): String = runCatching {
-        packageManager.getPackageInfo(packageName, 0).versionName ?: "?"
-    }.getOrDefault("?")
-
-    private fun versionCode(): Int = runCatching {
-        PackageInfoCompat.getLongVersionCode(packageManager.getPackageInfo(packageName, 0)).toInt()
-    }.getOrDefault(0)
-
-    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 }

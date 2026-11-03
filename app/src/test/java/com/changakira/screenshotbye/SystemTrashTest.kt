@@ -3,6 +3,11 @@ package com.changakira.screenshotbye
 import android.content.Context
 import android.content.Intent
 import android.app.PendingIntent
+import android.content.ContentProvider
+import android.content.ContentValues
+import android.database.Cursor
+import android.database.MatrixCursor
+import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.testing.WorkManagerTestInitHelper
 import com.changakira.screenshotbye.core.Decision
@@ -25,6 +30,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.shadows.ShadowContentResolver
 import org.robolectric.annotation.Config
 import java.io.File
 
@@ -114,5 +120,34 @@ class SystemTrashTest {
     fun `Android 10 及以下没有系统弹窗，也没有写权限就删不动`() {
         assertNull(DeleteGateway(ctx).confirmRequest(listOf(shot(15).contentUri)))
         assertTrue(DeleteGateway(ctx).deleteNow(shot(15)) is DeleteResult.Failed)
+    }
+
+    // ---- 回收站语义：直查单条 URI 时，很多 ROM 仍会把已回收的行返回回来 ----
+
+    /** 假装一个「单条直查也能返回、并带 is_trashed 列」的 media provider。 */
+    private class FakeMediaProvider(private val trashed: Int) : ContentProvider() {
+        override fun onCreate() = true
+        override fun query(
+            uri: Uri, projection: Array<String>?, selection: String?,
+            selectionArgs: Array<String>?, sortOrder: String?
+        ): Cursor = MatrixCursor(arrayOf("_id", "is_trashed")).apply { addRow(arrayOf(14, trashed)) }
+        override fun getType(uri: Uri) = "vnd.android.cursor.item/media"
+        override fun insert(uri: Uri, values: ContentValues?): Uri? = null
+        override fun delete(uri: Uri, selection: String?, selectionArgs: Array<String>?) = 0
+        override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<String>?) = 0
+    }
+
+    @Test
+    fun `确认删除后即便记录仍能直查到，只要已进回收站就算离开相册`() {
+        // 复现线上问题：用户点了确认、图也确实从相册消失，但直查单条 URI 仍返回该行。
+        // 老实现只按「查不查得到」判断，会误判成取消；现在读 is_trashed 列，1 就是已回收。
+        ShadowContentResolver.registerProviderInternal("media", FakeMediaProvider(trashed = 1))
+        assertTrue(DeleteGateway(ctx).finalizeAfterConfirm(shot(14)))
+    }
+
+    @Test
+    fun `记录仍在且未回收，才算用户在系统弹窗里取消了`() {
+        ShadowContentResolver.registerProviderInternal("media", FakeMediaProvider(trashed = 0))
+        assertFalse(DeleteGateway(ctx).finalizeAfterConfirm(shot(14)))
     }
 }

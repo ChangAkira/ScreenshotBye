@@ -118,7 +118,11 @@ class OnboardingActivity : ThemedActivity() {
     }
 
     private fun openMain() {
-        startActivity(Intent(this, MainActivity::class.java))
+        // 从设置页重看引导时，主页早已在栈里，直接 finish 回去即可，别再压一个新的 MainActivity；
+        // 只有首次启动（冷启动进的引导）才需要把主页拉起来。
+        if (!intent.getBooleanExtra(EXTRA_FROM_SETTINGS, false)) {
+            startActivity(Intent(this, MainActivity::class.java))
+        }
         finish()
     }
 
@@ -126,4 +130,9 @@ class OnboardingActivity : ThemedActivity() {
         (0 until childCount).map { getChildAt(it) }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+
+    companion object {
+        /** 由设置页「使用引导」进入时置真：结束后回既有主页，而非新建一个。 */
+        const val EXTRA_FROM_SETTINGS = "from_settings"
+    }
 }

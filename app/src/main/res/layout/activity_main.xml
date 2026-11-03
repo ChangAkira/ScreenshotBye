@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  首页只做两件事：权限、进设置。授予权限仿照参考仓库只用一个按钮，
-  不再逐行配「授权」；使用引导挪进了设置页「主题颜色」下方，首页不重复放入口。
-  可调项全部在 SettingsActivity，参考仓库也是这个分法（首页 = 授权 + 一个「设置」入口）。
+  首页照参考仓库 MainScreen 一比一摆：居中一列、24dp 内边距，
+  标题(headlineLarge) / 副标题(bodyLarge) / 一行状态(bodySmall, onSurfaceVariant)，
+  然后两个整宽按钮（请求权限、设置），再下面是电池优化卡（仅未放行时出现）与自启动卡（常驻）。
+  权限不再逐行说明——授予状态由那一个「请求权限」按钮的启用/文案体现，多余的说明文字都删掉。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -11,85 +12,64 @@
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="match_parent"
         android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_vertical"
             android:orientation="vertical"
-            android:paddingHorizontal="24dp"
-            android:paddingTop="28dp"
-            android:paddingBottom="24dp">
+            android:padding="24dp">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:gravity="center"
                 android:text="@string/app_name"
-                android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                android:textAppearance="?attr/textAppearanceHeadlineLarge"
                 android:textColor="?attr/colorOnSurface" />
 
             <TextView
-                style="@style/BodyHint"
-                android:layout_marginTop="8dp"
-                android:textSize="14sp"
-                android:text="@string/home_subtitle" />
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center"
+                android:text="@string/home_subtitle"
+                android:textAppearance="?attr/textAppearanceBodyLarge"
+                android:textColor="?attr/colorOnSurface" />
 
             <TextView
                 android:id="@+id/statusText"
-                style="@style/BodyHint"
-                android:layout_marginTop="10dp"
-                android:textSize="13sp"
-                android:text="@string/main_stopped" />
-
-            <!-- 权限 -->
-            <com.google.android.material.card.MaterialCardView
-                style="@style/Widget.Material3.CardView.Filled"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        style="@style/SectionTitle"
-                        android:text="@string/main_permissions" />
-
-                    <LinearLayout
-                        android:id="@+id/permContainer"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                android:layout_marginTop="16dp"
+                android:gravity="center"
+                android:text="@string/main_stopped"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/askPermsBtn"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="32dp"
                 android:text="@string/home_request_perms" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/settingsBtn"
-                style="@style/Widget.Material3.Button.TonalButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="16dp"
                 android:text="@string/home_open_settings" />
 
-            <!-- 国产 ROM 的硬限制，只在没放行时占位置 -->
+            <!-- 电池优化：只在系统没放行时出现，和参考仓库一致 -->
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/oemCard"
+                android:id="@+id/batteryCard"
                 style="@style/Widget.Material3.CardView.Filled"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="16dp"
                 android:visibility="gone">
 
                 <LinearLayout
@@ -99,37 +79,67 @@
                     android:padding="16dp">
 
                     <TextView
-                        style="@style/SectionTitle"
-                        android:textSize="14sp"
-                        android:text="@string/home_oem_title" />
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/home_battery_title"
+                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        android:textColor="?attr/colorOnSurface" />
 
                     <TextView
-                        style="@style/BodyHint"
-                        android:text="@string/home_oem_body" />
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/home_battery_body"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/oemBtn"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="8dp"
                         android:text="@string/home_battery_settings" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 自启动引导：常驻，和参考仓库一致 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/autostartCard"
+                style="@style/Widget.Material3.CardView.Filled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/home_autostart_title"
+                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        android:textColor="?attr/colorOnSurface" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/home_autostart_body"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/oemAutostartBtn"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        style="@style/Widget.Material3.Button.TonalButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:text="@string/home_autostart_settings" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
-
-            <TextView
-                android:id="@+id/versionText"
-                style="@style/BodyHint"
-                android:layout_marginTop="20dp"
-                android:gravity="center" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>
