@@ -15,6 +15,7 @@ import com.changakira.screenshotbye.core.Reminders
 import com.changakira.screenshotbye.core.ScreenshotRepository
 import com.changakira.screenshotbye.core.Settings
 import com.changakira.screenshotbye.core.ShotState
+import com.changakira.screenshotbye.notify.Notify
 import com.changakira.screenshotbye.ui.LogActivity
 import com.changakira.screenshotbye.ui.MainActivity
 import com.changakira.screenshotbye.ui.OnboardingActivity
@@ -508,5 +509,97 @@ class UiReflowTest {
             }
         }
         assertTrue("这些中文文案还留在代码里：$offenders", offenders.isEmpty())
+    }
+
+    @Test
+    fun `通知按钮和逐个确认页的按钮是同一个顺序`() {
+        // 用户学一次就该够用：两处都必须是 保留 · 稍后 · 删除
+        val pageOrder = reviewActionLabels()
+        assertEquals(
+            listOf(
+                ctx.getString(R.string.act_keep),
+                ctx.getString(R.string.act_snooze),
+                ctx.getString(R.string.act_delete),
+            ),
+            pageOrder,
+        )
+
+        val now = System.currentTimeMillis()
+        PendingShotStore.of(ctx).replaceAll(listOf(pending(91L, now)))
+        val one = Notify.review(ctx, ScreenshotRepository(ctx).dueQueue(), alert = true).actions!!.toList()
+        assertEquals("横幅上的顺序要和页面一致", pageOrder, one.map { it.title.toString() })
+
+        // 队列多于一张时中间那颗换成「全部稍后」，位置不能跟着挪
+        PendingShotStore.of(ctx).replaceAll(listOf(pending(91L, now), pending(92L, now)))
+        val many = Notify.review(ctx, ScreenshotRepository(ctx).dueQueue(), alert = true).actions!!.toList()
+        assertEquals(
+            listOf(
+                ctx.getString(R.string.act_keep),
+                ctx.getString(R.string.act_snooze_all),
+                ctx.getString(R.string.act_delete),
+            ),
+            many.map { it.title.toString() },
+        )
+        assertEquals(listOf(R.drawable.ic_keep, R.drawable.ic_clock, R.drawable.ic_delete), many.map { it.icon })
+    }
+
+    private fun pending(id: Long, now: Long) = com.changakira.screenshotbye.core.PendingShot(
+        mediaId = id,
+        uri = "content://media/external/images/media/$id",
+        name = "Screenshot_$id.png",
+        folder = "DCIM/Screenshots",
+        relativePath = "Screenshots/Screenshot_$id.png",
+        size = 1024L,
+        takenAt = now - 60_000L,
+        askAt = now - 1_000L,
+        state = ShotState.ASKED,
+        stateAt = now - 1_000L,
+        askCount = 1,
+    )
+
+    /**
+     * 逐个确认页底部那一排按钮的文案，按从左到右的顺序读出来。
+     * 直接读布局而不是 inflate：这些按钮要 Material 主题，用应用上下文 inflate 会当场抛异常。
+     */
+    private fun reviewActionLabels(): List<String> {
+        val ns = "http://schemas.android.com/apk/res/android"
+        val parser = ctx.resources.getLayout(R.layout.activity_review)
+        val out = mutableListOf<String>()
+        var inside = false
+        var ev = parser.eventType
+        while (ev != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
+            if (ev == org.xmlpull.v1.XmlPullParser.START_TAG) {
+                if (parser.getAttributeResourceValue(ns, "id", 0) == R.id.reviewActions) inside = true
+                if (inside) parser.getAttributeResourceValue(ns, "text", 0)
+                    .takeIf { it != 0 }?.let { out.add(ctx.getString(it)) }
+            } else if (ev == org.xmlpull.v1.XmlPullParser.END_TAG && inside && parser.name == "LinearLayout") {
+                inside = false
+            }
+            ev = parser.next()
+        }
+        parser.close()
+        return out
+    }
+
+    @Test
+    fun `逐个确认页不出现在最近任务里`() {
+        // Robolectric 的 PackageManager 不回填 excludeFromRecents，只能直接读清单
+        val file = listOf("src/main/AndroidManifest.xml", "app/src/main/AndroidManifest.xml")
+            .map { java.io.File(it) }.firstOrNull { it.isFile }
+        assertNotNull("找不到清单文件", file)
+        val text = file!!.readText()
+
+        fun block(activity: String): String {
+            val m = Regex("<activity\\b[^>]*android:name=\"\\.ui\\.$activity\"[^>]*>").find(text)
+            assertNotNull("清单里没有 $activity", m)
+            return m!!.value
+        }
+
+        fun excluded(activity: String) =
+            Regex("android:excludeFromRecents\\s*=\\s*\"true\"").containsMatchIn(block(activity))
+
+        // 主页那行本来就有，顺带确认正则真的贴到了属性上
+        assertTrue("主页应当也不在最近任务里，说明读取方式没生效", excluded("MainActivity"))
+        assertTrue("逐个确认页处理完就走，不该留在最近任务里：${block("ReviewActivity")}", excluded("ReviewActivity"))
     }
 }

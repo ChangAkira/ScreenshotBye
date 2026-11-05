@@ -207,11 +207,7 @@ object Notify {
             .setDeleteIntent(Actions.broadcast(ctx, Actions.ACTION_ON_DISMISS))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .addAction(
-                R.drawable.ic_delete,
-                ctx.getString(R.string.act_delete),
-                Actions.shotIntent(ctx, Actions.ACTION_DELETE, oldest.mediaId)
-            )
+            // 顺序与逐个确认页一致：从左到右 保留 · 稍后 · 删除，两处按钮不要反过来
             .addAction(
                 R.drawable.ic_keep,
                 ctx.getString(R.string.act_keep),
@@ -221,6 +217,11 @@ object Notify {
                 R.drawable.ic_clock,
                 if (queue.size == 1) ctx.getString(R.string.act_snooze) else ctx.getString(R.string.act_snooze_all),
                 Actions.shotIntent(ctx, Actions.ACTION_SNOOZE_ALL, 0L)
+            )
+            .addAction(
+                R.drawable.ic_delete,
+                ctx.getString(R.string.act_delete),
+                Actions.shotIntent(ctx, Actions.ACTION_DELETE, oldest.mediaId)
             )
             .apply { if (preview != null) setLargeIcon(preview) }
             .build()

@@ -75,9 +75,10 @@
             android:taskAffinity=""
             android:theme="@style/Theme.Translucent" />
 
-        <!-- 逐个确认 + 批量反选：通知点开设在这里 -->
+        <!-- 逐个确认 + 批量反选：通知点开设在这里。和主页一样不进最近任务，处理完就走 -->
         <activity
             android:name=".ui.ReviewActivity"
+            android:excludeFromRecents="true"
             android:exported="false"
             android:label="@string/review_title"
             android:launchMode="singleTop" />
