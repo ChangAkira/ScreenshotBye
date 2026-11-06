@@ -24,6 +24,7 @@ import com.changakira.screenshotbye.perm.Perms
 import com.changakira.screenshotbye.service.WatchService
 import com.changakira.screenshotbye.ui.theme.Palette
 import com.google.android.material.color.MaterialColors
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.util.concurrent.Executors
 
 /**
@@ -124,20 +125,38 @@ class SettingsActivity : ThemedActivity() {
     }
 
     /**
-     * 「删除免确认」= Android 11+ 的「所有文件访问」。它是特殊访问，只能跳系统页让用户手动打开，
+     * 「无感删除」= Android 11+ 的「所有文件访问」。它是特殊访问，只能跳系统页让用户手动打开，
      * 应用侧不能弹窗申请；10 及以下没有这一项（那时靠 WRITE 直删），整行连分隔线一起藏掉。
+     *
+     * 整行点进去是系统授权页，名字后面的感叹号单独点开代价说明——两件事别挤在同一次点击里。
      */
     private fun wireDeletePermission() {
         val shows = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
         b.allFilesRow.visibility = if (shows) View.VISIBLE else View.GONE
         b.allFilesDivider.visibility = if (shows) View.VISIBLE else View.GONE
         b.allFilesRow.setOnClickListener { Perms.openAllFilesAccess(this) }
+        b.allFilesWarn.setOnClickListener {
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.settings_all_files_warn_title)
+                .setMessage(R.string.settings_all_files_warn_body)
+                .setPositiveButton(R.string.settings_all_files_warn_ok, null)
+                .show()
+        }
     }
 
+    /**
+     * 行尾只承诺确定的一部分（不弹确认框），回收站那半句按本机实测结果写：
+     * 没删过就说没删过，不拿系统差异当承诺。
+     */
     private fun refreshDeletePermission() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
         b.allFilesValue.setText(
-            if (Perms.hasAllFilesAccess(this)) R.string.settings_all_files_on else R.string.settings_all_files_off
+            if (!Perms.hasAllFilesAccess(this)) R.string.settings_all_files_off
+            else when (settings.silentDeleteOutcome) {
+                Settings.OUTCOME_TRASHED -> R.string.settings_all_files_on_trashed
+                Settings.OUTCOME_GONE -> R.string.settings_all_files_on_gone
+                else -> R.string.settings_all_files_on
+            }
         )
     }
 

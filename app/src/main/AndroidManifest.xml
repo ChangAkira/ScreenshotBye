@@ -17,9 +17,10 @@
     <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
 
     <!--
-      「所有文件访问」是可选的特殊访问，不在应用里申请，只给一个跳转入口：
-      授了它，删除就绕开系统确认弹窗直接生效；不授，Android 11+ 一律走系统弹窗、原件进回收站。
-      代价写在设置页和自检里——直删不进回收站，相册里找不回来。
+      「所有文件访问」是可选的特殊访问（界面上叫「无感删除」），不在应用里申请，只给一个跳转入口：
+      授了它，删除就绕开系统确认弹窗当场生效；不授，Android 11+ 一律走系统弹窗、原件进回收站。
+      省下的是弹窗，不是回收站：原生安卓这样删是真删，小米/三星这类系统会照样改投回收站，
+      所以不猜——删完读一次 is_trashed，设置页和自检里都按本机实测结果写。
     -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
 

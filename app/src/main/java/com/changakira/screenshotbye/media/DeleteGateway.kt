@@ -20,8 +20,12 @@ enum class DeleteMode {
 }
 
 sealed interface DeleteResult {
-    /** 不经系统弹窗直接抹掉了（有 WRITE 或「所有文件访问」时才可能）。 */
-    data object Removed : DeleteResult
+    /**
+     * 不经系统弹窗直接生效了。「无感删除」只保证**不弹确认框**，不保证原件的去向：
+     * 厂商系统常常把三方应用的删除改写成软删（行还在、`is_trashed=1`），原生安卓则是真删。
+     * [trashed] 就是这次删完当场探到的结果，界面上的说法一律以它为准。
+     */
+    data class Removed(val trashed: Boolean) : DeleteResult
 
     /** 需要系统弹窗确认，调用方去拿 IntentSender。 */
     data object NeedsConfirm : DeleteResult
@@ -29,10 +33,24 @@ sealed interface DeleteResult {
     data class Failed(val reason: String) : DeleteResult
 }
 
+/** 删完之后那一行的三种可能，见 [DeleteGateway.classify]。 */
+enum class AfterDelete {
+    /** MediaStore 行没了：这台机器是真删。 */
+    GONE,
+
+    /** 行还在但被系统标成已回收：ROM 把删除改成了软删，原件进的是相册回收站。 */
+    TRASHED,
+
+    /** 行还在又没被标记：删除压根没生效。 */
+    STILL_THERE,
+}
+
 /**
  * 删除入口。要删的截图由系统创建、不属于本应用，所以：
  * - 拿到「所有文件访问」（Android 11+ 的特殊访问，或 10 及以下的 WRITE）时直接删，不再弹系统确认框。
- *   这条路绕开了系统回收站：删掉就是删掉，相册里找不回来，所以入口只在设置页给一次，用户自己决定。
+ *   这条路省下的是**弹窗**，原件去向由系统定：原生安卓删掉就是删掉，相册里找不回来；
+ *   小米、三星这类 ROM 会把三方应用的删除改写成移入回收站，那种机器上还能还原。
+ *   本应用不猜，删完读一次 `is_trashed` 把实际结果记下来给界面用（见 [DeleteResult.Removed]）。
  * - Android 11+ 没拿到时不自作主张：发起 MediaStore 的回收站请求，由系统弹窗让用户点头，
  *   点头之后原件进系统相册的回收站（保留多久由系统决定，本应用不再自己存副本）。
  *   个别 ROM 不支持回收站，退回永久删除请求。
@@ -62,12 +80,38 @@ class DeleteGateway(ctx: Context) {
         } catch (e: Exception) {
             return DeleteResult.Failed(app.getString(R.string.err_delete_exception, e.javaClass.simpleName))
         }
-        // 极少数 ROM 只删了 MediaStore 行、文件仍在；有写权限时补一刀
-        shot.absolutePath?.let { path ->
-            runCatching { File(path).takeIf { it.exists() }?.delete() }
+        // 系统把这次删除做成了软删就别再补刀：原件此刻是回收站里那份唯一的副本
+        val (found, flag) = probe(shot.contentUri)
+        when (classify(found, flag)) {
+            AfterDelete.TRASHED -> return DeleteResult.Removed(trashed = true)
+            // 极少数 ROM 只删了 MediaStore 行、文件仍在；有写权限时补一刀
+            AfterDelete.GONE -> shot.absolutePath?.let { path ->
+                runCatching { File(path).takeIf { it.exists() }?.delete() }
+            }
+
+            AfterDelete.STILL_THERE -> {}
         }
         return if (exists(shot.contentUri)) DeleteResult.Failed(app.getString(R.string.err_row_not_removed))
-        else DeleteResult.Removed
+        else DeleteResult.Removed(trashed = false)
+    }
+
+    /** 探一次那一行还在不在、有没有被系统标成已回收。查询异常按「行没了」处理。 */
+    private fun probe(uri: Uri): Pair<Boolean, Int> = runCatching {
+        resolver.query(uri, arrayOf(MediaStore.MediaColumns._ID, IS_TRASHED), null, null, null)
+            ?.use { c ->
+                if (!c.moveToFirst()) false to 0
+                else {
+                    val ti = c.getColumnIndex(IS_TRASHED)
+                    true to (if (ti >= 0) c.getInt(ti) else 0)
+                }
+            } ?: (false to 0)
+    }.getOrDefault(false to 0)
+
+    /** 判断规则单独拆出来，界面上的「本机实测」才靠得住。 */
+    internal fun classify(rowFound: Boolean, trashedFlag: Int): AfterDelete = when {
+        !rowFound -> AfterDelete.GONE
+        trashedFlag != 0 -> AfterDelete.TRASHED
+        else -> AfterDelete.STILL_THERE
     }
 
     /**
@@ -104,16 +148,10 @@ class DeleteGateway(ctx: Context) {
      * 列名用字面量 "is_trashed"（API 30 才有该列常量），避免在未加 SDK 判断的方法上触发 lint。
      * 查询本身异常时按「已离开」处理，宁可少留一张也不把成功的删除回滚成取消。
      */
-    fun finalizeAfterConfirm(shot: PendingShot): Boolean = runCatching {
-        resolver.query(shot.contentUri, arrayOf(MediaStore.MediaColumns._ID, IS_TRASHED), null, null, null)
-            ?.use { c ->
-                if (!c.moveToFirst()) true
-                else {
-                    val ti = c.getColumnIndex(IS_TRASHED)
-                    ti >= 0 && c.getInt(ti) != 0
-                }
-            } ?: true
-    }.getOrDefault(true)
+    fun finalizeAfterConfirm(shot: PendingShot): Boolean {
+        val (found, flag) = probe(shot.contentUri)
+        return classify(found, flag) != AfterDelete.STILL_THERE
+    }
 
     fun exists(uri: Uri): Boolean = runCatching {
         resolver.query(uri, arrayOf(MediaStore.MediaColumns._ID), null, null, null)

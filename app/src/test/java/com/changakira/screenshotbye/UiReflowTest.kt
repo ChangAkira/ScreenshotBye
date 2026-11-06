@@ -25,6 +25,7 @@ import com.changakira.screenshotbye.ui.widget.DetentDial
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -109,7 +110,7 @@ class UiReflowTest {
         val texts = activity.findViewById<View>(android.R.id.content).flatten()
             .filterIsInstance<android.widget.TextView>().map { it.text.toString() }
         assertTrue(texts.any { it == ctx.getString(R.string.main_watch_switch) })
-        // 「删除免确认」这一行只在 Android 11+ 出现，值里当场写清代价
+        // 「无感删除」这一行只在 Android 11+ 出现；没授过权限时值就是「未授予」
         val allFiles = activity.findViewById<View>(R.id.allFilesRow)
         assertEquals(
             "Android 11 以下没有「所有文件访问」，整行该藏起来",
@@ -118,6 +119,7 @@ class UiReflowTest {
         assertTrue(
             texts.any { it == ctx.getString(R.string.settings_all_files) },
         )
+        assertNotNull("名字后面该有个感叹号", activity.findViewById<View>(R.id.allFilesWarn))
         assertEquals(
             "Robolectric 里没授过这个权限，应当显示未授予",
             ctx.getString(R.string.settings_all_files_off),
@@ -402,7 +404,7 @@ class UiReflowTest {
 
     @Config(sdk = [29])
     @Test
-    fun `Android 10 上没有「删除免确认」那一行`() {
+    fun `Android 10 上没有「无感删除」那一行`() {
         // 那一版没有「所有文件访问」这项特殊访问，直删靠的是 WRITE 权限
         val activity = Robolectric.buildActivity(SettingsActivity::class.java).setup().get()
         assertEquals(View.GONE, activity.findViewById<View>(R.id.allFilesRow).visibility)
@@ -601,5 +603,50 @@ class UiReflowTest {
         // 主页那行本来就有，顺带确认正则真的贴到了属性上
         assertTrue("主页应当也不在最近任务里，说明读取方式没生效", excluded("MainActivity"))
         assertTrue("逐个确认页处理完就走，不该留在最近任务里：${block("ReviewActivity")}", excluded("ReviewActivity"))
+    }
+
+    @Test
+    fun `无感删除在没实测过之前不承诺回收站`() {
+        val name = ctx.getString(R.string.settings_all_files)
+        assertEquals("无感删除", name)
+        // 行尾四种取值里，只有实测过的两种准提回收站
+        val states = listOf(
+            R.string.settings_all_files_off,
+            R.string.settings_all_files_on,
+            R.string.settings_all_files_on_gone,
+            R.string.settings_all_files_on_trashed,
+        )
+        states.forEach { assertFalse("「${ctx.getString(it)}」还在用旧名", ctx.getString(it).contains("免确认")) }
+        assertFalse(
+            "没删过之前不许断言进不进回收站",
+            ctx.getString(R.string.settings_all_files_on).contains("回收站"),
+        )
+        states.forEach { assertTrue("行尾要放得下：${ctx.getString(it)}", ctx.getString(it).length <= 10) }
+        // 感叹号里则必须把这事儿说清楚
+        val warn = ctx.getString(R.string.settings_all_files_warn_body)
+        assertTrue(warn, warn.contains("不会进入系统回收站"))
+        assertTrue(warn, warn.contains("谨慎"))
+    }
+
+    @Test
+    fun `感叹号点开的是代价说明，不是系统授权页`() {
+        val activity = Robolectric.buildActivity(SettingsActivity::class.java).setup().get()
+
+        activity.findViewById<View>(R.id.allFilesWarn).performClick()
+
+        val dialog = org.robolectric.shadows.ShadowDialog.getLatestDialog()
+        assertNotNull("点感叹号该弹说明", dialog)
+        assertTrue(dialog!!.isShowing)
+        // 说明文字按渲染出来的界面查，别绑死在 appcompat 的对话框类型上
+        val texts = dialog.window!!.decorView.flatten()
+            .filterIsInstance<android.widget.TextView>().map { it.text?.toString().orEmpty() }
+        assertTrue("该说清可能不进回收站：$texts", texts.any { it.contains("不会进入系统回收站") })
+        assertTrue(texts.any { it.contains("谨慎") })
+        assertTrue("标题也得在", texts.any { it == ctx.getString(R.string.settings_all_files_warn_title) })
+        assertNull("感叹号不该顺手把用户踹去系统页面", Shadows.shadowOf(activity).nextStartedActivity)
+
+        // 整行照旧跳系统授权页
+        activity.findViewById<View>(R.id.allFilesRow).performClick()
+        assertNotNull("点整行仍要跳去系统「所有文件访问」", Shadows.shadowOf(activity).nextStartedActivity)
     }
 }

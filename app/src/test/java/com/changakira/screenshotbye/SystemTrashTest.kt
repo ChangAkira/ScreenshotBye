@@ -1,5 +1,6 @@
 package com.changakira.screenshotbye
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.app.PendingIntent
@@ -17,6 +18,7 @@ import com.changakira.screenshotbye.core.PendingShotStore
 import com.changakira.screenshotbye.core.ScreenshotRepository
 import com.changakira.screenshotbye.core.Settings
 import com.changakira.screenshotbye.core.ShotState
+import com.changakira.screenshotbye.media.AfterDelete
 import com.changakira.screenshotbye.media.DeleteGateway
 import com.changakira.screenshotbye.media.DeleteMode
 import com.changakira.screenshotbye.media.DeleteResult
@@ -31,6 +33,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
 import org.robolectric.shadows.ShadowContentResolver
 import org.robolectric.annotation.Config
 import java.io.File
@@ -152,5 +155,106 @@ class SystemTrashTest {
     fun `记录仍在且未回收，才算用户在系统弹窗里取消了`() {
         ShadowContentResolver.registerProviderInternal("media", FakeMediaProvider(trashed = 0))
         assertFalse(DeleteGateway(ctx).finalizeAfterConfirm(shot(14)))
+    }
+
+    // ---- 无感删除：省下的是弹窗，原件去向由系统定，界面只说实测到的 ----
+
+    /** Android 10 上有 WRITE 就能直删，用它当「无感删除」的替身跑静默路径。 */
+    private fun grantWrite() =
+        Shadows.shadowOf(ctx as android.app.Application)
+            .grantPermissions(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+
+    private enum class Rom { GONE, TRASHED, STUCK }
+
+    /** 三种系统行为：真删（行没了）/ 改成软删（行还在、is_trashed=1）/ 压根没删动。 */
+    private class FakeRom(private val rom: Rom) : ContentProvider() {
+        /** null = 行已经不在；0 = 还在且未回收；1 = 还在但被系统标成已回收。 */
+        private var row: Int? = 0
+
+        override fun onCreate() = true
+
+        override fun delete(uri: Uri, selection: String?, selectionArgs: Array<String>?): Int = when (rom) {
+            Rom.GONE -> { row = null; 1 }
+            Rom.TRASHED -> { row = 1; 1 }
+            Rom.STUCK -> 0
+        }
+
+        override fun query(
+            uri: Uri, projection: Array<String>?, selection: String?,
+            selectionArgs: Array<String>?, sortOrder: String?
+        ): Cursor = MatrixCursor(arrayOf("_id", "is_trashed")).apply { row?.let { addRow(arrayOf(14, it)) } }
+
+        override fun getType(uri: Uri) = "vnd.android.cursor.item/media"
+        override fun insert(uri: Uri, values: ContentValues?): Uri? = null
+        override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<String>?) = 0
+    }
+
+    @Test
+    fun `删完那一行的三种下场各自对应一种结论`() {
+        val gw = DeleteGateway(ctx)
+        assertEquals(AfterDelete.GONE, gw.classify(rowFound = false, trashedFlag = 0))
+        assertEquals(AfterDelete.TRASHED, gw.classify(rowFound = true, trashedFlag = 1))
+        assertEquals(AfterDelete.STILL_THERE, gw.classify(rowFound = true, trashedFlag = 0))
+    }
+
+    @Config(sdk = [29])
+    @Test
+    fun `系统把直删改成软删时，本机实测记成进回收站`() {
+        grantWrite()
+        ShadowContentResolver.registerProviderInternal("media", FakeRom(Rom.TRASHED))
+
+        val r = DeleteGateway(ctx).deleteNow(shot(21))
+        assertTrue("软删也算删掉了：$r", r is DeleteResult.Removed && r.trashed)
+
+        val store = PendingShotStore.of(ctx)
+        store.replaceAll(listOf(shot(21)))
+        assertEquals(DecisionOutcome.Deleted, ScreenshotRepository(ctx).decide(21L, Decision.DELETE))
+        assertNull("条目该出队", store.find(21L))
+        assertEquals(Settings.OUTCOME_TRASHED, Settings.of(ctx).silentDeleteOutcome)
+        assertTrue(Settings.of(ctx).log, Settings.of(ctx).log.contains("已进回收站：Screenshot_21.png"))
+    }
+
+    @Config(sdk = [29])
+    @Test
+    fun `真删的那种系统才记成直接删除`() {
+        grantWrite()
+        ShadowContentResolver.registerProviderInternal("media", FakeRom(Rom.GONE))
+
+        val r = DeleteGateway(ctx).deleteNow(shot(22))
+        assertTrue("真删：$r", r is DeleteResult.Removed && !r.trashed)
+
+        val store = PendingShotStore.of(ctx)
+        store.replaceAll(listOf(shot(22)))
+        ScreenshotRepository(ctx).decide(22L, Decision.DELETE)
+        assertEquals(Settings.OUTCOME_GONE, Settings.of(ctx).silentDeleteOutcome)
+        assertTrue(Settings.of(ctx).log, Settings.of(ctx).log.contains("已彻底删除：Screenshot_22.png"))
+    }
+
+    @Config(sdk = [29])
+    @Test
+    fun `行还在又没被标记就是没删动，条目留在队列里`() {
+        grantWrite()
+        ShadowContentResolver.registerProviderInternal("media", FakeRom(Rom.STUCK))
+
+        assertTrue(DeleteGateway(ctx).deleteNow(shot(23)) is DeleteResult.Failed)
+
+        val store = PendingShotStore.of(ctx)
+        store.replaceAll(listOf(shot(23)))
+        ScreenshotRepository(ctx).decide(23L, Decision.DELETE)
+        assertEquals("删不动就别把条目丢掉", ShotState.ASKED, store.find(23L)?.state)
+        assertEquals("也没测出任何去向", Settings.OUTCOME_UNKNOWN, Settings.of(ctx).silentDeleteOutcome)
+    }
+
+    @Config(sdk = [29])
+    @Test
+    fun `批量删除同样记下本机实测的去向`() {
+        grantWrite()
+        ShadowContentResolver.registerProviderInternal("media", FakeRom(Rom.TRASHED))
+        val store = PendingShotStore.of(ctx)
+        store.replaceAll(listOf(shot(24), shot(25)))
+
+        ScreenshotRepository(ctx).deleteBatch(listOf(24L, 25L))
+        assertEquals(Settings.OUTCOME_TRASHED, Settings.of(ctx).silentDeleteOutcome)
+        assertTrue(Settings.of(ctx).log, Settings.of(ctx).log.contains("已进回收站：Screenshot_24.png"))
     }
 }

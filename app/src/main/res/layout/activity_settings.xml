@@ -6,7 +6,8 @@
     ③ 询问与提醒（两两并排的固定档位旋钮）
     ④ 主题颜色 + 使用引导 + 事件日志 + 运行自检
   文案一律不给提示语，档位本身就把可选值摊在屏幕上了。
-  删除默认交给系统的照片回收站；想要少一次系统弹窗，就在第二卡拉「所有文件访问」，代价是不进回收站。
+  删除默认交给系统的照片回收站；想要少一次系统弹窗，就在第二卡开「无感删除」（所有文件访问），
+  它只保证不弹确认框，原件进不进回收站由系统定，行尾跟着本机实测结果走，旁边的感叹号写清代价。
   整页套在 NestedScrollView 里可滚动；旋钮只在确认是「拨」的手势时才抢触摸，竖直滑动让给页面滚动。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -146,7 +147,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginVertical="4dp" />
 
-                    <!-- 删除免确认：授了「所有文件访问」就不再弹系统框，代价是原件不进回收站 -->
+                    <!-- 无感删除：授了「所有文件访问」就不再弹系统框；原件去向由系统定，行尾写实测结果 -->
                     <LinearLayout
                         android:id="@+id/allFilesRow"
                         android:layout_width="match_parent"
@@ -161,7 +162,28 @@
 
                         <TextView
                             style="@style/SettingRowLabel"
+                            android:layout_width="wrap_content"
+                            android:layout_weight="0"
                             android:text="@string/settings_all_files" />
+
+                        <!-- 感叹号：点开说明「不弹确认」换来的代价，别和整行的跳转混在一起 -->
+                        <ImageView
+                            android:id="@+id/allFilesWarn"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:layout_marginStart="2dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:clickable="true"
+                            android:contentDescription="@string/settings_all_files_warn"
+                            android:focusable="true"
+                            android:padding="4dp"
+                            android:src="@drawable/ic_warning"
+                            app:tint="?attr/colorOnSurfaceVariant" />
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="1dp"
+                            android:layout_weight="1" />
 
                         <TextView
                             android:id="@+id/allFilesValue"

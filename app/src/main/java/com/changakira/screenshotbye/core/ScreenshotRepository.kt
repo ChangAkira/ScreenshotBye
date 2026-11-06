@@ -126,10 +126,18 @@ class ScreenshotRepository(ctx: Context) {
     private fun delete(shot: PendingShot): DecisionOutcome {
         Reminders.cancel(app, shot.mediaId)
         return when (val r = gateway.deleteNow(shot)) {
-            DeleteResult.Removed -> {
+            is DeleteResult.Removed -> {
                 store.remove(shot.mediaId)
+                // 原件去向以本机实测为准，界面上那句提示跟着它变
+                settings.silentDeleteOutcome =
+                    if (r.trashed) Settings.OUTCOME_TRASHED else Settings.OUTCOME_GONE
                 Notify.notify(app, Notify.reviewNotifId(shot.mediaId), Notify.deleted(app, shot))
-                settings.appendLog(app.getString(R.string.log_deleted, shot.name))
+                settings.appendLog(
+                    app.getString(
+                        if (r.trashed) R.string.log_trashed else R.string.log_deleted_permanent,
+                        shot.name,
+                    )
+                )
                 updateReviewNotification(app)
                 DecisionOutcome.Deleted
             }
@@ -166,10 +174,17 @@ class ScreenshotRepository(ctx: Context) {
             val shot = store.find(id) ?: return@forEach
             Reminders.cancel(app, id)
             when (val r = gateway.deleteNow(shot)) {
-                DeleteResult.Removed -> {
+                is DeleteResult.Removed -> {
                     store.remove(id)
                     deleted++
-                    settings.appendLog(app.getString(R.string.log_deleted, shot.name))
+                    settings.silentDeleteOutcome =
+                        if (r.trashed) Settings.OUTCOME_TRASHED else Settings.OUTCOME_GONE
+                    settings.appendLog(
+                        app.getString(
+                            if (r.trashed) R.string.log_trashed else R.string.log_deleted_permanent,
+                            shot.name,
+                        )
+                    )
                 }
 
                 DeleteResult.NeedsConfirm -> {
