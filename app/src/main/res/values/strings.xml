@@ -28,7 +28,7 @@
     <string name="notif_confirm_body">系统要你亲自确认删除 %1$s，点按打开对话框</string>
     <string name="notif_confirm_body_multi">%1$d 张要你亲自确认删除，点按打开对话框</string>
     <string name="notif_deleted_title">已删除</string>
-    <string name="notif_deleted_permanent">%1$s 已删除</string>
+    <string name="notif_deleted_body">%1$s 已删除</string>
     <string name="notif_recovery_title">监控已停止</string>
     <string name="notif_recovery_body">系统限制了后台自启，点按重新开启</string>
     <string name="notif_stop_watch">停止监控</string>
@@ -66,14 +66,13 @@
     <string name="settings_log_count">%1$d 条</string>
     <string name="settings_theme">主题颜色</string>
     <string name="settings_all_files">无感删除</string>
-    <!-- 开启后唯一确定的是「不弹系统确认框」；原件进不进回收站由系统定，删过一张之后写实测结果 -->
+    <!-- 开启后唯一确定的是「不弹系统确认框」。原件去向三方应用查不到（真删与搬进隐藏回收站
+         在媒体库里是同一个表现），所以这里不提回收站，代价全在感叹号那段说明里 -->
     <string name="settings_all_files_on">已开启 · 不弹确认</string>
-    <string name="settings_all_files_on_gone">已开启 · 直接删除</string>
-    <string name="settings_all_files_on_trashed">已开启 · 进回收站</string>
     <string name="settings_all_files_off">未授予</string>
     <string name="settings_all_files_warn">无感删除的代价说明</string>
     <string name="settings_all_files_warn_title">无感删除的代价</string>
-    <string name="settings_all_files_warn_body">在某些系统上，被删除的照片可能不会进入系统回收站，删掉就彻底没了，请谨慎开启。\n\n无感删除用的是「所有文件访问」这项特殊权限，它只保证删除当场生效、不再弹系统确认框。原件到底去哪儿，由系统说了算：原生安卓和不少机型是直接抹掉，相册里找不回来；小米、三星这类定制系统会把第三方应用的删除改成移入回收站，那种机器上还能在相册里还原。\n\n在这台机器上删掉第一张之后，这一行会显示实测结果。</string>
+    <string name="settings_all_files_warn_body">开了它，删除当场生效、不再弹系统确认框。某些系统上被删的照片不会进相册回收站，删掉就彻底没了，请谨慎开启。\n\n至于这台机器会不会进回收站，本应用查不出来，所以界面上一律不写。原因：原生安卓是直接从媒体库抹掉；有的系统会认账，把条目标成「已回收」，这种能确认；更多定制系统（比如小米把文件挪进 DCIM/.globalTrash 这类不被媒体库索引的目录）会让条目和原路径一起消失——这跟「真删了」在应用侧长得一模一样，分不出来。\n\n想知道某张还能不能找回，只能去相册的回收站看一眼。用不带无感删除的那条路（系统弹窗确认）删的，才是明确交给系统回收站的。</string>
     <string name="settings_all_files_warn_ok">知道了</string>
 
     <!-- 旋钮 -->
@@ -150,7 +149,8 @@
     <string name="log_batch_deleted">批量删除 %1$d 张</string>
     <string name="log_batch_none">批量删除：无成功项</string>
     <string name="log_trashed">已进回收站：%1$s</string>
-    <string name="log_deleted_permanent">已彻底删除：%1$s</string>
+    <string name="log_deleted">已删除：%1$s</string>
+    <string name="log_left_behind">已删除，相册记录已移除、文件仍留在原目录：%1$s</string>
     <string name="log_confirmed_deleted">系统确认后已删除：%1$s</string>
     <string name="log_cancelled_in_dialog">在系统弹窗里取消：%1$s</string>
     <string name="log_catch_up">补发已到期的询问：%1$s</string>
@@ -248,9 +248,7 @@
     <string name="diag_queue_empty">空</string>
     <string name="diag_queue_item">#%1$d %2$s · %3$s · 到期 %4$s · 已提醒 %5$d 次</string>
     <string name="diag_queue_item_gone">#%1$d %2$s · %3$s · 到期 %4$s · 已提醒 %5$d 次 · 原图已不在</string>
-    <string name="diag_delete_silent_unknown">无感删除已开启：删除不弹系统确认框。这台机器上还没实测过，原件进不进回收站要等第一次删除之后回本页看</string>
-    <string name="diag_delete_silent_gone">无感删除已开启：本机实测删除直接生效，不进回收站，相册里找不回来</string>
-    <string name="diag_delete_silent_trashed">无感删除已开启：本机实测这套系统把删除改成了移入回收站，所以不弹确认框也能在相册里找回</string>
+    <string name="diag_delete_silent">无感删除已开启：删除不弹系统确认框。原件进不进相册回收站由系统定，第三方应用查不到（真删与「搬进不被索引的回收站目录」在媒体库里是同一个表现），要找回只能去相册回收站看</string>
     <string name="diag_delete_r_plus">Android 11+：系统弹窗确认后移入回收站，保留多久由系统决定，本应用不存副本</string>
     <string name="diag_delete_legacy_no_perm">Android 10 及以下：没有存储写入权限，删不掉</string>
     <string name="diag_recent_empty">（空）</string>
@@ -307,7 +305,7 @@
         <item>你截的图大多只是临时用一下，用完就忘在相册里。这个应用在后台盯着相册，发现新截图后过一段时间（默认 5 分钟，可选 2／5／15／30／90 分钟）问你一句：这张截图还要吗？</item>
         <item>到点后通知栏只有一条提醒，把这批到期的合并起来问。点开一张一张看：保留、稍后，还是删除；看完进反选屏，一次删掉标记的那些。没回答的按设定间隔再提醒几次，一直不理会就在设定的天数后当作「保留」不再追问。</item>
         <item>读取相册：不授权看不到截图。通知：不授权问不出提醒。删除默认由系统在弹窗里确认，同意后原件进回收站；嫌弹窗麻烦，可以在设置页开「无感删除」（所有文件访问）跳过确认，代价是在不少机型上原件会被直接抹掉、找不回来。</item>
-        <item>走系统弹窗时，原件进相册自带的回收站，去相册就能还原，保留多久由系统决定（通常 30 天）。开了无感删除就不弹确认，删掉的东西还在不在回收站要看这台机器——第一次删除之后设置页那一行会写出实测结果。Android 10 及以下没得选，删掉就找不回来。本应用不存副本，卸载也不会带走你的照片。</item>
+        <item>走系统弹窗时，原件进相册自带的回收站，去相册就能还原，保留多久由系统决定（通常 30 天）。开了无感删除就不弹确认，删掉的东西还在不在回收站本应用查不出来——有的系统把文件挪进相册也看不见的目录，跟真删一个表现；想找回只能去相册回收站看一眼。Android 10 及以下没得选，删掉就找不回来。本应用不存副本，卸载也不会带走你的照片。</item>
         <item>下面这个开关决定现在就开始监控，还是先进设置页把询问时间、默认保留天数和识别规则调好再开。</item>
     </string-array>
 </resources>

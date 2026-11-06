@@ -128,16 +128,8 @@ class ScreenshotRepository(ctx: Context) {
         return when (val r = gateway.deleteNow(shot)) {
             is DeleteResult.Removed -> {
                 store.remove(shot.mediaId)
-                // 原件去向以本机实测为准，界面上那句提示跟着它变
-                settings.silentDeleteOutcome =
-                    if (r.trashed) Settings.OUTCOME_TRASHED else Settings.OUTCOME_GONE
                 Notify.notify(app, Notify.reviewNotifId(shot.mediaId), Notify.deleted(app, shot))
-                settings.appendLog(
-                    app.getString(
-                        if (r.trashed) R.string.log_trashed else R.string.log_deleted_permanent,
-                        shot.name,
-                    )
-                )
+                settings.appendLog(app.getString(removalNote(shot, r.trashed), shot.name))
                 updateReviewNotification(app)
                 DecisionOutcome.Deleted
             }
@@ -160,6 +152,20 @@ class ScreenshotRepository(ctx: Context) {
     }
 
     /**
+     * 这张截图删除后写哪句日志。
+     *
+     * 只有系统当场认账（那一行还在、is_trashed 非 0）才敢说「已进回收站」。行整个消失时
+     * 一个字都不提去向：原生安卓的真删是这个表现，定制系统把文件挪进不被媒体库索引的
+     * 隐藏回收站目录（小米 .globalTrash 那类）也是这个表现，三方应用分不出来。
+     * 唯一能多补一句的是「行没了、文件却还在原路径」——那是本应用自己能确认的事实。
+     */
+    private fun removalNote(shot: PendingShot, trashed: Boolean): Int = when {
+        trashed -> R.string.log_trashed
+        gateway.fileLeftBehind(shot) -> R.string.log_left_behind
+        else -> R.string.log_deleted
+    }
+
+    /**
      * 批量处置：逐个看时标为「不需要」的一整批在这里收口。
      *
      * Android 11+ 先把整批标记为待系统确认，再由调用方用一次回收站请求收口——避免每张弹一次系统框；
@@ -177,14 +183,7 @@ class ScreenshotRepository(ctx: Context) {
                 is DeleteResult.Removed -> {
                     store.remove(id)
                     deleted++
-                    settings.silentDeleteOutcome =
-                        if (r.trashed) Settings.OUTCOME_TRASHED else Settings.OUTCOME_GONE
-                    settings.appendLog(
-                        app.getString(
-                            if (r.trashed) R.string.log_trashed else R.string.log_deleted_permanent,
-                            shot.name,
-                        )
-                    )
+                    settings.appendLog(app.getString(removalNote(shot, r.trashed), shot.name))
                 }
 
                 DeleteResult.NeedsConfirm -> {

@@ -62,22 +62,7 @@ class Settings private constructor(private val sp: SharedPreferences) {
         private const val K_LAST_OBSERVER = "last_observer_at"
         private const val K_LAST_SCAN = "last_scan_at"
         private const val K_LAST_CRASH = "last_crash"
-        private const val K_SILENT_OUTCOME = "silent_delete_outcome"
-
-        /** 无感删除在本机实测到的去向：还没删过 / 直接删除 / 仍进回收站。 */
-        const val OUTCOME_UNKNOWN = ""
-        const val OUTCOME_GONE = "gone"
-        const val OUTCOME_TRASHED = "trashed"
     }
-
-    /**
-     * 开了「所有文件访问」之后，本机第一次静默删除实际把原件怎么了。
-     * 系统行为不一致（原生真删、部分 ROM 改成软删），界面上的说法一律跟着这个实测值走，
-     * 不拿猜测当承诺。换手机、恢复出厂都会重新观察一次，所以只存这三个值。
-     */
-    var silentDeleteOutcome: String
-        get() = sp.getString(K_SILENT_OUTCOME, OUTCOME_UNKNOWN) ?: OUTCOME_UNKNOWN
-        set(v) = sp.edit().putString(K_SILENT_OUTCOME, v).apply()
 
     /** 首次启动是否已走完引导页。 */
     var onboarded: Boolean

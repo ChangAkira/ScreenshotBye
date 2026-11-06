@@ -21,9 +21,10 @@ enum class DeleteMode {
 
 sealed interface DeleteResult {
     /**
-     * 不经系统弹窗直接生效了。「无感删除」只保证**不弹确认框**，不保证原件的去向：
-     * 厂商系统常常把三方应用的删除改写成软删（行还在、`is_trashed=1`），原生安卓则是真删。
-     * [trashed] 就是这次删完当场探到的结果，界面上的说法一律以它为准。
+     * 不经系统弹窗直接生效了。「无感删除」只保证**不弹确认框**，原件去哪儿由系统定。
+     * [trashed] 只在系统当场认账时为真（行还在、`is_trashed != 0`）；
+     * 行整个消失时它是 false，但 false 不等于「找不回来了」——定制系统把文件搬进
+     * 自己隐藏的回收站目录也是这个表现，应用侧分辨不了，界面上因此一律不承诺去向。
      */
     data class Removed(val trashed: Boolean) : DeleteResult
 
@@ -35,10 +36,14 @@ sealed interface DeleteResult {
 
 /** 删完之后那一行的三种可能，见 [DeleteGateway.classify]。 */
 enum class AfterDelete {
-    /** MediaStore 行没了：这台机器是真删。 */
+    /**
+     * MediaStore 行没了。**去向未知**：原生安卓的真删是这个样子，
+     * 定制系统把文件搬进自己不被索引的隐藏回收站目录（小米 .globalTrash 等）也是这个样子，
+     * 单看媒体库分辨不出来——想知道能不能还原，只能去相册回收站看一眼。
+     */
     GONE,
 
-    /** 行还在但被系统标成已回收：ROM 把删除改成了软删，原件进的是相册回收站。 */
+    /** 行还在但 `is_trashed != 0`：系统认账这是软删，原件在相册回收站里，还能还原。 */
     TRASHED,
 
     /** 行还在又没被标记：删除压根没生效。 */
@@ -48,9 +53,11 @@ enum class AfterDelete {
 /**
  * 删除入口。要删的截图由系统创建、不属于本应用，所以：
  * - 拿到「所有文件访问」（Android 11+ 的特殊访问，或 10 及以下的 WRITE）时直接删，不再弹系统确认框。
- *   这条路省下的是**弹窗**，原件去向由系统定：原生安卓删掉就是删掉，相册里找不回来；
- *   小米、三星这类 ROM 会把三方应用的删除改写成移入回收站，那种机器上还能还原。
- *   本应用不猜，删完读一次 `is_trashed` 把实际结果记下来给界面用（见 [DeleteResult.Removed]）。
+ *   这条路省下的是**弹窗**，原件去向由系统定，而且应用查不全：原生安卓是真删；
+ *   有的 ROM 会留下 `is_trashed=1` 的行（这种能确认）；更多国产 ROM 直接把文件搬进
+ *   自己不被媒体库索引的隐藏目录，行和文件在原路径上一起消失，从三方应用里看不到任何区别。
+ *   所以界面对这条路径只承诺「不弹确认」，去向交给感叹号说明，不替系统吹。
+ *   也不再自己删文件：万一那套回收站还指着原路径，补这一刀就是把唯一的副本毁掉。
  * - Android 11+ 没拿到时不自作主张：发起 MediaStore 的回收站请求，由系统弹窗让用户点头，
  *   点头之后原件进系统相册的回收站（保留多久由系统决定，本应用不再自己存副本）。
  *   个别 ROM 不支持回收站，退回永久删除请求。
@@ -80,20 +87,30 @@ class DeleteGateway(ctx: Context) {
         } catch (e: Exception) {
             return DeleteResult.Failed(app.getString(R.string.err_delete_exception, e.javaClass.simpleName))
         }
-        // 系统把这次删除做成了软删就别再补刀：原件此刻是回收站里那份唯一的副本
+        // 删完回查那一行。这一步只用来区分两件事：系统当场认账是软删，以及删除压根没生效。
+        // 「行没了」不额外说明任何去向——见 classify。
         val (found, flag) = probe(shot.contentUri)
-        when (classify(found, flag)) {
-            AfterDelete.TRASHED -> return DeleteResult.Removed(trashed = true)
-            // 极少数 ROM 只删了 MediaStore 行、文件仍在；有写权限时补一刀
-            AfterDelete.GONE -> shot.absolutePath?.let { path ->
-                runCatching { File(path).takeIf { it.exists() }?.delete() }
-            }
+        return when (classify(found, flag)) {
+            // ROM 认账：原件进了系统回收站，还原入口在相册那边。绝不补删文件。
+            AfterDelete.TRASHED -> DeleteResult.Removed(trashed = true)
 
-            AfterDelete.STILL_THERE -> {}
+            // 行没了：可能是真删，也可能是系统把文件搬进了自己的隐藏回收站目录
+            // （小米 .globalTrash 那类不被媒体库索引，应用侧查不到任何痕迹）。分辨不了，
+            // 所以这里只报「删掉了」，不报去向，也不再替系统去删文件。
+            AfterDelete.GONE -> DeleteResult.Removed(trashed = false)
+
+            // 行还在又没被标记 = 压根没删动，留着条目让用户重试
+            AfterDelete.STILL_THERE -> DeleteResult.Failed(app.getString(R.string.err_row_not_removed))
         }
-        return if (exists(shot.contentUri)) DeleteResult.Failed(app.getString(R.string.err_row_not_removed))
-        else DeleteResult.Removed(trashed = false)
     }
+
+    /**
+     * 「行没了」之后原路径上还剩不还剩文件。
+     * 剩着说明这套系统只删了索引、字节还在，界面可以照实提醒一句；
+     * 不剩则是「真删」与「被搬进回收站」两种情况的共同表现，应用无从区分。
+     */
+    fun fileLeftBehind(shot: PendingShot): Boolean =
+        shot.absolutePath?.let { runCatching { File(it).exists() }.getOrDefault(false) } == true
 
     /** 探一次那一行还在不在、有没有被系统标成已回收。查询异常按「行没了」处理。 */
     private fun probe(uri: Uri): Pair<Boolean, Int> = runCatching {
@@ -107,7 +124,7 @@ class DeleteGateway(ctx: Context) {
             } ?: (false to 0)
     }.getOrDefault(false to 0)
 
-    /** 判断规则单独拆出来，界面上的「本机实测」才靠得住。 */
+    /** 判断规则单独拆出来：只有这一层能分清「系统认账的软删」和「没删动」，界面上的措辞全押在它上面。 */
     internal fun classify(rowFound: Boolean, trashedFlag: Int): AfterDelete = when {
         !rowFound -> AfterDelete.GONE
         trashedFlag != 0 -> AfterDelete.TRASHED

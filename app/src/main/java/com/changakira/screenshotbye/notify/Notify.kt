@@ -299,7 +299,7 @@ object Notify {
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val body = ctx.getString(R.string.notif_deleted_permanent, shot.name)
+        val body = ctx.getString(R.string.notif_deleted_body, shot.name)
         return NotificationCompat.Builder(ctx, Channels.SERVICE)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(ctx.getString(R.string.notif_deleted_title))

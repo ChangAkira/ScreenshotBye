@@ -255,26 +255,22 @@ class AppSmokeTest {
     }
 
     /**
-     * 自检里「删除去向」这一节不许凭空承诺：无感删除只保证不弹确认框，
-     * 原件进不进回收站一律照本机实测结果说。SDK 29 上用 WRITE 权限当无感删除的替身。
+     * 自检里「删除去向」这一节不许承诺去向：无感删除换来的只有「不弹确认框」，
+     * 原件是当场没了还是被系统挪进不被媒体库索引的回收站目录，三方应用分不出来。
+     * SDK 29 上用 WRITE 权限当无感删除的替身。
      */
     @Config(sdk = [29])
     @Test
-    fun `自检里的删除去向跟着实测结果走`() {
+    fun `自检在有静默删除权限时不谈原件去向`() {
         Shadows.shadowOf(ctx as android.app.Application)
             .grantPermissions(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        val settings = Settings.of(ctx)
 
-        settings.silentDeleteOutcome = Settings.OUTCOME_UNKNOWN
-        assertTrue(settings.log, Diagnostics.collect(ctx).contains("还没实测过"))
-
-        settings.silentDeleteOutcome = Settings.OUTCOME_GONE
-        assertTrue(Diagnostics.collect(ctx).contains("本机实测删除直接生效"))
-
-        settings.silentDeleteOutcome = Settings.OUTCOME_TRASHED
         val report = Diagnostics.collect(ctx)
-        assertTrue(report, report.contains("本机实测这套系统把删除改成了移入回收站"))
-        assertFalse("实测进了回收站就不许再说不进", report.contains("本机实测删除直接生效"))
+        assertTrue(report, report.contains("无感删除已开启"))
+        assertTrue(report, report.contains("不弹系统确认框"))
+        assertFalse("不许说找不回来：$report", report.contains("找不回来"))
+        assertFalse("不许说不进回收站：$report", report.contains("不进回收站"))
+        assertFalse("没有能核实去向的读数，别写实测：$report", report.contains("实测"))
     }
 
     @Test

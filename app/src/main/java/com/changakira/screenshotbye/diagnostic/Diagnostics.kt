@@ -164,14 +164,8 @@ object Diagnostics {
             section(app, R.string.diag_sec_delete)
             line(
                 when {
-                    // 无感删除只保证不弹确认框，原件去向以本机实测为准；没实测过就照实说没实测过
-                    Perms.canDeleteSilently(app) -> app.getString(
-                        when (settings.silentDeleteOutcome) {
-                            Settings.OUTCOME_TRASHED -> R.string.diag_delete_silent_trashed
-                            Settings.OUTCOME_GONE -> R.string.diag_delete_silent_gone
-                            else -> R.string.diag_delete_silent_unknown
-                        }
-                    )
+                    // 无感删除只保证「不弹确认框」。原件去向在媒体库里分不出来，就不写结论
+                    Perms.canDeleteSilently(app) -> app.getString(R.string.diag_delete_silent)
 
                     Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> app.getString(R.string.diag_delete_r_plus)
                     else -> app.getString(R.string.diag_delete_legacy_no_perm)

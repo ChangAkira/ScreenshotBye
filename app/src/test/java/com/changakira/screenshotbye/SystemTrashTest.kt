@@ -157,7 +157,7 @@ class SystemTrashTest {
         assertFalse(DeleteGateway(ctx).finalizeAfterConfirm(shot(14)))
     }
 
-    // ---- 无感删除：省下的是弹窗，原件去向由系统定，界面只说实测到的 ----
+    // ---- 无感删除：省下的是弹窗，原件去向应用查不到，日志里因此一律不下结论 ----
 
     /** Android 10 上有 WRITE 就能直删，用它当「无感删除」的替身跑静默路径。 */
     private fun grantWrite() =
@@ -166,7 +166,7 @@ class SystemTrashTest {
 
     private enum class Rom { GONE, TRASHED, STUCK }
 
-    /** 三种系统行为：真删（行没了）/ 改成软删（行还在、is_trashed=1）/ 压根没删动。 */
+    /** 三种系统行为：行没了（去向未知）/ 系统认账软删（行还在、is_trashed=1）/ 压根没删动。 */
     private class FakeRom(private val rom: Rom) : ContentProvider() {
         /** null = 行已经不在；0 = 还在且未回收；1 = 还在但被系统标成已回收。 */
         private var row: Int? = 0
@@ -199,7 +199,7 @@ class SystemTrashTest {
 
     @Config(sdk = [29])
     @Test
-    fun `系统把直删改成软删时，本机实测记成进回收站`() {
+    fun `只有系统认账的软删才写进回收站`() {
         grantWrite()
         ShadowContentResolver.registerProviderInternal("media", FakeRom(Rom.TRASHED))
 
@@ -210,24 +210,45 @@ class SystemTrashTest {
         store.replaceAll(listOf(shot(21)))
         assertEquals(DecisionOutcome.Deleted, ScreenshotRepository(ctx).decide(21L, Decision.DELETE))
         assertNull("条目该出队", store.find(21L))
-        assertEquals(Settings.OUTCOME_TRASHED, Settings.of(ctx).silentDeleteOutcome)
         assertTrue(Settings.of(ctx).log, Settings.of(ctx).log.contains("已进回收站：Screenshot_21.png"))
     }
 
     @Config(sdk = [29])
     @Test
-    fun `真删的那种系统才记成直接删除`() {
+    fun `行没了只说已删除——真删与搬进隐藏回收站分不清`() {
         grantWrite()
         ShadowContentResolver.registerProviderInternal("media", FakeRom(Rom.GONE))
 
         val r = DeleteGateway(ctx).deleteNow(shot(22))
-        assertTrue("真删：$r", r is DeleteResult.Removed && !r.trashed)
+        assertTrue("删掉了：$r", r is DeleteResult.Removed && !r.trashed)
 
         val store = PendingShotStore.of(ctx)
         store.replaceAll(listOf(shot(22)))
         ScreenshotRepository(ctx).decide(22L, Decision.DELETE)
-        assertEquals(Settings.OUTCOME_GONE, Settings.of(ctx).silentDeleteOutcome)
-        assertTrue(Settings.of(ctx).log, Settings.of(ctx).log.contains("已彻底删除：Screenshot_22.png"))
+        val log = Settings.of(ctx).log
+        assertTrue(log, log.contains("已删除：Screenshot_22.png"))
+        // 小米那类 ROM 把文件挪进不被索引的目录，媒体库里同样是「行没了」，相册里却还能还原。
+        // 所以这条日志里出现任何去向断言都是撒谎。
+        assertFalse("不许断言彻底删了：$log", log.contains("彻底"))
+        assertFalse("不许断言不进回收站：$log", log.contains("回收站"))
+        assertFalse("不许断言直接删除：$log", log.contains("直接删除"))
+    }
+
+    @Config(sdk = [29])
+    @Test
+    fun `行没了但文件还在原目录时照实多说一句`() {
+        grantWrite()
+        ShadowContentResolver.registerProviderInternal("media", FakeRom(Rom.GONE))
+        val leftover = File(ctx.cacheDir, "Screenshot_26.png")
+        leftover.writeText("x")
+
+        val store = PendingShotStore.of(ctx)
+        store.replaceAll(listOf(shot(26).copy(absolutePath = leftover.absolutePath)))
+        ScreenshotRepository(ctx).decide(26L, Decision.DELETE)
+        val log = Settings.of(ctx).log
+        assertTrue(log, log.contains("已删除，相册记录已移除、文件仍留在原目录：Screenshot_26.png"))
+
+        leftover.delete()
     }
 
     @Config(sdk = [29])
@@ -242,19 +263,17 @@ class SystemTrashTest {
         store.replaceAll(listOf(shot(23)))
         ScreenshotRepository(ctx).decide(23L, Decision.DELETE)
         assertEquals("删不动就别把条目丢掉", ShotState.ASKED, store.find(23L)?.state)
-        assertEquals("也没测出任何去向", Settings.OUTCOME_UNKNOWN, Settings.of(ctx).silentDeleteOutcome)
     }
 
     @Config(sdk = [29])
     @Test
-    fun `批量删除同样记下本机实测的去向`() {
+    fun `批量删除走的也是同一套措辞`() {
         grantWrite()
         ShadowContentResolver.registerProviderInternal("media", FakeRom(Rom.TRASHED))
         val store = PendingShotStore.of(ctx)
         store.replaceAll(listOf(shot(24), shot(25)))
 
         ScreenshotRepository(ctx).deleteBatch(listOf(24L, 25L))
-        assertEquals(Settings.OUTCOME_TRASHED, Settings.of(ctx).silentDeleteOutcome)
         assertTrue(Settings.of(ctx).log, Settings.of(ctx).log.contains("已进回收站：Screenshot_24.png"))
     }
 }

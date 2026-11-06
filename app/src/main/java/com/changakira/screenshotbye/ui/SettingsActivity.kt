@@ -145,18 +145,16 @@ class SettingsActivity : ThemedActivity() {
     }
 
     /**
-     * 行尾只承诺确定的一部分（不弹确认框），回收站那半句按本机实测结果写：
-     * 没删过就说没删过，不拿系统差异当承诺。
+     * 行尾只承诺这一项权限真正改变的东西：不弹系统确认框。
+     * 原件去哪了由系统定，而三方应用查不到答案（原生真删与 ROM 把文件搬进不被索引的
+     * 隐藏回收站，在媒体库里都是「行没了」这一个表现），所以这里一个字都不提回收站，
+     * 代价交给名字后面的感叹号说。
      */
     private fun refreshDeletePermission() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
         b.allFilesValue.setText(
-            if (!Perms.hasAllFilesAccess(this)) R.string.settings_all_files_off
-            else when (settings.silentDeleteOutcome) {
-                Settings.OUTCOME_TRASHED -> R.string.settings_all_files_on_trashed
-                Settings.OUTCOME_GONE -> R.string.settings_all_files_on_gone
-                else -> R.string.settings_all_files_on
-            }
+            if (Perms.hasAllFilesAccess(this)) R.string.settings_all_files_on
+            else R.string.settings_all_files_off
         )
     }
 
