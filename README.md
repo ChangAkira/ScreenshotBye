@@ -5,7 +5,7 @@
     嫌系统弹窗烦可以开「无感删除」跳过确认，代价是少了一次点头的机会，能不能还原本应用说不准（见下文）。</p>
   <p>
     <img alt="platform" src="https://img.shields.io/badge/Android-8.0%2B-green"/>
-    <img alt="release" src="https://img.shields.io/badge/release-v1.0.12-blue"/>
+    <img alt="release" src="https://img.shields.io/badge/release-v1.0.13-blue"/>
     <img alt="lang" src="https://img.shields.io/badge/Kotlin-2.0.21-orange"/>
     <img alt="offline" src="https://img.shields.io/badge/联网-不需要-informational"/>
     <img alt="license" src="https://img.shields.io/badge/License-MIT-lightgrey"/>
@@ -106,22 +106,28 @@ v1.0.3 把这个档位**撤掉了**：声音、震动、横幅、锁屏显示本
 
 ## 下载
 
-最新 release：[v1.0.12](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.12) —
-直接安装 [ScreenshotBye-v1.0.12.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.12/ScreenshotBye-v1.0.12.apk)
+最新 release：[v1.0.13](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.13) —
+直接安装 [ScreenshotBye-v1.0.13.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.13/ScreenshotBye-v1.0.13.apk)
 （release 签名，minSdk 26 / Android 8.0 起）。v1.0.1 起都是同一把密钥，**直接覆盖安装即可**，待确认清单和设置都保留。
 
-未发布（先攒着，凑够几条一起发下一版）：
+v1.0.13 三件事：换主题不再连字体颜色一起换、录屏有封面了、逐个确认页不再跳张。
 
-- **字体颜色不再跟着主题配色走**。之前 34 个 Material 角色是按配色整表摊开的，正文色 `colorOnSurface`
-  在米白下是暖棕 `#5C5247`、靛蓝下是冷蓝 `#3D4063`，换主题看着像连字一起换了。底色和卡片早就中性化了，
-  文字没有理由还跟着走。现在每套配色的 style 里只留控件层那 17 个角色（primary / secondary / tertiary / error
-  及各自容器与前景，加 `colorPrimaryInverse`），页面、卡片、各级容器、正文、次要文字、分隔线这 17 个中性角色
-  统一写在 `Theme.ScreenshotBye.Base`，取值来自新增的 `colors_neutral.xml`（夜间同名文件），五套配色共用。
-- **顺手清掉 `colors_palettes.xml` 里不再被引用的中性色**（每套配色 17 条，日、夜两份各删 85 条），
-  少一处「改了没生效」的坑。取值与孪生项目 PhotosManager 的 `ui/theme/Palette.kt` 里的 `Neutral` 一一对应，
-  改一处要同步改另一处。
-- 箭头用的 `outline` 比原先略深一点（`#9B9A97`），因为中性化的容器色比原来的米色阶深一档，
-  原来的浅灰箭头在最深一层卡片上只剩 1.8:1，会糊掉；单元测试里那条 1.9:1 的下限现在才真的守住。
+- **字体颜色不再跟着主题配色走**（这条本来就是 main 上的改动，跟着本版一起发出去）：之前 34 个 Material 角色按配色整表摊开，
+  正文色 `colorOnSurface` 在米白下是暖棕 `#5C5247`、靛蓝下是冷蓝 `#3D4063`，换主题看着像连字一起换了。底色和卡片早就中性化了，
+  文字没有理由还跟着走。现在每套配色的 style 里只留控件层那 17 个角色（primary / secondary / tertiary / error 及各自容器与前景，
+  加 `colorPrimaryInverse`），页面、卡片、各级容器、正文、次要文字、分隔线这 17 个中性角色统一写在 `Theme.ScreenshotBye.Base`，
+  取值来自新增的 `colors_neutral.xml`（夜间同名文件），五套配色共用。
+  `colors_palettes.xml` 里不再被引用的中性色一并清掉（每套配色 17 条，日、夜两份各删 85 条），少一处「改了没生效」的坑；
+  取值与孪生项目 PhotosManager 的 `ui/theme/Palette.kt` 里的 `Neutral` 一一对应，改一处要同步改另一处。
+  箭头用的 `outline` 比原先略深一点（`#9B9A97`），因为中性化的容器色比原来的米色阶深一档，原来的浅灰箭头在最深一层卡片上
+  只剩 1.8:1 会糊掉；单元测试里那条 1.9:1 的下限现在才真的守住。
+- **录屏的预览不再是黑的**：`Thumbs` 只会用 `BitmapFactory` 解字节流，视频解出来是 null，界面就落到深色占位图上，看着像一块黑。
+  现在认得 `.../external/video/media/<id>` 这类 URI，直接抽一帧当封面（取 1.5 秒那里，避开片头的黑帧和淡入，取不到再退回首帧），
+  只解一张静态图、不做播放。Android 8.x 上没有按尺寸解的接口，就先解整帧再缩。
+- **逐个确认页不会再跳张**：两张时把第一张标删除、左滑翻回去改判保留——这张一移出本轮，第二张正好顶到当前格，
+  老代码拿「是不是最后一格」当收口条件，于是以为问完了，页面直接收尾，第二张压根没问过。
+  现在收口看的是「后面还有没有没答的」，标了删除的那几张不算欠问（它们在反选屏收口，也正是在那儿反悔）。
+  翻页规则写进了测试：删完第一张改判保留后，第二张必须还挂在清单里等用户答。
 
 v1.0.12 把 v1.0.11 那句「本机实测去向」也撤了——因为它同样是一句我们没资格说的话：
 - **回查那一行分辨不了「进了回收站」**。有用户反馈：手机是会把删除的截图放回回收站的，界面上却写着「直接删除」。
@@ -136,7 +142,6 @@ v1.0.12 把 v1.0.11 那句「本机实测去向」也撤了——因为它同样
   这种写成 `已删除，相册记录已移除、文件仍留在原目录：X`。
 - **顺手去掉一处数据丢失风险**：v1.0.11 之前的静默删除在「行没了」之后还会照着 `DATA` 路径补一次 `File.delete()`。
   既然现在确认了「行没了」很可能意味着文件已被系统搬进它自己的回收站，那一刀就可能把唯一的副本砍掉，因此删掉这段逻辑。
-
 
 v1.0.11 改掉一处我们说错了的话，换成另一句仍然没资格说的话（「本机实测去向」在 v1.0.12 已撤回）：
 
@@ -255,7 +260,7 @@ Android 11 及以上的删除一律走系统的「移入回收站」确认框（
 索引的目录、同时删掉那一行——「行没了」这一个读数对应两种下场，界面因此一律不谈回收站，只在感叹号里把风险说清。
 不授，Android 11+ 一律走系统的「移入回收站」确认框（一批只弹一次）。
 
-Manifest 里没有 `INTERNET` 权限，应用在系统层面就无法联网：图片字节只在「生成预览」时读过一次，不上传、不做任何内容分析，也没有统计和账号。
+Manifest 里没有 `INTERNET` 权限，应用在系统层面就无法联网：图片字节只在「生成预览」时读过一次，录屏也只抽一帧封面，不上传、不做任何内容分析，也没有统计和账号。
 
 ## 它是怎么实现的
 

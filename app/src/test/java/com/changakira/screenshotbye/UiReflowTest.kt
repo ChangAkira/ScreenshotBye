@@ -2,10 +2,14 @@ package com.changakira.screenshotbye
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.net.Uri
+import android.os.Looper
 import android.util.TypedValue
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.WorkManager
@@ -19,6 +23,8 @@ import com.changakira.screenshotbye.notify.Notify
 import com.changakira.screenshotbye.ui.LogActivity
 import com.changakira.screenshotbye.ui.MainActivity
 import com.changakira.screenshotbye.ui.OnboardingActivity
+import com.changakira.screenshotbye.ui.ReviewActivity
+import com.changakira.screenshotbye.ui.Thumbs
 import com.changakira.screenshotbye.ui.SettingsActivity
 import com.changakira.screenshotbye.ui.theme.Palette
 import com.changakira.screenshotbye.ui.widget.DetentDial
@@ -33,6 +39,7 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
+import org.robolectric.shadows.ShadowMediaMetadataRetriever
 import org.robolectric.annotation.Config
 
 /**
@@ -649,5 +656,76 @@ class UiReflowTest {
         // 整行照旧跳系统授权页
         activity.findViewById<View>(R.id.allFilesRow).performClick()
         assertNotNull("点整行仍要跳去系统「所有文件访问」", Shadows.shadowOf(activity).nextStartedActivity)
+    }
+
+    // ---- 逐个确认页：翻页与封面 ----
+
+    private fun asked(id: Long) = com.changakira.screenshotbye.core.PendingShot(
+        mediaId = id,
+        uri = "content://media/external/images/media/$id",
+        name = "Screenshot_$id.png",
+        folder = "DCIM/Screenshots",
+        relativePath = "Screenshots/Screenshot_$id.png",
+        size = 2048L,
+        takenAt = System.currentTimeMillis() - 60_000L,
+        askAt = System.currentTimeMillis() - 1_000L,
+        state = ShotState.ASKED,
+        stateAt = System.currentTimeMillis(),
+    )
+
+    /** 后台线程干完活得把主线程的消息跑掉，页面才更新；轮询到条件成立为止。 */
+    private fun awaitUi(what: String, timeoutMs: Long = 5_000L, condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline && !condition()) {
+            Thread.sleep(20)
+            Shadows.shadowOf(Looper.getMainLooper()).idle()
+        }
+        assertTrue("等不到$what", condition())
+    }
+
+    @Test
+    fun `两张时改判第一张，第二张照样要问`() {
+        val store = PendingShotStore.of(ctx)
+        store.replaceAll(listOf(asked(31), asked(32)))
+        val activity = Robolectric.buildActivity(ReviewActivity::class.java).setup().get()
+        val name = activity.findViewById<TextView>(R.id.shotName)
+        val confirmList = activity.findViewById<View>(R.id.confirmList)
+        awaitUi("第一张上屏") { name.text.toString() == "Screenshot_31.png" }
+
+        // 第一张标删除，自动翻到第二张
+        activity.findViewById<View>(R.id.btnDelete).performClick()
+        awaitUi("翻到第二张") { name.text.toString() == "Screenshot_32.png" }
+
+        // 后悔了，翻回去把它改判保留
+        activity.goTo(-1)
+        assertEquals("Screenshot_31.png", name.text.toString())
+        activity.findViewById<View>(R.id.btnKeep).performClick()
+
+        // 这张一移出本轮，第二张正好顶到当前格——必须接着问它，不能就地收场
+        awaitUi("回到第二张") { name.text.toString() == "Screenshot_32.png" }
+        assertEquals("还剩一张没答，不该跳到反选屏", View.GONE, confirmList.visibility)
+        assertNull("第一张已按保留出队", store.find(31L))
+        assertNotNull("第二张还得留在清单里等用户答", store.find(32L))
+
+        // 第二张标删除，这才轮到反选屏，勾着的只有它
+        activity.findViewById<View>(R.id.btnDelete).performClick()
+        awaitUi("进反选屏") { confirmList.visibility == View.VISIBLE }
+        val label = activity.findViewById<TextView>(R.id.btnConfirmDelete).text.toString()
+        assertTrue("反选屏只该勾一张：$label", label.contains("1"))
+        assertFalse("第一张不该还挂在删除名单上：$label", label.contains("2"))
+    }
+
+    @Test
+    fun `录屏的预览抽一帧，不再是黑的`() {
+        // 录屏的 URI 走的是 video 那棵表。老写法一律拿 BitmapFactory 去解，解出来是 null，
+        // 界面就剩一块深色占位图，看着像黑的。
+        val uri = Uri.parse("content://media/external/video/media/91")
+        val frame = Bitmap.createBitmap(64, 96, Bitmap.Config.ARGB_8888)
+        ShadowMediaMetadataRetriever.addFrame(ctx, uri, 1_500_000L, frame)
+
+        val bitmap = Thumbs.decode(ctx, uri, 128)
+        assertNotNull("图片解不出来时得改抽一帧视频", bitmap)
+        assertEquals(64, bitmap!!.width)
+        assertEquals(96, bitmap.height)
     }
 }

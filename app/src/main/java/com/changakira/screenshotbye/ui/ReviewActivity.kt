@@ -139,7 +139,8 @@ class ReviewActivity : ThemedActivity() {
         Thumbs.media(b.shotImage, shot.contentUri, maxPx = 1024, cache = false)
     }
 
-    private fun goTo(delta: Int) {
+    /** internal：滑动翻页的目标位置要能单独验（收口判错过一次，见 [showNext]）。 */
+    internal fun goTo(delta: Int) {
         val target = (index + delta).coerceIn(0, (items.size - 1).coerceAtLeast(0))
         if (target != index) {
             index = target
@@ -164,25 +165,36 @@ class ReviewActivity : ThemedActivity() {
                 }
                 items = items.filterNot { it.mediaId == shot.mediaId }
                 marked.remove(shot.mediaId)
-                advance()
+                // 这张已经移出列表，后面那张正好顶到当前格，所以这一趟从当前格接着往下找
+                showNext(fromCurrent = true)
             }
         }
     }
 
-    /** 不需要，删除：只标记，真正删除留到最后一次做。 */
+    /** 不需要，删除：只标记，真正删除留到最后一次做，中途还能翻回来改判保留。 */
     private fun markDelete() {
         if (items.isEmpty()) return
         marked.add(items[index].mediaId)
-        advance()
+        showNext(fromCurrent = false)
     }
 
-    private fun advance() {
-        if (index + 1 >= items.size) {
+    /**
+     * 往后翻到下一张「还没答」的，一张都不欠了才收口。
+     *
+     * 收口条件以前是「已经走到列表最后一格」，可在一个中途会缩短的列表上不成立：
+     * 两张、第一张标删除、左滑翻回去把它改判保留——这张一移出列表，第二张就顶到了当前格，
+     * 位置判断以为问完了，页面直接收尾，第二张压根没问过。现在改数「后面还有没有没答的」，
+     * 标了删除的那些不算欠问（它们在反选屏收口），也不许再往前翻回来重问一遍。
+     */
+    private fun showNext(fromCurrent: Boolean) {
+        val from = if (fromCurrent) index else index + 1
+        val next = items.indices.firstOrNull { it >= from && items[it].mediaId !in marked }
+        if (next == null) {
             if (marked.isEmpty()) showEmpty() else showConfirmPhase()
-        } else {
-            index++
-            renderCard()
+            return
         }
+        index = next
+        renderCard()
     }
 
     private fun showConfirmPhase() {
