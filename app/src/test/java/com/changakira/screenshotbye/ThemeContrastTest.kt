@@ -130,4 +130,53 @@ class ThemeContrastTest {
             assertEquals("${palette.id} 色块与主色不符", primary, swatch)
         }
     }
+
+    /**
+     * 「换主题时字体颜色也跟着变」这条反馈的回归锁。
+     *
+     * 中性角色（底、卡片、正文、次要文字、分隔线）过去是按配色整表摊开的，米白下正文暖棕、
+     * 靛蓝下冷蓝；现在它们只在 Theme.ScreenshotBye.Base 里定义一次，五套配色共用。
+     * 所以这里断言：同一深浅色下，五套配色解析出来的中性色必须一模一样——
+     * 谁再把某个中性色塞回配色 style 里，这条就红。
+     * 反过来控件层必须五套各不相同，防止哪天把 primary 也一并「中性化」了。
+     */
+    @Test
+    fun `中性色不随主题配色变化，控件色才随主题变化`() {
+        val neutralAttrs = listOf(
+            android.R.attr.colorBackground,
+            com.google.android.material.R.attr.colorOnBackground,
+            com.google.android.material.R.attr.colorSurface,
+            com.google.android.material.R.attr.colorOnSurface,
+            com.google.android.material.R.attr.colorSurfaceVariant,
+            com.google.android.material.R.attr.colorOnSurfaceVariant,
+            com.google.android.material.R.attr.colorSurfaceContainerLowest,
+            com.google.android.material.R.attr.colorSurfaceContainerLow,
+            com.google.android.material.R.attr.colorSurfaceContainer,
+            com.google.android.material.R.attr.colorSurfaceContainerHigh,
+            com.google.android.material.R.attr.colorSurfaceContainerHighest,
+            com.google.android.material.R.attr.colorSurfaceBright,
+            com.google.android.material.R.attr.colorSurfaceDim,
+            com.google.android.material.R.attr.colorOutline,
+            com.google.android.material.R.attr.colorOutlineVariant,
+        )
+        val controlAttrs = listOf(
+            com.google.android.material.R.attr.colorPrimary,
+            com.google.android.material.R.attr.colorSecondary,
+            com.google.android.material.R.attr.colorTertiary,
+            com.google.android.material.R.attr.colorError,
+        )
+        listOf(false, true).forEach { night ->
+            withNight(night) {
+                val tag = if (night) "night" else "day"
+                neutralAttrs.forEach { attr ->
+                    val seen = Palette.entries.map { color(theme(it), attr) }
+                    assertEquals("$tag 的中性色在 5 套配色里应当只有一个值：$seen", seen.distinct().size, 1)
+                }
+                controlAttrs.forEach { attr ->
+                    val seen = Palette.entries.map { color(theme(it), attr) }
+                    assertEquals("$tag 的控件色必须跟着配色变，不能也钉成中性", seen.distinct().size, 5)
+                }
+            }
+        }
+    }
 }

@@ -2,12 +2,10 @@
 <!-- 由参考仓库 Palette.kt 的 5 套配色生成，不要手改单条数值 -->
 <resources>
     <!--
-      卡片背景：刻意不随主题配色变化，五套配色共用这一个中性色（夜间见 values-night）。
-      主题颜色只作用于按钮、旋钮等控件（colorPrimary），卡片/底衬保持中性——对齐参考仓库的观感。
+      这里只放「控件层」的 17 个角色：primary / secondary / tertiary / error 及各自的容器与前景，
+      加 inversePrimary。页面、卡片、文字、分隔线这些中性角色在 colors_neutral.xml 里，五套配色共用。
+      所以换主题只会换掉按钮、旋钮、开关的颜色，不会换掉正文的字体颜色。
     -->
-    <color name="card_surface">#EEEDEB</color>
-    <!-- 页面背景：同样不随主题配色变化，比卡片略浅一档的中性色（夜间见 values-night）。 -->
-    <color name="page_background">#F6F5F4</color>
     <color name="beige_primary">#8B7D6B</color>
     <color name="beige_onPrimary">#FFFFFF</color>
     <color name="beige_primaryContainer">#EBE8E4</color>
@@ -24,24 +22,7 @@
     <color name="beige_onError">#FFFFFF</color>
     <color name="beige_errorContainer">#F2ECE8</color>
     <color name="beige_onErrorContainer">#816C61</color>
-    <color name="beige_background">#FCFBF9</color>
-    <color name="beige_onBackground">#5C5247</color>
-    <color name="beige_surface">#FEFDFB</color>
-    <color name="beige_onSurface">#5C5247</color>
-    <color name="beige_surfaceVariant">#F2EEE8</color>
-    <color name="beige_onSurfaceVariant">#6E6558</color>
-    <color name="beige_surfaceContainerLowest">#FFFEFD</color>
-    <color name="beige_surfaceContainerLow">#FDFCFA</color>
-    <color name="beige_surfaceContainer">#FDFCFA</color>
-    <color name="beige_surfaceContainerHigh">#F8F5F1</color>
-    <color name="beige_surfaceContainerHighest">#F4F0EB</color>
-    <color name="beige_surfaceBright">#FDFCFA</color>
-    <color name="beige_surfaceDim">#CAC9C7</color>
-    <color name="beige_inverseSurface">#746B62</color>
-    <color name="beige_inverseOnSurface">#FEFEFD</color>
     <color name="beige_inversePrimary">#B4AA9F</color>
-    <color name="beige_outline">#B5B0A8</color>
-    <color name="beige_outlineVariant">#D1CCC4</color>
     <color name="beige_swatch">#8B7D6B</color>
     <!-- 米白 -->
     <color name="slate_primary">#5F7480</color>
@@ -60,24 +41,7 @@
     <color name="slate_onError">#FFFFFF</color>
     <color name="slate_errorContainer">#ECE8E9</color>
     <color name="slate_onErrorContainer">#7B6161</color>
-    <color name="slate_background">#F6F9FA</color>
-    <color name="slate_onBackground">#3F4B52</color>
-    <color name="slate_surface">#FCFDFE</color>
-    <color name="slate_onSurface">#3F4B52</color>
-    <color name="slate_surfaceVariant">#E7EEF1</color>
-    <color name="slate_onSurfaceVariant">#586670</color>
-    <color name="slate_surfaceContainerLowest">#FEFEFF</color>
-    <color name="slate_surfaceContainerLow">#FAFCFD</color>
-    <color name="slate_surfaceContainer">#F9FBFC</color>
-    <color name="slate_surfaceContainerHigh">#EFF4F6</color>
-    <color name="slate_surfaceContainerHighest">#E9F0F2</color>
-    <color name="slate_surfaceBright">#F8FAFB</color>
-    <color name="slate_surfaceDim">#C5C7C8</color>
-    <color name="slate_inverseSurface">#5A656B</color>
-    <color name="slate_inverseOnSurface">#FEFEFE</color>
     <color name="slate_inversePrimary">#97A5AC</color>
-    <color name="slate_outline">#A7B0B5</color>
-    <color name="slate_outlineVariant">#C3CCD1</color>
     <color name="slate_swatch">#5F7480</color>
     <!-- 青灰 -->
     <color name="terracotta_primary">#A96F57</color>
@@ -96,24 +60,7 @@
     <color name="terracotta_onError">#FFFFFF</color>
     <color name="terracotta_errorContainer">#F0E0DA</color>
     <color name="terracotta_onErrorContainer">#7E4437</color>
-    <color name="terracotta_background">#FBF6F3</color>
-    <color name="terracotta_onBackground">#5A4038</color>
-    <color name="terracotta_surface">#FEFAF8</color>
-    <color name="terracotta_onSurface">#5A4038</color>
-    <color name="terracotta_surfaceVariant">#F4E7E1</color>
-    <color name="terracotta_onSurfaceVariant">#7A5A4E</color>
-    <color name="terracotta_surfaceContainerLowest">#FFFDFC</color>
-    <color name="terracotta_surfaceContainerLow">#FDF9F6</color>
-    <color name="terracotta_surfaceContainer">#FCF8F6</color>
-    <color name="terracotta_surfaceContainerHigh">#F8EFEB</color>
-    <color name="terracotta_surfaceContainerHighest">#F5E9E4</color>
-    <color name="terracotta_surfaceBright">#FCF8F5</color>
-    <color name="terracotta_surfaceDim">#C9C5C2</color>
-    <color name="terracotta_inverseSurface">#725B54</color>
-    <color name="terracotta_inverseOnSurface">#FEFCFC</color>
     <color name="terracotta_inversePrimary">#C7A192</color>
-    <color name="terracotta_outline">#BAA8A0</color>
-    <color name="terracotta_outlineVariant">#D6C4BC</color>
     <color name="terracotta_swatch">#A96F57</color>
     <!-- 陶土 -->
     <color name="indigo_primary">#5C608F</color>
@@ -132,24 +79,7 @@
     <color name="indigo_onError">#FFFFFF</color>
     <color name="indigo_errorContainer">#EBE0E8</color>
     <color name="indigo_onErrorContainer">#764355</color>
-    <color name="indigo_background">#F7F7FC</color>
-    <color name="indigo_onBackground">#3D4063</color>
-    <color name="indigo_surface">#FEFEFF</color>
-    <color name="indigo_onSurface">#3D4063</color>
-    <color name="indigo_surfaceVariant">#E8E9F4</color>
-    <color name="indigo_onSurfaceVariant">#5B5F85</color>
-    <color name="indigo_surfaceContainerLowest">#FFFFFF</color>
-    <color name="indigo_surfaceContainerLow">#FCFCFE</color>
-    <color name="indigo_surfaceContainer">#FAFAFE</color>
-    <color name="indigo_surfaceContainerHigh">#F0F1F8</color>
-    <color name="indigo_surfaceContainerHighest">#EAEBF5</color>
-    <color name="indigo_surfaceBright">#F9F9FD</color>
-    <color name="indigo_surfaceDim">#C6C6CA</color>
-    <color name="indigo_inverseSurface">#595B7A</color>
-    <color name="indigo_inverseOnSurface">#FEFEFF</color>
     <color name="indigo_inversePrimary">#9598B6</color>
-    <color name="indigo_outline">#A9ABC0</color>
-    <color name="indigo_outlineVariant">#C5C6D8</color>
     <color name="indigo_swatch">#5C608F</color>
     <!-- 靛蓝 -->
     <color name="graphite_primary">#5F6368</color>
@@ -168,24 +98,7 @@
     <color name="graphite_onError">#FFFFFF</color>
     <color name="graphite_errorContainer">#E9DEDF</color>
     <color name="graphite_onErrorContainer">#713B3B</color>
-    <color name="graphite_background">#F6F6F7</color>
-    <color name="graphite_onBackground">#3C4043</color>
-    <color name="graphite_surface">#FCFCFD</color>
-    <color name="graphite_onSurface">#3C4043</color>
-    <color name="graphite_surfaceVariant">#E9EAEB</color>
-    <color name="graphite_onSurfaceVariant">#5F6368</color>
-    <color name="graphite_surfaceContainerLowest">#FEFEFE</color>
-    <color name="graphite_surfaceContainerLow">#FAFAFB</color>
-    <color name="graphite_surfaceContainer">#F9F9FA</color>
-    <color name="graphite_surfaceContainerHigh">#F0F1F2</color>
-    <color name="graphite_surfaceContainerHighest">#EBECED</color>
-    <color name="graphite_surfaceBright">#F8F8F9</color>
-    <color name="graphite_surfaceDim">#C5C5C6</color>
-    <color name="graphite_inverseSurface">#585B5E</color>
-    <color name="graphite_inverseOnSurface">#FEFEFE</color>
     <color name="graphite_inversePrimary">#979A9D</color>
-    <color name="graphite_outline">#AAACB0</color>
-    <color name="graphite_outlineVariant">#C6C8CA</color>
     <color name="graphite_swatch">#5F6368</color>
     <!-- 石墨 -->
 </resources>

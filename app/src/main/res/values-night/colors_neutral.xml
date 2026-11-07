@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 夜间的中性色阶，取值对应 PhotosManager Palette.kt 里的 dark 一组 -->
+<resources>
+    <color name="page_background">#171718</color>
+    <color name="card_surface">#2F2E30</color>
+    <color name="surface_variant">#2E2E31</color>
+    <color name="surface_container_lowest">#0E0E0F</color>
+    <color name="surface_container_low">#171718</color>
+    <color name="surface_container">#1E1E20</color>
+    <color name="surface_container_high">#262628</color>
+    <color name="surface_container_highest">#2F2E30</color>
+    <color name="surface_bright">#232325</color>
+    <color name="surface_dim">#131314</color>
+
+    <color name="ink_on_background">#E4E3E1</color>
+    <color name="ink_on_surface">#E4E3E1</color>
+    <color name="ink_on_surface_variant">#C5C4C2</color>
+
+    <color name="line_outline">#71706E</color>
+    <color name="line_outline_variant">#585857</color>
+
+    <color name="inverse_surface">#C5C5C4</color>
+    <color name="inverse_on_surface">#151513</color>
+</resources>

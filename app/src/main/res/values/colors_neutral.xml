@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  中性色阶：页面、卡片、文字、描边。五套配色共用，和主题颜色无关。
+  与孪生项目 PhotosManager 的 ui/theme/Palette.kt 里的 Neutral 一一对应，改一处要同步改另一处。
+
+  为什么单列一份：主题配色（colorPrimary 那一层）本来只该管按钮、旋钮、开关这些控件，
+  但 34 个 Material 角色是按配色整表摊开的，正文色 onSurface 也跟着带了色温——
+  米白是暖棕 #5C5247、靛蓝是冷蓝 #3D4063，换主题看着像换了字体颜色。
+  底色早就中性化了，文字没有理由还跟着走，所以这里把文字和描边也钉死成不带色温的灰阶。
+-->
+<resources>
+    <!-- 底 -->
+    <color name="page_background">#F6F5F4</color>
+    <color name="card_surface">#EEEDEB</color>
+    <color name="surface_variant">#E1E0DE</color>
+    <color name="surface_container_lowest">#FFFFFF</color>
+    <color name="surface_container_low">#F6F5F4</color>
+    <color name="surface_container">#F2F1F0</color>
+    <color name="surface_container_high">#EAE9E7</color>
+    <color name="surface_container_highest">#E3E2E1</color>
+    <color name="surface_bright">#F8F7F6</color>
+    <color name="surface_dim">#DCDBD9</color>
+
+    <!-- 文字：主文、次文都不带色温 -->
+    <color name="ink_on_background">#474645</color>
+    <color name="ink_on_surface">#474645</color>
+    <color name="ink_on_surface_variant">#656462</color>
+
+    <!-- 描边：箭头、分隔线。比正文浅两档，但在最深一层容器色上仍有 2.3:1，箭头不会糊掉 -->
+    <color name="line_outline">#9B9A97</color>
+    <color name="line_outline_variant">#CAC9C6</color>
+
+    <!-- 反色（SnackBar 一类底深字浅的地方） -->
+    <color name="inverse_surface">#666361</color>
+    <color name="inverse_on_surface">#FCFBFA</color>
+</resources>

@@ -42,7 +42,7 @@
   → 主题颜色、使用引导、事件日志、运行自检与关于。「待确认截图」是一行可点条目，不再套一层卡片。
 - **二级页面**：待确认截图（逐个确认）、使用引导、事件日志、运行自检、关于。
 
-主题配色只作用于按钮、旋钮等控件（`colorPrimary`）；卡片背景固定为一个中性色，不随配色变化——和参考仓库一致。
+主题配色只作用于按钮、旋钮等控件（`colorPrimary` 那一层）；页面、卡片、文字、分隔线走一套中性色阶，五套配色共用（`res/values/colors_neutral.xml`），换主题不会连字体颜色一起换——和参考仓库一致。
 
 删除默认只有一条路：系统相册的回收站（Android 10 及以下没有回收站）。想少一次系统弹窗，
 设置页第二卡有一行 `无感删除`，跳去系统页面手动授予 `MANAGE_EXTERNAL_STORAGE`，此后删除当场生效、不再弹确认框。
@@ -110,8 +110,20 @@ v1.0.3 把这个档位**撤掉了**：声音、震动、横幅、锁屏显示本
 直接安装 [ScreenshotBye-v1.0.12.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.12/ScreenshotBye-v1.0.12.apk)
 （release 签名，minSdk 26 / Android 8.0 起）。v1.0.1 起都是同一把密钥，**直接覆盖安装即可**，待确认清单和设置都保留。
 
-v1.0.12 把 v1.0.11 那句「本机实测去向」也撤了——因为它同样是一句我们没资格说的话：
+未发布（先攒着，凑够几条一起发下一版）：
 
+- **字体颜色不再跟着主题配色走**。之前 34 个 Material 角色是按配色整表摊开的，正文色 `colorOnSurface`
+  在米白下是暖棕 `#5C5247`、靛蓝下是冷蓝 `#3D4063`，换主题看着像连字一起换了。底色和卡片早就中性化了，
+  文字没有理由还跟着走。现在每套配色的 style 里只留控件层那 17 个角色（primary / secondary / tertiary / error
+  及各自容器与前景，加 `colorPrimaryInverse`），页面、卡片、各级容器、正文、次要文字、分隔线这 17 个中性角色
+  统一写在 `Theme.ScreenshotBye.Base`，取值来自新增的 `colors_neutral.xml`（夜间同名文件），五套配色共用。
+- **顺手清掉 `colors_palettes.xml` 里不再被引用的中性色**（每套配色 17 条，日、夜两份各删 85 条），
+  少一处「改了没生效」的坑。取值与孪生项目 PhotosManager 的 `ui/theme/Palette.kt` 里的 `Neutral` 一一对应，
+  改一处要同步改另一处。
+- 箭头用的 `outline` 比原先略深一点（`#9B9A97`），因为中性化的容器色比原来的米色阶深一档，
+  原来的浅灰箭头在最深一层卡片上只剩 1.8:1，会糊掉；单元测试里那条 1.9:1 的下限现在才真的守住。
+
+v1.0.12 把 v1.0.11 那句「本机实测去向」也撤了——因为它同样是一句我们没资格说的话：
 - **回查那一行分辨不了「进了回收站」**。有用户反馈：手机是会把删除的截图放回回收站的，界面上却写着「直接删除」。
   原因在 ROM 的实现方式：小米这类系统把第三方应用删掉的文件挪进 `DCIM/.globalTrash`（或 `MIUI/Gallery/Cloud/.trashbin`）
   这样的目录，同时**把 MediaStore 那一行整条删掉**，而那些目录不在媒体库索引范围内。于是「真删」和「挪进回收站」
@@ -343,8 +355,9 @@ app/src/main/java/com/changakira/screenshotbye/
                LogActivity, DiagnosticsActivity, OnboardingActivity(首次引导),
                DeleteConfirmActivity(系统删除确认中转), Adapters, Thumbs,
                ThemedActivity(在 super.onCreate 前 setTheme), theme/Palette(五套配色), widget/DetentDial(固定档位旋钮)
-app/src/main/res/ values/colors_palettes.xml + values-night/colors_palettes.xml(每套配色的亮暗两份色表),
-               values/themes.xml(一套配色一个 style), values/bools.xml + values-night/bools.xml(状态栏图标明暗)
+app/src/main/res/ values/colors_palettes.xml + values-night/colors_palettes.xml(每套配色控件层的亮暗两份色表),
+               values/colors_neutral.xml + values-night/colors_neutral.xml(五套共用的中性色阶，取值与 PhotosManager 的 Palette.kt 同步),
+               values/themes.xml(中性层只写在 Base，一套配色一个 style、只覆盖控件层), values/bools.xml + values-night/bools.xml(状态栏图标明暗)
 app/src/test/java/com/changakira/screenshotbye/
                AppSmokeTest(启动路径、队列、提醒)、UiReflowTest(档位吸附、设置页/日志页真起来、配色在 onCreate 前生效)
 ```

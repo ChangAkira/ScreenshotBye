@@ -12,6 +12,28 @@
         <item name="android:navigationBarColor">@color/page_background</item>
         <item name="android:windowLightStatusBar">@bool/light_status_bar</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">@bool/light_status_bar</item>
+        <!--
+          中性层只在这里定义一次，五套配色共用：页面、卡片、文字、描边都不带色温。
+          配色 style 里只留控件层（primary / secondary / tertiary / error / inversePrimary），
+          换主题时变的只有按钮、旋钮、开关这些控件。与 PhotosManager 的 Palette.kt 同步。
+        -->
+        <item name="android:colorBackground">@color/page_background</item>
+        <item name="colorOnBackground">@color/ink_on_background</item>
+        <item name="colorSurface">@color/card_surface</item>
+        <item name="colorOnSurface">@color/ink_on_surface</item>
+        <item name="colorSurfaceVariant">@color/surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/ink_on_surface_variant</item>
+        <item name="colorSurfaceContainerLowest">@color/surface_container_lowest</item>
+        <item name="colorSurfaceContainerLow">@color/surface_container_low</item>
+        <item name="colorSurfaceContainer">@color/surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/surface_container_high</item>
+        <item name="colorSurfaceContainerHighest">@color/surface_container_highest</item>
+        <item name="colorSurfaceBright">@color/surface_bright</item>
+        <item name="colorSurfaceDim">@color/surface_dim</item>
+        <item name="colorSurfaceInverse">@color/inverse_surface</item>
+        <item name="colorOnSurfaceInverse">@color/inverse_on_surface</item>
+        <item name="colorOutline">@color/line_outline</item>
+        <item name="colorOutlineVariant">@color/line_outline_variant</item>
         <item name="android:textColorLink">?attr/colorPrimary</item>
     </style>
 
@@ -32,24 +54,7 @@
         <item name="colorOnError">@color/beige_onError</item>
         <item name="colorErrorContainer">@color/beige_errorContainer</item>
         <item name="colorOnErrorContainer">@color/beige_onErrorContainer</item>
-        <item name="android:colorBackground">@color/beige_background</item>
-        <item name="colorOnBackground">@color/beige_onBackground</item>
-        <item name="colorSurface">@color/beige_surface</item>
-        <item name="colorOnSurface">@color/beige_onSurface</item>
-        <item name="colorSurfaceVariant">@color/beige_surfaceVariant</item>
-        <item name="colorOnSurfaceVariant">@color/beige_onSurfaceVariant</item>
-        <item name="colorSurfaceContainerLowest">@color/beige_surfaceContainerLowest</item>
-        <item name="colorSurfaceContainerLow">@color/beige_surfaceContainerLow</item>
-        <item name="colorSurfaceContainer">@color/beige_surfaceContainer</item>
-        <item name="colorSurfaceContainerHigh">@color/beige_surfaceContainerHigh</item>
-        <item name="colorSurfaceContainerHighest">@color/beige_surfaceContainerHighest</item>
-        <item name="colorSurfaceBright">@color/beige_surfaceBright</item>
-        <item name="colorSurfaceDim">@color/beige_surfaceDim</item>
-        <item name="colorSurfaceInverse">@color/beige_inverseSurface</item>
-        <item name="colorOnSurfaceInverse">@color/beige_inverseOnSurface</item>
         <item name="colorPrimaryInverse">@color/beige_inversePrimary</item>
-        <item name="colorOutline">@color/beige_outline</item>
-        <item name="colorOutlineVariant">@color/beige_outlineVariant</item>
     </style>
     <!-- 默认配色就是米白；换主题由 ThemedActivity 在 onCreate 前 setTheme 覆盖 -->
     <style name="Theme.ScreenshotBye" parent="Theme.ScreenshotBye.Beige" />
@@ -70,24 +75,7 @@
         <item name="colorOnError">@color/slate_onError</item>
         <item name="colorErrorContainer">@color/slate_errorContainer</item>
         <item name="colorOnErrorContainer">@color/slate_onErrorContainer</item>
-        <item name="android:colorBackground">@color/slate_background</item>
-        <item name="colorOnBackground">@color/slate_onBackground</item>
-        <item name="colorSurface">@color/slate_surface</item>
-        <item name="colorOnSurface">@color/slate_onSurface</item>
-        <item name="colorSurfaceVariant">@color/slate_surfaceVariant</item>
-        <item name="colorOnSurfaceVariant">@color/slate_onSurfaceVariant</item>
-        <item name="colorSurfaceContainerLowest">@color/slate_surfaceContainerLowest</item>
-        <item name="colorSurfaceContainerLow">@color/slate_surfaceContainerLow</item>
-        <item name="colorSurfaceContainer">@color/slate_surfaceContainer</item>
-        <item name="colorSurfaceContainerHigh">@color/slate_surfaceContainerHigh</item>
-        <item name="colorSurfaceContainerHighest">@color/slate_surfaceContainerHighest</item>
-        <item name="colorSurfaceBright">@color/slate_surfaceBright</item>
-        <item name="colorSurfaceDim">@color/slate_surfaceDim</item>
-        <item name="colorSurfaceInverse">@color/slate_inverseSurface</item>
-        <item name="colorOnSurfaceInverse">@color/slate_inverseOnSurface</item>
         <item name="colorPrimaryInverse">@color/slate_inversePrimary</item>
-        <item name="colorOutline">@color/slate_outline</item>
-        <item name="colorOutlineVariant">@color/slate_outlineVariant</item>
     </style>
     <style name="Theme.ScreenshotBye.Terracotta" parent="Theme.ScreenshotBye.Base">
         <item name="colorPrimary">@color/terracotta_primary</item>
@@ -106,24 +94,7 @@
         <item name="colorOnError">@color/terracotta_onError</item>
         <item name="colorErrorContainer">@color/terracotta_errorContainer</item>
         <item name="colorOnErrorContainer">@color/terracotta_onErrorContainer</item>
-        <item name="android:colorBackground">@color/terracotta_background</item>
-        <item name="colorOnBackground">@color/terracotta_onBackground</item>
-        <item name="colorSurface">@color/terracotta_surface</item>
-        <item name="colorOnSurface">@color/terracotta_onSurface</item>
-        <item name="colorSurfaceVariant">@color/terracotta_surfaceVariant</item>
-        <item name="colorOnSurfaceVariant">@color/terracotta_onSurfaceVariant</item>
-        <item name="colorSurfaceContainerLowest">@color/terracotta_surfaceContainerLowest</item>
-        <item name="colorSurfaceContainerLow">@color/terracotta_surfaceContainerLow</item>
-        <item name="colorSurfaceContainer">@color/terracotta_surfaceContainer</item>
-        <item name="colorSurfaceContainerHigh">@color/terracotta_surfaceContainerHigh</item>
-        <item name="colorSurfaceContainerHighest">@color/terracotta_surfaceContainerHighest</item>
-        <item name="colorSurfaceBright">@color/terracotta_surfaceBright</item>
-        <item name="colorSurfaceDim">@color/terracotta_surfaceDim</item>
-        <item name="colorSurfaceInverse">@color/terracotta_inverseSurface</item>
-        <item name="colorOnSurfaceInverse">@color/terracotta_inverseOnSurface</item>
         <item name="colorPrimaryInverse">@color/terracotta_inversePrimary</item>
-        <item name="colorOutline">@color/terracotta_outline</item>
-        <item name="colorOutlineVariant">@color/terracotta_outlineVariant</item>
     </style>
     <style name="Theme.ScreenshotBye.Indigo" parent="Theme.ScreenshotBye.Base">
         <item name="colorPrimary">@color/indigo_primary</item>
@@ -142,24 +113,7 @@
         <item name="colorOnError">@color/indigo_onError</item>
         <item name="colorErrorContainer">@color/indigo_errorContainer</item>
         <item name="colorOnErrorContainer">@color/indigo_onErrorContainer</item>
-        <item name="android:colorBackground">@color/indigo_background</item>
-        <item name="colorOnBackground">@color/indigo_onBackground</item>
-        <item name="colorSurface">@color/indigo_surface</item>
-        <item name="colorOnSurface">@color/indigo_onSurface</item>
-        <item name="colorSurfaceVariant">@color/indigo_surfaceVariant</item>
-        <item name="colorOnSurfaceVariant">@color/indigo_onSurfaceVariant</item>
-        <item name="colorSurfaceContainerLowest">@color/indigo_surfaceContainerLowest</item>
-        <item name="colorSurfaceContainerLow">@color/indigo_surfaceContainerLow</item>
-        <item name="colorSurfaceContainer">@color/indigo_surfaceContainer</item>
-        <item name="colorSurfaceContainerHigh">@color/indigo_surfaceContainerHigh</item>
-        <item name="colorSurfaceContainerHighest">@color/indigo_surfaceContainerHighest</item>
-        <item name="colorSurfaceBright">@color/indigo_surfaceBright</item>
-        <item name="colorSurfaceDim">@color/indigo_surfaceDim</item>
-        <item name="colorSurfaceInverse">@color/indigo_inverseSurface</item>
-        <item name="colorOnSurfaceInverse">@color/indigo_inverseOnSurface</item>
         <item name="colorPrimaryInverse">@color/indigo_inversePrimary</item>
-        <item name="colorOutline">@color/indigo_outline</item>
-        <item name="colorOutlineVariant">@color/indigo_outlineVariant</item>
     </style>
     <style name="Theme.ScreenshotBye.Graphite" parent="Theme.ScreenshotBye.Base">
         <item name="colorPrimary">@color/graphite_primary</item>
@@ -178,24 +132,7 @@
         <item name="colorOnError">@color/graphite_onError</item>
         <item name="colorErrorContainer">@color/graphite_errorContainer</item>
         <item name="colorOnErrorContainer">@color/graphite_onErrorContainer</item>
-        <item name="android:colorBackground">@color/graphite_background</item>
-        <item name="colorOnBackground">@color/graphite_onBackground</item>
-        <item name="colorSurface">@color/graphite_surface</item>
-        <item name="colorOnSurface">@color/graphite_onSurface</item>
-        <item name="colorSurfaceVariant">@color/graphite_surfaceVariant</item>
-        <item name="colorOnSurfaceVariant">@color/graphite_onSurfaceVariant</item>
-        <item name="colorSurfaceContainerLowest">@color/graphite_surfaceContainerLowest</item>
-        <item name="colorSurfaceContainerLow">@color/graphite_surfaceContainerLow</item>
-        <item name="colorSurfaceContainer">@color/graphite_surfaceContainer</item>
-        <item name="colorSurfaceContainerHigh">@color/graphite_surfaceContainerHigh</item>
-        <item name="colorSurfaceContainerHighest">@color/graphite_surfaceContainerHighest</item>
-        <item name="colorSurfaceBright">@color/graphite_surfaceBright</item>
-        <item name="colorSurfaceDim">@color/graphite_surfaceDim</item>
-        <item name="colorSurfaceInverse">@color/graphite_inverseSurface</item>
-        <item name="colorOnSurfaceInverse">@color/graphite_inverseOnSurface</item>
         <item name="colorPrimaryInverse">@color/graphite_inversePrimary</item>
-        <item name="colorOutline">@color/graphite_outline</item>
-        <item name="colorOutlineVariant">@color/graphite_outlineVariant</item>
     </style>
 
     <style name="Theme.Translucent" parent="Theme.ScreenshotBye.Beige">
