@@ -65,12 +65,18 @@ class DetentDial @JvmOverloads constructor(
          * 按下时必须让给页面滚动，不能被旋钮吃掉。
          */
         const val ARC_SLACK = 12f
+
+        /** 没在 XML 里指定 ∞ 档位时的哨兵值；任何档位都不会等于它 */
+        const val NO_INFINITY = Int.MIN_VALUE
     }
 
     private var presets = intArrayOf(1, 2, 3)
     private var index = 0
     private var label: String? = null
     private var unit = ""
+
+    /** 等于这个值的档位画成 ∞ 而不是数字（「默认保留」存 0 表示无限天）；没指定时是 NO_INFINITY */
+    private var infinityValue = NO_INFINITY
     private var onValueChange: ((Int) -> Unit)? = null
     private var lastTickAt = 0L
 
@@ -119,7 +125,7 @@ class DetentDial @JvmOverloads constructor(
         override fun onPopulateNodeForVirtualView(id: Int, node: AccessibilityNodeInfoCompat) {
             val box = box()
             node.setBoundsInParent(hitRect(id, box))
-            node.contentDescription = context.getString(R.string.dial_value_desc, presets[id], unit)
+            node.contentDescription = context.getString(R.string.dial_value_desc, textFor(presets[id]), unit)
             node.isCheckable = true
             node.isChecked = id == index
             node.setCollectionItemInfo(CollectionItemInfoCompat.obtain(id, 1, 0, presets.size, false, false))
@@ -140,6 +146,7 @@ class DetentDial @JvmOverloads constructor(
             val a = context.obtainStyledAttributes(attrs, R.styleable.DetentDial)
             label = a.getString(R.styleable.DetentDial_dialLabel)
             unit = a.getString(R.styleable.DetentDial_dialUnit) ?: ""
+            infinityValue = a.getInt(R.styleable.DetentDial_dialInfinityValue, NO_INFINITY)
             parsePresets(a.getString(R.styleable.DetentDial_dialPresets))?.let { presets = it }
             a.recycle()
         }
@@ -272,13 +279,13 @@ class DetentDial @JvmOverloads constructor(
             detentText.color = if (it == index) primary else faintText
             detentText.alpha = if (it == index) 255 else 140 // 0.55
             detentText.isFakeBoldText = it == index
-            canvas.drawText(presets[it].toString(), anchor[0], anchor[1] + detentSize / 3f, detentText)
+            canvas.drawText(textFor(presets[it]), anchor[0], anchor[1] + detentSize / 3f, detentText)
         }
 
         val big = dial * 0.147f
         centerText.color = primary
         centerText.textSize = big
-        canvas.drawText(presets[index].toString(), cx, cy + big / 3f, centerText)
+        canvas.drawText(textFor(presets[index]), cx, cy + big / 3f, centerText)
 
         val small = dial * 0.068f
         unitText.color = faintText
@@ -356,9 +363,19 @@ class DetentDial @JvmOverloads constructor(
 
     private fun describe(): String {
         val l = label
-        return if (l != null) context.getString(R.string.dial_desc_with_label, l, presets[index], unit)
-        else context.getString(R.string.dial_desc, presets[index], unit)
+        return if (l != null) context.getString(R.string.dial_desc_with_label, l, textFor(presets[index]), unit)
+        else context.getString(R.string.dial_desc, textFor(presets[index]), unit)
     }
+
+    /**
+     * 档位值怎么显示。绝大多数档位就是数字；[infinityValue] 那一档画成 ∞——
+     * 「默认保留」存的是 0，意思是"无限天后自动保留"，写成 0 反而像"0 天就出队"。
+     */
+    private fun textFor(v: Int): String =
+        if (v != NO_INFINITY && v == infinityValue) context.getString(R.string.dial_infinity) else v.toString()
+
+    /** 给测试和无障碍用：某个档位值在界面上的读数（∞ 档返回「∞」）。 */
+    fun displayText(v: Int): String = textFor(v)
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {

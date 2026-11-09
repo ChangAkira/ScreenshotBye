@@ -230,8 +230,9 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            app:dialInfinityValue="0"
                             app:dialLabel="@string/dial_keep_default"
-                            app:dialPresets="0,1,3,5,7"
+                            app:dialPresets="1,3,5,7,0"
                             app:dialUnit="@string/unit_days" />
                     </LinearLayout>
 

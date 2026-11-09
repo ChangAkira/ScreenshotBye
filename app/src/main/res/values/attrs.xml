@@ -7,5 +7,7 @@
         <attr name="dialUnit" format="string" />
         <!-- 档位：逗号分隔的整数，至少两个；只有这些值可选，手指怎么滑都吸附到最近的一格 -->
         <attr name="dialPresets" format="string" />
+        <!-- 哪一档要画成 ∞ 而不是数字（例如「默认保留」存 0 表示无限天）。不填就是普通数字。 -->
+        <attr name="dialInfinityValue" format="integer" />
     </declare-styleable>
 </resources>

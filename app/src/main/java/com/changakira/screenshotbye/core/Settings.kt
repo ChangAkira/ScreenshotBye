@@ -24,11 +24,21 @@ class Settings private constructor(private val sp: SharedPreferences) {
          * 旧版本存的是 1–60 / 0–120 这种连续值，读取时一律吸附到最近的一格，不做迁移脚本。
          */
         val DELAY_PRESETS = listOf(2, 5, 15, 30, 90)
-        val EXPIRY_PRESETS = listOf(0, 1, 3, 5, 7)
+
+        /**
+         * 「默认保留」的档位，顺序就是旋钮上从左到右的顺序。
+         * 末尾的 0 不是"0 天就出队"，而是不设到期——界面上画成 ∞（无限天后自动保留），
+         * 放在最右一档，跟其它档位一样"越往右等得越久"。存进 SharedPreferences 的仍是 0。
+         */
+        val EXPIRY_PRESETS = listOf(1, 3, 5, 7, 0)
         val REPEAT_PRESETS = listOf(1, 2, 5, 10, 20)
         val MAX_TIMES_PRESETS = listOf(0, 1, 2)
 
-        /** 吸附到最近的一格。档位升序遍历 + 严格小于，平局时留下较小的那一档。 */
+        /**
+         * 吸附到最近的一格：按列表顺序遍历 + 严格小于，平局时留下先出现的那一档。
+         * 档位基本升序，所以平局就是"留下较小的那档"；EXPIRY_PRESETS 里代表 ∞ 的 0 排在最后，
+         * 只在它和别的档位等距时才影响取舍，而它只可能靠 1 最近，实际不会碰到。
+         */
         fun nearest(value: Int, presets: List<Int>): Int {
             var best = presets.first()
             var bestGap = Int.MAX_VALUE
@@ -101,7 +111,7 @@ class Settings private constructor(private val sp: SharedPreferences) {
         get() = nearest(sp.getInt(K_ALERT_MAX, DEFAULT_ALERT_MAX_TIMES), MAX_TIMES_PRESETS)
         set(v) = sp.edit().putInt(K_ALERT_MAX, nearest(v, MAX_TIMES_PRESETS)).apply()
 
-    /** 一直不回答的询问过多少天按「保留」处理；0 表示继续等待处理，不过期。 */
+    /** 一直不回答的询问过多少天按「保留」处理；EXPIRY_PRESETS 末尾那个 0 表示无限期等着（界面上是 ∞）。 */
     var askExpiryDays: Int
         get() = nearest(sp.getInt(K_ASK_EXPIRY, DEFAULT_ASK_EXPIRY_DAYS), EXPIRY_PRESETS)
         set(v) = sp.edit().putInt(K_ASK_EXPIRY, nearest(v, EXPIRY_PRESETS)).apply()

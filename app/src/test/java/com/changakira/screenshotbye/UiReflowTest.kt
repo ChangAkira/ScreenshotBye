@@ -76,7 +76,8 @@ class UiReflowTest {
     @Test
     fun `可调项只有那几档，读写都会吸附`() {
         assertEquals(listOf(2, 5, 15, 30, 90), Settings.DELAY_PRESETS)
-        assertEquals(listOf(0, 1, 3, 5, 7), Settings.EXPIRY_PRESETS)
+        // 「默认保留」末尾那个 0 排在最后：它是 ∞（无限天），界面上就在最右一档，值照旧存 0
+        assertEquals(listOf(1, 3, 5, 7, 0), Settings.EXPIRY_PRESETS)
         assertEquals(listOf(1, 2, 5, 10, 20), Settings.REPEAT_PRESETS)
         assertEquals(listOf(0, 1, 2), Settings.MAX_TIMES_PRESETS)
 
@@ -207,7 +208,7 @@ class UiReflowTest {
             ctx.getString(R.string.log_empty),
             activity.findViewById<android.widget.TextView>(R.id.logText).text.toString()
         )
-        Settings.of(ctx).appendLog("监控已开启")
+        Settings.of(ctx).appendLog("后台检查已开启")
         val second = Robolectric.buildActivity(LogActivity::class.java).setup().get()
         val text = second.findViewById<android.widget.TextView>(R.id.logText).text.toString()
         assertFalse(text.isBlank())
@@ -454,7 +455,7 @@ class UiReflowTest {
             R.string.act_snooze to "稍后",
             R.string.act_snooze_all to "全部稍后",
             R.string.notif_handle_now to "去处理",
-            R.string.notif_stop_watch to "停止监控",
+            R.string.notif_stop_watch to "停止检查",
         ).forEach { (res, want) ->
             assertEquals(want, ctx.getString(res))
             assertTrue("「${ctx.getString(res)}」太长", ctx.getString(res).length <= 4)
@@ -727,5 +728,44 @@ class UiReflowTest {
         assertNotNull("图片解不出来时得改抽一帧视频", bitmap)
         assertEquals(64, bitmap!!.width)
         assertEquals(96, bitmap.height)
+    }
+
+    // ---- 文案措辞与 ∞ 档位 ----
+
+    @Test
+    fun `界面文案里不出现监控、监听、看门狗这类词`() {
+        // 通知栏、日志页、自检页上的每一个字用户都会看到。「正在监控截图」这种说法
+        // 会让人以为应用在盯着屏幕，统一改成「后台检查」「自动恢复」。
+        val banned = listOf("监控", "监听", "看门狗", "盯着")
+        val offenders = mutableListOf<String>()
+        R.string::class.java.fields.filter { it.type == Int::class.javaPrimitiveType }.forEach { f ->
+            val value = runCatching { ctx.getString(f.getInt(null)) }.getOrNull() ?: return@forEach
+            if (banned.any { value.contains(it) }) offenders.add("string/${f.name}")
+        }
+        R.array::class.java.fields.filter { it.type == Int::class.javaPrimitiveType }.forEach { f ->
+            val values = runCatching { ctx.resources.getStringArray(f.getInt(null)) }.getOrNull() ?: return@forEach
+            values.filter { line -> banned.any { line.contains(it) } }
+                .forEach { offenders.add("array/${f.name}: $it") }
+        }
+        assertTrue("还有吓人的措辞：$offenders", offenders.isEmpty())
+    }
+
+    @Test
+    fun `默认保留最右一档画成 ∞，存的值仍然是 0`() {
+        // 0 的语义是「不设到期，一直等」，写成数字 0 看着像「0 天就出队」。
+        // 现在它排在档位最后（最右，越往右等得越久），界面上画 ∞，SharedPreferences 里照旧存 0。
+        assertEquals(listOf(1, 3, 5, 7, 0), Settings.EXPIRY_PRESETS)
+        val activity = Robolectric.buildActivity(SettingsActivity::class.java).setup().get()
+        val dial = activity.findViewById<DetentDial>(R.id.keepDial)
+        dial.value = 0
+        assertEquals("∞ 档的值还是 0，出队判断照旧看 > 0", 0, dial.value)
+        assertEquals(ctx.getString(R.string.dial_infinity), dial.displayText(0))
+        assertEquals("普通档位照旧是数字", "3", dial.displayText(3))
+        // 读屏念的是 contentDescription，不能念成「0 天后」
+        assertTrue("读数要带 ∞：$dial.contentDescription", dial.contentDescription.contains(ctx.getString(R.string.dial_infinity)))
+        val s = Settings.of(ctx)
+        s.askExpiryDays = 3
+        s.askExpiryDays = 0
+        assertEquals("0 档必须原样留在 0，不能被吸到 1", 0, s.askExpiryDays)
     }
 }

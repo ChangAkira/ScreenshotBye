@@ -3,15 +3,15 @@
     <string name="app_name">ScreenshotBye</string>
 
     <!-- 通知渠道 -->
-    <string name="ch_service">监控状态</string>
-    <string name="ch_service_desc">显示后台监控是否在运行</string>
+    <string name="ch_service">新截图提醒</string>
+    <string name="ch_service_desc">应用在后台运行，到点了来问你要不要留这些截图</string>
     <string name="ch_review">截图待确认</string>
     <string name="ch_review_desc">询问是否还需要截图；声音、震动、横幅在系统设置里改</string>
 
     <!-- 通知文案 -->
-    <string name="notif_watch_on">正在监控截图</string>
-    <string name="notif_watch_on_pending">正在监控 · %1$d 张待确认</string>
-    <string name="notif_watch_off">监控已暂停</string>
+    <string name="notif_watch_on">正在检查新截图</string>
+    <string name="notif_watch_on_pending">正在检查 · %1$d 张待确认</string>
+    <string name="notif_watch_off">检查已暂停</string>
     <string name="notif_handle_now">去处理</string>
     <string name="notif_test_title">测试提醒</string>
     <string name="notif_test_body">看到这条说明渠道通；没动静就去系统通知设置里查声音和横幅</string>
@@ -29,9 +29,9 @@
     <string name="notif_confirm_body_multi">%1$d 张要你亲自确认删除，点按打开对话框</string>
     <string name="notif_deleted_title">已删除</string>
     <string name="notif_deleted_body">%1$s 已删除</string>
-    <string name="notif_recovery_title">监控已停止</string>
+    <string name="notif_recovery_title">后台检查已停止</string>
     <string name="notif_recovery_body">系统限制了后台自启，点按重新开启</string>
-    <string name="notif_stop_watch">停止监控</string>
+    <string name="notif_stop_watch">停止检查</string>
 
     <!-- 主界面 -->
     <string name="main_watch_switch">启用服务</string>
@@ -53,10 +53,10 @@
     <string name="home_open_settings">设置</string>
     <string name="home_open">打开</string>
     <string name="home_battery_title">电池优化</string>
-    <string name="home_battery_body">设为「无限制」，否则监控被系统清掉后到点的提醒发不出来</string>
+    <string name="home_battery_body">设为「无限制」，否则后台检查被系统清掉后，到点的提醒发不出来</string>
     <string name="home_battery_settings">前往设置</string>
     <string name="home_autostart_title">自启动</string>
-    <string name="home_autostart_body">请允许自启动与后台活动，否则监控会被杀掉</string>
+    <string name="home_autostart_body">请允许自启动与后台活动，否则后台检查会被杀掉</string>
 
     <!-- 设置页 -->
     <string name="settings_title">设置</string>
@@ -157,23 +157,23 @@
     <string name="log_expired_keep">超过 %1$d 天未回答，按保留处理：%2$s</string>
     <string name="log_confirm_timeout">系统确认超时，退回待确认：%1$s</string>
     <string name="log_rules_updated">识别规则已更新</string>
-    <string name="log_watch_on">监控已开启</string>
-    <string name="log_watch_off">监控已关闭</string>
-    <string name="log_service_stopped">监控服务已停止</string>
+    <string name="log_watch_on">后台检查已开启</string>
+    <string name="log_watch_off">后台检查已关闭</string>
+    <string name="log_service_stopped">后台检查已停止</string>
     <string name="log_baseline_set">已设定检测基线，只处理此后新增的截图</string>
-    <string name="log_register_observer_failed">注册相册监听失败：%1$s</string>
+    <string name="log_register_observer_failed">注册相册变化通知失败：%1$s</string>
     <string name="log_query_failed">读取相册失败：%1$s</string>
-    <string name="log_channel_service_failed">监控渠道创建失败：%1$s</string>
+    <string name="log_channel_service_failed">通知渠道创建失败：%1$s</string>
     <string name="log_channel_review_failed">提醒渠道创建失败：%1$s</string>
     <string name="log_unknown_action">未知通知动作：%1$s</string>
     <string name="log_action_failed">处理通知动作失败：%1$s</string>
     <string name="log_dismissed_reschedule">询问通知被划掉，已安排补提醒</string>
-    <string name="log_watchdog_restarted">看门狗：已重新拉起监控</string>
-    <string name="log_watchdog_failed">看门狗：拉起失败，需手动恢复（%1$s）</string>
-    <string name="log_watchdog_schedule_failed">看门狗排期失败：%1$s</string>
+    <string name="log_watchdog_restarted">自动恢复：后台检查已重新拉起</string>
+    <string name="log_watchdog_failed">自动恢复：拉起失败，需手动恢复（%1$s）</string>
+    <string name="log_watchdog_schedule_failed">自动恢复排期失败：%1$s</string>
     <string name="log_theme_changed">主题颜色切换为 %1$s</string>
-    <string name="log_onboarding_enabled">引导完成后开启监控</string>
-    <string name="log_boot_restored">开机自启：监控已恢复</string>
+    <string name="log_onboarding_enabled">引导完成后开启后台检查</string>
+    <string name="log_boot_restored">开机自启：后台检查已恢复</string>
 
     <!-- 删除失败原因 -->
     <string name="err_need_write_perm">缺少存储写入权限，删不掉</string>
@@ -184,9 +184,11 @@
     <string name="err_record_gone">这条记录已经处理过了</string>
 
     <!-- 旋钮无障碍描述 -->
-    <string name="dial_desc_with_label">%1$s，当前 %2$d %3$s</string>
-    <string name="dial_desc">当前 %1$d %2$s</string>
-    <string name="dial_value_desc">%1$d %2$s</string>
+    <string name="dial_desc_with_label">%1$s，当前 %2$s %3$s</string>
+    <string name="dial_desc">当前 %1$s %2$s</string>
+    <string name="dial_value_desc">%1$s %2$s</string>
+    <!-- 旋钮档位读数：「默认保留」最后一档存的是 0，界面上画成 ∞（无限天） -->
+    <string name="dial_infinity" translatable="false">∞</string>
     <string name="dial_error_two_presets">DetentDial 至少需要两个档位</string>
 
     <!-- 自检报告 -->
@@ -202,7 +204,7 @@
     <string name="diag_mark_bad" translatable="false">✗</string>
     <string name="diag_sec_notify">通知能不能出来</string>
     <string name="diag_sec_crash">上次未捕获异常</string>
-    <string name="diag_sec_watch">监控是否在跑</string>
+    <string name="diag_sec_watch">后台检查是否在跑</string>
     <string name="diag_sec_perms">权限</string>
     <string name="diag_sec_throttle">提醒节流</string>
     <string name="diag_sec_queue">待确认队列（%1$d）</string>
@@ -218,7 +220,7 @@
     <string name="diag_row_all_files">所有文件访问（无感删除）</string>
     <string name="diag_row_battery">电池优化白名单</string>
     <string name="diag_detail_notify_off">本应用通知已关</string>
-    <string name="diag_detail_service_down">服务没在跑，看门狗会尝试拉起</string>
+    <string name="diag_detail_service_down">服务没在跑，自动恢复任务会尝试拉起</string>
     <string name="diag_detail_no_write_perm">没有写权限就删不掉</string>
     <string name="diag_detail_all_files_on">已授予 · 删除不弹系统确认框</string>
     <string name="diag_detail_all_files_off">删除要经系统弹窗确认</string>
@@ -226,14 +228,14 @@
     <string name="diag_channel_note1">声音、震动、横幅、锁屏显示都归这条渠道管，在系统通知设置里改。</string>
     <string name="diag_channel_note2">「发送测试提醒」走同一条渠道真发一条，用来区分「应用没发」还是「系统压掉了」。</string>
     <string name="diag_crash_note">（复制整份报告反馈即可，比界面截图有用）</string>
-    <string name="diag_last_observer">最近一次相册监听回调：%1$s</string>
+    <string name="diag_last_observer">最近一次相册变化：%1$s</string>
     <string name="diag_last_scan">最近一次扫描：%1$s</string>
     <string name="diag_watermark">检测水位线（DATE_ADDED）：%1$s</string>
     <string name="diag_newest_unreadable">相册最新条目：读不到（缺媒体权限或被系统拒绝）</string>
     <string name="diag_newest">相册最新条目：%1$s（水位线滞后 %2$d 秒）</string>
     <string name="diag_seen_count">已登记媒体 id 数：%1$d</string>
     <string name="diag_work_retry">定时任务：%1$s</string>
-    <string name="diag_work_watchdog">看门狗：%1$s</string>
+    <string name="diag_work_watchdog">自动恢复任务：%1$s</string>
     <string name="diag_work_unscheduled">未排期</string>
     <string name="diag_work_query_failed">查询失败</string>
     <string name="diag_throttle_first">首次询问：入库后 %1$d 分钟</string>
@@ -243,7 +245,7 @@
     <string name="diag_repeat_times">%1$d 次</string>
     <string name="diag_throttle_last_alert">上次出声提醒：%1$s</string>
     <string name="diag_keep">默认保留：%1$s</string>
-    <string name="diag_keep_wait">继续等待处理，不会自动出队</string>
+    <string name="diag_keep_wait">∞：一直等着，不会自动按保留出队</string>
     <string name="diag_keep_days">%1$d 天没回答就当作保留</string>
     <string name="diag_queue_empty">空</string>
     <string name="diag_queue_item">#%1$d %2$s · %3$s · 到期 %4$s · 已提醒 %5$d 次</string>
@@ -290,7 +292,7 @@
     <string name="onb_next">下一步</string>
     <string name="onb_prev">上一步</string>
     <string name="onb_start">开始使用</string>
-    <string name="onb_enable_now">现在就开启后台监控</string>
+    <string name="onb_enable_now">现在就开启后台检查</string>
     <string name="onb_enable_hint">开启后通知栏有一条常驻通知；国产 ROM 还要在系统里允许自启动</string>
 
     <string-array name="onb_titles">
@@ -302,10 +304,10 @@
     </string-array>
 
     <string-array name="onb_bodies">
-        <item>你截的图大多只是临时用一下，用完就忘在相册里。这个应用在后台盯着相册，发现新截图后过一段时间（默认 5 分钟，可选 2／5／15／30／90 分钟）问你一句：这张截图还要吗？</item>
-        <item>到点后通知栏只有一条提醒，把这批到期的合并起来问。点开一张一张看：保留、稍后，还是删除；看完进反选屏，一次删掉标记的那些。没回答的按设定间隔再提醒几次，一直不理会就在设定的天数后当作「保留」不再追问。</item>
+        <item>你截的图大多只是临时用一下，用完就忘在相册里。这个应用在后台留意相册，发现新截图后过一段时间（默认 5 分钟，可选 2／5／15／30／90 分钟）问你一句：这张截图还要吗？</item>
+        <item>到点后通知栏只有一条提醒，把这批到期的合并起来问。点开一张一张看：保留、稍后，还是删除；看完进反选屏，一次删掉标记的那些。没回答的按设定间隔再提醒几次，一直不理会就在设定的天数后当作「保留」不再追问（默认保留调到 ∞ 就是一直等，不会自动出队）。</item>
         <item>读取相册：不授权看不到截图。通知：不授权问不出提醒。删除默认由系统在弹窗里确认，同意后原件进回收站；嫌弹窗麻烦，可以在设置页开「无感删除」（所有文件访问）跳过确认，代价是在不少机型上原件会被直接抹掉、找不回来。</item>
         <item>走系统弹窗时，原件进相册自带的回收站，去相册就能还原，保留多久由系统决定（通常 30 天）。开了无感删除就不弹确认，删掉的东西还在不在回收站本应用查不出来——有的系统把文件挪进相册也看不见的目录，跟真删一个表现；想找回只能去相册回收站看一眼。Android 10 及以下没得选，删掉就找不回来。本应用不存副本，卸载也不会带走你的照片。</item>
-        <item>下面这个开关决定现在就开始监控，还是先进设置页把询问时间、默认保留天数和识别规则调好再开。</item>
+        <item>下面这个开关决定现在就开启后台检查，还是先进设置页把询问时间、默认保留和识别规则调好再开。</item>
     </string-array>
 </resources>
