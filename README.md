@@ -5,7 +5,7 @@
     嫌系统弹窗烦可以开「无感删除」跳过确认，代价是少了一次点头的机会，能不能还原本应用说不准（见下文）。</p>
   <p>
     <img alt="platform" src="https://img.shields.io/badge/Android-8.0%2B-green"/>
-    <img alt="release" src="https://img.shields.io/badge/release-v1.0.14-blue"/>
+    <img alt="release" src="https://img.shields.io/badge/release-v1.0.15-blue"/>
     <img alt="lang" src="https://img.shields.io/badge/Kotlin-2.0.21-orange"/>
     <img alt="offline" src="https://img.shields.io/badge/联网-不需要-informational"/>
     <img alt="license" src="https://img.shields.io/badge/License-MIT-lightgrey"/>
@@ -106,9 +106,24 @@ v1.0.3 把这个档位**撤掉了**：声音、震动、横幅、锁屏显示本
 
 ## 下载
 
-最新 release：[v1.0.14](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.14) —
-直接安装 [ScreenshotBye-v1.0.14.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.14/ScreenshotBye-v1.0.14.apk)
+最新 release：[v1.0.15](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.15) —
+直接安装 [ScreenshotBye-v1.0.15.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.15/ScreenshotBye-v1.0.15.apk)
 （release 签名，minSdk 26 / Android 8.0 起）。v1.0.1 起都是同一把密钥，**直接覆盖安装即可**，待确认清单和设置都保留。
+
+v1.0.15 把 v1.0.13 那句「不再跳张」修完整：左右滑动翻过去没答的那几张，不再被当成问完了。
+
+- **漏问的真实原因**：v1.0.13 把收口条件从「走到列表最后一格」改成「后面还有没有没答的」，可它只往后看——
+  前提是每张都顺着答下来。左右滑动把这个前提打破了：三张时往右翻两张、停在第三张上点保留，这张一移出本轮，
+  它后面已经没有格子了，于是页面以为问完，被翻过去的前两张一张没问就收口。从通知点开还带着 `focus_media_id`，
+  初始位置本来就不在第 0 格，同一处更早踩到。
+- **收口改成整轮一起数**：欠不欠答按张记账，不再看位置。先从当前格往后找第一张欠答的，往后找不着就绕回列表头接着找；
+  标了删除的那几张不算欠答（它们在反选屏收口，也正是在那儿反悔）；一张都不欠了，才进反选屏或空态。
+  顺带把落库期间的翻页锁上：保留是异步写库的，卡片还在屏幕上下滑一下，位置就跟着动了，等后台写完，
+  「点的那张」和「屏幕上那张」可能已经不是同一张——这正是上一版留下的另一半坑。
+- **翻页规则补了 8 条顺序测试**（新增 `ReviewPagingTest`）：标记后翻回改判、连标两张再翻回去改判、
+  往后翻两张再答最后那张、只标最后那张但前面还没答、两张先翻到第二张保留、稍后再问、全保留收场，
+  外加一条「记录在页面背后被收走（到期自动保留、通知快捷操作）——那张不再占本轮，页面接着往下问」。
+  前三版都是「改完还是漏问」，就是因为这些走法一次没被跑过，这回先红后绿才算修。
 
 v1.0.14 两件事：界面上的「监控」措辞去干净，「默认保留」的 0 档改成 ∞ 挪到最右。
 
@@ -137,7 +152,7 @@ v1.0.13 三件事：换主题不再连字体颜色一起换、录屏有封面了
 - **录屏的预览不再是黑的**：`Thumbs` 只会用 `BitmapFactory` 解字节流，视频解出来是 null，界面就落到深色占位图上，看着像一块黑。
   现在认得 `.../external/video/media/<id>` 这类 URI，直接抽一帧当封面（取 1.5 秒那里，避开片头的黑帧和淡入，取不到再退回首帧），
   只解一张静态图、不做播放。Android 8.x 上没有按尺寸解的接口，就先解整帧再缩。
-- **逐个确认页不会再跳张**：两张时把第一张标删除、左滑翻回去改判保留——这张一移出本轮，第二张正好顶到当前格，
+- **逐个确认页不会再跳张**（只修了一半，剩下的另一半见 v1.0.15）：两张时把第一张标删除、左滑翻回去改判保留——这张一移出本轮，第二张正好顶到当前格，
   老代码拿「是不是最后一格」当收口条件，于是以为问完了，页面直接收尾，第二张压根没问过。
   现在收口看的是「后面还有没有没答的」，标了删除的那几张不算欠问（它们在反选屏收口，也正是在那儿反悔）。
   翻页规则写进了测试：删完第一张改判保留后，第二张必须还挂在清单里等用户答。

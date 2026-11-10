@@ -141,6 +141,8 @@ class ReviewActivity : ThemedActivity() {
 
     /** internal：滑动翻页的目标位置要能单独验（收口判错过一次，见 [showNext]）。 */
     internal fun goTo(delta: Int) {
+        // 后台正落库这一张，此刻翻页会让「点的」和「屏幕上那张」对不上
+        if (busy || items.isEmpty()) return
         val target = (index + delta).coerceIn(0, (items.size - 1).coerceAtLeast(0))
         if (target != index) {
             index = target
@@ -157,16 +159,18 @@ class ReviewActivity : ThemedActivity() {
             val outcome = repo.decide(shot.mediaId, decision)
             runOnUiThread {
                 busy = false
+                val recordGone = repo.find(shot.mediaId) == null
                 // 只有真出错才要说，并且这张留在原地等重试；
                 // 正常答完不弹回执——卡片翻到下一张，本身就是「记下了」的反馈
-                if (outcome is DecisionOutcome.Error) {
+                if (outcome is DecisionOutcome.Error && !recordGone) {
                     toast(outcome.reason)
                     return@runOnUiThread
                 }
+                // 答成了，或者这条记录已经被别人收走了（到期自动保留、通知上的快捷操作、
+                // 系统那边已经删掉）：这张都不再占本轮。留着它只会让同一张把整轮反复卡住
                 items = items.filterNot { it.mediaId == shot.mediaId }
                 marked.remove(shot.mediaId)
-                // 这张已经移出列表，后面那张正好顶到当前格，所以这一趟从当前格接着往下找
-                showNext(fromCurrent = true)
+                showNext()
             }
         }
     }
@@ -175,20 +179,23 @@ class ReviewActivity : ThemedActivity() {
     private fun markDelete() {
         if (items.isEmpty()) return
         marked.add(items[index].mediaId)
-        showNext(fromCurrent = false)
+        showNext()
     }
 
     /**
-     * 往后翻到下一张「还没答」的，一张都不欠了才收口。
+     * 翻到下一张「还没答」的，一张都不欠了才收口。
      *
-     * 收口条件以前是「已经走到列表最后一格」，可在一个中途会缩短的列表上不成立：
-     * 两张、第一张标删除、左滑翻回去把它改判保留——这张一移出列表，第二张就顶到了当前格，
-     * 位置判断以为问完了，页面直接收尾，第二张压根没问过。现在改数「后面还有没有没答的」，
-     * 标了删除的那些不算欠问（它们在反选屏收口），也不许再往前翻回来重问一遍。
+     * 收口不能看位置，得看「本轮还剩几张欠答」——位置在一个会缩短、又能被滑动乱翻的列表上不作数：
+     * - 旧写法判「走到列表最后一格」，两张、第一张标删除、左滑翻回去改判保留，这张一移出列表
+     *   第二张就顶到当前格，位置以为问完了，页面直接收尾；
+     * - 只从当前格往后找也不够：左右滑动翻过去两张没答、停在最后一张上答掉它，后面已经没有格子了，
+     *   被翻过去的那两张照样被漏掉。
+     * 所以现在整轮一起数：先从当前格往后找第一张欠答的，往后找不着就绕回列表头接着找；
+     * 标记删除的那些不欠答（它们在反选屏收口），一张都不欠了才进反选屏或空态。
      */
-    private fun showNext(fromCurrent: Boolean) {
-        val from = if (fromCurrent) index else index + 1
-        val next = items.indices.firstOrNull { it >= from && items[it].mediaId !in marked }
+    private fun showNext() {
+        val owed = items.indices.filter { items[it].mediaId !in marked }
+        val next = owed.firstOrNull { it >= index } ?: owed.firstOrNull()
         if (next == null) {
             if (marked.isEmpty()) showEmpty() else showConfirmPhase()
             return
