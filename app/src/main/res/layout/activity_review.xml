@@ -53,6 +53,15 @@
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
+            <!-- 这张在本轮答过什么：翻回去改判时不用凭记忆 -->
+            <TextView
+                android:id="@+id/shotDecision"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="11sp" />
+
             <TextView
                 android:id="@+id/shotMeta"
                 android:layout_width="match_parent"

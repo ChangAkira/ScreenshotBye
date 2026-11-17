@@ -66,6 +66,12 @@ class ScreenshotRepository(ctx: Context) {
     fun pending(): List<PendingShot> = store.all()
     fun find(mediaId: Long): PendingShot? = store.find(mediaId)
 
+    /**
+     * 把本轮快照放回清单。逐个确认页允许改判：这张可能刚按「保留」出了队，
+     * 用户又翻回去改成「稍后再问」——计时要重新排，记录不在就无从排起。
+     */
+    fun requeue(shot: PendingShot) = store.upsert(shot)
+
     /** 到期了、还没得到答复的截图，按到期时间从早到晚。 */
     fun dueQueue(): List<PendingShot> =
         store.all().filter { it.state == ShotState.ASKED }.sortedBy { it.askAt }
@@ -170,14 +176,17 @@ class ScreenshotRepository(ctx: Context) {
      *
      * Android 11+ 先把整批标记为待系统确认，再由调用方用一次回收站请求收口——避免每张弹一次系统框；
      * Android 10 及以下有写权限时逐张直删，那一版没有回收站，删掉就找不回来了。
+     *
+     * [known] 是调用方本轮的快照，用来兜住「清单里已经没有这一条」：用户在批量屏把刚按保留出队的那张
+     * 又勾成删除，照片还在相册里，照样删得掉；走系统确认那条路时快照会被写回清单，弹窗结果才有据可查。
      */
-    fun deleteBatch(mediaIds: List<Long>): BatchPlan {
+    fun deleteBatch(mediaIds: List<Long>, known: List<PendingShot> = emptyList()): BatchPlan {
         var deleted = 0
         val awaiting = mutableListOf<Long>()
         val failed = mutableListOf<String>()
 
         mediaIds.forEach { id ->
-            val shot = store.find(id) ?: return@forEach
+            val shot = store.find(id) ?: known.firstOrNull { it.mediaId == id } ?: return@forEach
             Reminders.cancel(app, id)
             when (val r = gateway.deleteNow(shot)) {
                 is DeleteResult.Removed -> {

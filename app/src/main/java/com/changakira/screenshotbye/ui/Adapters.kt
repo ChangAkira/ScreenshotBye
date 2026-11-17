@@ -61,17 +61,26 @@ class ShotAdapter(
 }
 
 /**
- * 批量确认页的勾选列表。默认勾上逐个看时标记为「不需要」的那些，
- * 用户可以在这一屏反选：取消勾选的截图继续留在待确认清单里。
+ * 批量确认页的勾选列表。本轮的每一张都列出来（包括已经答过「保留」的），
+ * 默认勾上逐个看时标记为「删除」的那些；用户在这一屏反悔：勾上没勾的改成删除，
+ * 取消勾选的退回原样——答过保留的仍是已保留，没答过的继续留在待确认清单里。
+ *
+ * [noteOf] 在每次绑定时取一次，所以勾选变了行尾那句状态也跟着变，不会留着旧话。
  */
 class ReviewConfirmAdapter(private val onChanged: () -> Unit = {}) :
     RecyclerView.Adapter<ReviewConfirmAdapter.VH>() {
 
     private var items: List<PendingShot> = emptyList()
     private val checked = LinkedHashSet<Long>()
+    private var noteOf: (Long) -> String? = { null }
 
-    fun submit(newItems: List<PendingShot>, checkedIds: Collection<Long>) {
+    fun submit(
+        newItems: List<PendingShot>,
+        checkedIds: Collection<Long>,
+        noteOf: (Long) -> String? = { null },
+    ) {
         items = newItems
+        this.noteOf = noteOf
         checked.clear()
         checked.addAll(newItems.map { it.mediaId }.filter { it in checkedIds })
         notifyDataSetChanged()
@@ -98,7 +107,7 @@ class ReviewConfirmAdapter(private val onChanged: () -> Unit = {}) :
             shot.folder.ifBlank { "-" },
             sizeOf(ctx, shot.size),
             DateFormat.getTimeFormat(ctx).format(Date(shot.takenAt))
-        )
+        ).let { meta -> noteOf(shot.mediaId)?.let { "$meta · $it" } ?: meta }
         Thumbs.media(holder.b.thumb, shot.contentUri)
         holder.b.check.isChecked = shot.mediaId in checked
         val toggle: () -> Unit = {

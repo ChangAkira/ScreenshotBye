@@ -107,10 +107,14 @@
 
     <!-- 逐个确认页 -->
     <string name="review_title">逐个确认</string>
-    <string name="review_confirm_title">确认删除</string>
+    <string name="review_confirm_title">批量确认</string>
     <string name="review_empty">没有待确认的截图</string>
-    <string name="review_progress">第 %1$d/%2$d · 已标记 %3$d</string>
+    <string name="review_progress">第 %1$d/%2$d · 待删 %3$d</string>
     <string name="review_countdown">%1$d 分钟后才问</string>
+    <string name="review_state_open">还没答</string>
+    <string name="review_state_keep">已保留</string>
+    <string name="review_state_snooze">稍后再问</string>
+    <string name="review_state_delete">待删除</string>
     <string name="review_back">返回</string>
     <string name="review_confirm_delete">删除所选</string>
     <string name="review_confirm_delete_n">删除 %1$d 张</string>
@@ -305,7 +309,7 @@
 
     <string-array name="onb_bodies">
         <item>你截的图大多只是临时用一下，用完就忘在相册里。这个应用在后台留意相册，发现新截图后过一段时间（默认 5 分钟，可选 2／5／15／30／90 分钟）问你一句：这张截图还要吗？</item>
-        <item>到点后通知栏只有一条提醒，把这批到期的合并起来问。点开一张一张看：保留、稍后，还是删除；看完进反选屏，一次删掉标记的那些。没回答的按设定间隔再提醒几次，一直不理会就在设定的天数后当作「保留」不再追问（默认保留调到 ∞ 就是一直等，不会自动出队）。</item>
+        <item>到点后通知栏只有一条提醒，把这批到期的合并起来问。点开一张一张看：保留、稍后，还是删除；答过的卡片不会消失，左右滑回去随时改判。整轮答完进批量确认屏，本轮每一张都列着（包括已保留的），勾上的才删、一次删掉。没回答的按设定间隔再提醒几次，一直不理会就在设定的天数后当作「保留」不再追问（默认保留调到 ∞ 就是一直等，不会自动出队）。</item>
         <item>读取相册：不授权看不到截图。通知：不授权问不出提醒。删除默认由系统在弹窗里确认，同意后原件进回收站；嫌弹窗麻烦，可以在设置页开「无感删除」（所有文件访问）跳过确认，代价是在不少机型上原件会被直接抹掉、找不回来。</item>
         <item>走系统弹窗时，原件进相册自带的回收站，去相册就能还原，保留多久由系统决定（通常 30 天）。开了无感删除就不弹确认，删掉的东西还在不在回收站本应用查不出来——有的系统把文件挪进相册也看不见的目录，跟真删一个表现；想找回只能去相册回收站看一眼。Android 10 及以下没得选，删掉就找不回来。本应用不存副本，卸载也不会带走你的照片。</item>
         <item>下面这个开关决定现在就开启后台检查，还是先进设置页把询问时间、默认保留和识别规则调好再开。</item>

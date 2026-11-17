@@ -14,6 +14,7 @@ import com.changakira.screenshotbye.core.ShotState
 import com.changakira.screenshotbye.core.ScreenshotRepository
 import com.changakira.screenshotbye.databinding.ActivityReviewBinding
 import com.changakira.screenshotbye.notify.Channels
+import com.google.android.material.color.MaterialColors
 import android.text.format.DateFormat
 import java.util.Date
 import java.util.concurrent.Executors
@@ -23,9 +24,13 @@ import kotlin.math.abs
 /**
  * 逐个确认待处理截图的卡片页，通知点开就是这里。
  *
- * 两段式：先看一张标一张（留着 / 稍后再问 / 不需要），全部看完后进反选屏，
- * 一次 deleteBatch 收口——这样连截十张也只问一次、只弹一次系统确认，
- * 而不是十张截图十条通知十个系统对话框。
+ * 两段式：先看一张答一张（保留 / 稍后 / 删除），整轮答完进批量屏，一次 deleteBatch 收口——
+ * 这样连截十张也只问一次、只弹一次系统确认，而不是十张截图十条通知十个系统对话框。
+ *
+ * 本轮的清单从头到尾不缩短，每张记着自己的答复（照孪生项目 PhotosManager 的
+ * `PhotoSelection.action` 那套来）：选「保留」只是把这张记成已保留并当场出队，卡片仍留在本轮，
+ * 左右滑回去还能改判删除，批量屏里也照样列着它（没勾）。以前答完就把这张从列表里抹掉，
+ * 用户一反悔就再也找不回来了。
  */
 class ReviewActivity : ThemedActivity() {
 
@@ -36,9 +41,15 @@ class ReviewActivity : ThemedActivity() {
         Thread(r, "review-ui").apply { isDaemon = true }
     }
 
+    /** 本轮快照：进页面时取一次，整轮不增不减，翻页和收口都按它算。 */
     private var items: List<PendingShot> = emptyList()
     private var index = 0
+
+    /** 标了「删除」的，真正动手留到批量屏收口，中途随时能改判。 */
     private val marked = LinkedHashSet<Long>()
+
+    /** 已答「保留 / 稍后」的，当场落库；记在这儿是为了翻回去时看得见自己选过什么。 */
+    private val answered = LinkedHashMap<Long, Decision>()
 
     /** 一次只允许一个后台动作，防止连点把两张同时处理掉。 */
     private var busy = false
@@ -134,48 +145,80 @@ class ReviewActivity : ThemedActivity() {
             ).toInt() + 1
             base + " · " + getString(R.string.review_countdown, left)
         } else base
+        // 翻回已经答过的那张时，得看得见自己选的是什么，否则改判全凭记忆
+        val decision = decisionOf(shot.mediaId)
+        b.shotDecision.setText(noteOf(decision))
+        b.shotDecision.setTextColor(
+            MaterialColors.getColor(
+                b.shotDecision,
+                if (decision == Decision.DELETE) com.google.android.material.R.attr.colorError
+                else com.google.android.material.R.attr.colorOnSurfaceVariant
+            )
+        )
         b.shotProgress.text = getString(R.string.review_progress, index + 1, items.size, marked.size)
         // 大图不进缩略图缓存，否则几张就占满内存
         Thumbs.media(b.shotImage, shot.contentUri, maxPx = 1024, cache = false)
     }
 
+    /** 这张在本轮的答复：标了删除就是删除，否则看已答记录，都没有就是还没答。 */
+    private fun decisionOf(mediaId: Long): Decision? =
+        if (mediaId in marked) Decision.DELETE else answered[mediaId]
+
+    private fun noteOf(decision: Decision?): Int = when (decision) {
+        Decision.DELETE -> R.string.review_state_delete
+        Decision.KEEP -> R.string.review_state_keep
+        Decision.SNOOZE -> R.string.review_state_snooze
+        null -> R.string.review_state_open
+    }
+
+    /** 本轮还欠答的格子。收口只认这个，不认位置（见 [showNext]）。 */
+    private fun owed(): List<Int> = items.indices.filter { decisionOf(items[it].mediaId) == null }
+
     /** internal：滑动翻页的目标位置要能单独验（收口判错过一次，见 [showNext]）。 */
     internal fun goTo(delta: Int) {
         // 后台正落库这一张，此刻翻页会让「点的」和「屏幕上那张」对不上
         if (busy || items.isEmpty()) return
-        val target = (index + delta).coerceIn(0, (items.size - 1).coerceAtLeast(0))
+        val target = (index + delta).coerceIn(0, items.lastIndex)
         if (target != index) {
             index = target
             renderCard()
+            return
         }
+        // 翻到尽头还往右翻：整轮都答完了就去批量屏。从批量屏「返回」改判完，也走这条回去
+        if (delta > 0 && owed().isEmpty()) showConfirmPhase()
     }
 
-    /** 留着 / 稍后：立刻落库，然后把这张移出本轮。 */
+    /**
+     * 保留 / 稍后：当场落库（保留就是出队、稍后就是重排计时），但卡片留在本轮，
+     * 记成「已答」而不是抹掉——用户滑回去改判删除时，这张还得在。
+     */
     private fun answer(decision: Decision) {
         if (busy || items.isEmpty()) return
         val shot = items[index]
         busy = true
         io.execute {
+            // 改判：这张可能刚按保留出了队。稍后再问要重新排计时，先把快照放回清单
+            if (decision == Decision.SNOOZE && repo.find(shot.mediaId) == null) repo.requeue(shot)
             val outcome = repo.decide(shot.mediaId, decision)
+            val recordGone = repo.find(shot.mediaId) == null
             runOnUiThread {
                 busy = false
-                val recordGone = repo.find(shot.mediaId) == null
                 // 只有真出错才要说，并且这张留在原地等重试；
                 // 正常答完不弹回执——卡片翻到下一张，本身就是「记下了」的反馈
                 if (outcome is DecisionOutcome.Error && !recordGone) {
                     toast(outcome.reason)
                     return@runOnUiThread
                 }
-                // 答成了，或者这条记录已经被别人收走了（到期自动保留、通知上的快捷操作、
-                // 系统那边已经删掉）：这张都不再占本轮。留着它只会让同一张把整轮反复卡住
-                items = items.filterNot { it.mediaId == shot.mediaId }
+                // 记录已经被别人收走了（到期自动保留、通知上的快捷操作、系统那边已经删掉）也算答过：
+                // 这一张不再欠问，否则它会把整轮永远卡住
+                answered[shot.mediaId] = decision
                 marked.remove(shot.mediaId)
                 showNext()
             }
         }
     }
 
-    /** 不需要，删除：只标记，真正删除留到最后一次做，中途还能翻回来改判保留。 */
+    /** 删除：只标记，真正删除留到批量屏一次做，中途还能翻回来改判保留。 */
     private fun markDelete() {
         if (items.isEmpty()) return
         marked.add(items[index].mediaId)
@@ -185,19 +228,24 @@ class ReviewActivity : ThemedActivity() {
     /**
      * 翻到下一张「还没答」的，一张都不欠了才收口。
      *
-     * 收口不能看位置，得看「本轮还剩几张欠答」——位置在一个会缩短、又能被滑动乱翻的列表上不作数：
-     * - 旧写法判「走到列表最后一格」，两张、第一张标删除、左滑翻回去改判保留，这张一移出列表
-     *   第二张就顶到当前格，位置以为问完了，页面直接收尾；
-     * - 只从当前格往后找也不够：左右滑动翻过去两张没答、停在最后一张上答掉它，后面已经没有格子了，
+     * 收口不能看位置，得看「本轮还剩几张欠答」——位置在一个能被滑动乱翻的列表上不作数：
+     * - 判「走到列表最后一格」：两张、第一张标删除、左滑翻回去改判保留，老代码把这张移出列表后
+     *   第二张正好顶到当前格，位置以为问完了，页面直接收尾；
+     * - 只从当前格往后找：左右滑动翻过去两张没答、停在最后一张上答掉它，后面已经没有格子了，
      *   被翻过去的那两张照样被漏掉。
-     * 所以现在整轮一起数：先从当前格往后找第一张欠答的，往后找不着就绕回列表头接着找；
-     * 标记删除的那些不欠答（它们在反选屏收口），一张都不欠了才进反选屏或空态。
+     * 所以整轮一起数：先从当前格往后找第一张欠答的，往后找不着就绕回列表头接着找。
+     * 答过的（保留 / 稍后 / 标了删除）都不欠答，一张都不欠了才进批量屏——
+     * 哪怕一张都没标删除也进去，那一屏正是用户反悔改判的地方。
      */
     private fun showNext() {
-        val owed = items.indices.filter { items[it].mediaId !in marked }
-        val next = owed.firstOrNull { it >= index } ?: owed.firstOrNull()
+        if (items.isEmpty()) {
+            showEmpty()
+            return
+        }
+        val open = owed()
+        val next = open.firstOrNull { it >= index } ?: open.firstOrNull()
         if (next == null) {
-            if (marked.isEmpty()) showEmpty() else showConfirmPhase()
+            showConfirmPhase()
             return
         }
         index = next
@@ -211,12 +259,19 @@ class ReviewActivity : ThemedActivity() {
         b.confirmList.visibility = View.VISIBLE
         b.confirmActions.visibility = View.VISIBLE
         supportActionBar?.title = getString(R.string.review_confirm_title)
-        confirmAdapter.submit(items, marked)
+        // 本轮每一张都列出来，勾着的才删；已保留的那些也在，用户正是在这儿反悔
+        confirmAdapter.submit(items, marked) { id -> getString(noteOf(decisionOf(id))) }
         refreshConfirmLabel()
     }
 
     private fun refreshConfirmLabel() {
-        b.btnConfirmDelete.text = getString(R.string.review_confirm_delete_n, confirmAdapter.checkedCount())
+        val checked = confirmAdapter.checkedIds()
+        // 批量屏上的勾选就是本轮的删除标记：取消勾选的那张退回原样（答过保留的仍是已保留，
+        // 没答过的退回「还没答」），按「返回」回卡片还能接着答
+        marked.clear()
+        marked.addAll(checked)
+        b.btnConfirmDelete.text = getString(R.string.review_confirm_delete_n, checked.size)
+        b.btnConfirmDelete.isEnabled = checked.isNotEmpty()
     }
 
     private fun backToCards() {
@@ -230,7 +285,8 @@ class ReviewActivity : ThemedActivity() {
         if (ids.isEmpty() || busy) return
         busy = true
         io.execute {
-            val plan = repo.deleteBatch(ids)
+            // 带上本轮快照：勾上的可能是刚按保留出队的那张，清单里已经没有它了
+            val plan = repo.deleteBatch(ids, known = items)
             runOnUiThread {
                 busy = false
                 if (plan.awaitingConfirm.isNotEmpty()) {

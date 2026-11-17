@@ -702,17 +702,17 @@ class UiReflowTest {
         assertEquals("Screenshot_31.png", name.text.toString())
         activity.findViewById<View>(R.id.btnKeep).performClick()
 
-        // 这张一移出本轮，第二张正好顶到当前格——必须接着问它，不能就地收场
+        // 这张答完仍留在本轮（只是记成已保留），第二张还欠着问——必须接着问它，不能就地收场
         awaitUi("回到第二张") { name.text.toString() == "Screenshot_32.png" }
-        assertEquals("还剩一张没答，不该跳到反选屏", View.GONE, confirmList.visibility)
+        assertEquals("还剩一张没答，不该跳到批量屏", View.GONE, confirmList.visibility)
         assertNull("第一张已按保留出队", store.find(31L))
         assertNotNull("第二张还得留在清单里等用户答", store.find(32L))
 
-        // 第二张标删除，这才轮到反选屏，勾着的只有它
+        // 第二张标删除，这才轮到批量屏，勾着的只有它
         activity.findViewById<View>(R.id.btnDelete).performClick()
-        awaitUi("进反选屏") { confirmList.visibility == View.VISIBLE }
+        awaitUi("进批量屏") { confirmList.visibility == View.VISIBLE }
         val label = activity.findViewById<TextView>(R.id.btnConfirmDelete).text.toString()
-        assertTrue("反选屏只该勾一张：$label", label.contains("1"))
+        assertTrue("批量屏只该勾一张：$label", label.contains("1"))
         assertFalse("第一张不该还挂在删除名单上：$label", label.contains("2"))
     }
 

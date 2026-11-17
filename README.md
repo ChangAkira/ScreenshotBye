@@ -5,7 +5,7 @@
     嫌系统弹窗烦可以开「无感删除」跳过确认，代价是少了一次点头的机会，能不能还原本应用说不准（见下文）。</p>
   <p>
     <img alt="platform" src="https://img.shields.io/badge/Android-8.0%2B-green"/>
-    <img alt="release" src="https://img.shields.io/badge/release-v1.0.15-blue"/>
+    <img alt="release" src="https://img.shields.io/badge/release-v1.0.16-blue"/>
     <img alt="lang" src="https://img.shields.io/badge/Kotlin-2.0.21-orange"/>
     <img alt="offline" src="https://img.shields.io/badge/联网-不需要-informational"/>
     <img alt="license" src="https://img.shields.io/badge/License-MIT-lightgrey"/>
@@ -20,7 +20,7 @@
 2. 你截了一张图。系统把它写进相册并通知 MediaStore，`ContentObserver` 收到变化，350ms 防抖后按 `DATE_ADDED` 水位线做一次增量查询，用「所在目录 / 文件名」两条规则判断这是不是截图。
 3. 是截图 → 记进待确认清单，并用 WorkManager 排一个 N 分钟后的一次性任务（默认 5 分钟，档位 2／5／15／30／90）。任务持久化在 WorkManager 数据库里，进程被杀、设备重启都照样会到点。
 4. 到点 → **通知栏只出现一条**提醒。连截十张也合并成一条「10 张截图还要吗？」，不会刷屏；同一条通知会按节流规则重新出声（见「提醒方式与自检」）。
-5. 点通知进入逐个确认页：一张一张看，三个选择——从左到右固定 `保留` / `稍后` / `删除`，左右滑动切换。看完进入反选屏，勾着的这批一次处理。这一页和主页一样不进系统最近任务，处理完就走。
+5. 点通知进入逐个确认页：一张一张看，三个选择——从左到右固定 `保留` / `稍后` / `删除`，左右滑动切换。答过的卡片不会消失，卡片上写着这张答过什么，滑回去随时改判。整轮答完进批量确认屏，本轮每一张都列着（包括已保留的），勾着的这批一次处理。这一页和主页一样不进系统最近任务，处理完就走。
 6. 整批共用**一次系统弹窗**：Android 11+ 发的是 MediaStore 的回收站请求，你在系统框里点确认之后，原件进的是系统相册自带的回收站——保留多久、怎么显示、能不能还原，全由系统和相册决定，本应用不再复制原件、不再存副本，卸载应用也带不走你的照片。
    嫌这一次弹窗烦，可以在设置页开**无感删除**（即「所有文件访问」）跳过确认。省下的只有弹窗，原件去向仍由系统定，而**这个去向三方应用查不到**：原生安卓这样删是真删；有的 ROM 会把那一行标成 `is_trashed=1`（这种查得到）；更多国产 ROM 把文件直接挪进 `DCIM/.globalTrash` 这类不被媒体库索引的目录——行没了、原路径也空了，跟真删在应用侧长得一模一样。所以界面只承诺「不弹确认」，绝不替你断言进不进回收站，名字后面的感叹号把这件事说清楚。
 7. Android 10 及以下没有这套机制：那一版由应用直接删除，删掉就找不回来了。
@@ -106,9 +106,32 @@ v1.0.3 把这个档位**撤掉了**：声音、震动、横幅、锁屏显示本
 
 ## 下载
 
-最新 release：[v1.0.15](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.15) —
-直接安装 [ScreenshotBye-v1.0.15.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.15/ScreenshotBye-v1.0.15.apk)
+最新 release：[v1.0.16](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.16) —
+直接安装 [ScreenshotBye-v1.0.16.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.16/ScreenshotBye-v1.0.16.apk)
 （release 签名，minSdk 26 / Android 8.0 起）。v1.0.1 起都是同一把密钥，**直接覆盖安装即可**，待确认清单和设置都保留。
+
+v1.0.16 一件事：答过的截图不再从本轮消失，反悔随时改判。做法是照孪生项目 PhotosManager 学来的。
+
+- **保留不再等于「把这张卡片抹掉」**：以前点保留，这张当场出队、并从本轮列表里删掉，卡片翻过去就再也回不来，
+  批量屏里也不列它——想改判删除只能等下一轮重新问。PhotosManager 的 `PhotoSelection.action` 是另一套模型：
+  一轮队列固定不变，每张自带一个动作字段，`KEEP` 是默认值而不是「移除」，点保留只是把这一格记成 KEEP，
+  滑回去随时能改成 MARK_DELETE，收尾时只把 MARK_DELETE 的那些交给确认页。现在这边照这个来：
+  本轮清单从头到尾不缩短，保留 = 记成「已保留」+ 当场出队（不再追问），卡片仍在；
+  稍后 = 记成「稍后再问」+ 重排计时，同样留在本轮。
+- **卡片上写明这张答过什么**：新增一行状态（还没答 / 已保留 / 稍后再问 / 待删除），翻回去改判不用凭记忆。
+- **批量屏列出本轮每一张**，标题从「确认删除」改成「批量确认」——它现在是本轮的小结，不只是删除名单。
+  勾上的才删；已保留的那些没勾、行尾写着「已保留」，勾上就改成删除；取消勾选退回原样：
+  答过保留的仍是已保留，没答过的退回「还没答」，按「返回」回卡片还能接着答。
+  一张没勾时「删除 0 张」按不动（这条也是照 PhotosManager 的确认页）。
+- **改判之后照样删得掉**：保留已经把记录出队了，再勾成删除时清单里没有这一条，老的 `deleteBatch` 会直接跳过它，
+  用户看着勾上了、其实什么都没删。现在它多收一份本轮快照兜底；走系统确认那条路时快照写回清单（DELETING），
+  弹窗结果才有据可查。保留后改判「稍后」同理：先把快照放回清单再重排计时，
+  否则界面写着稍后再问、实际什么都没排。
+- **整轮答完一律进批量屏**，哪怕一张都没标删除——那一屏正是反悔的地方；空态只在进来时清单就是空的才出现。
+  答完后右滑到尽头也回批量屏（从批量屏按「返回」改判完，走这条回去）。
+- `ReviewPagingTest` 从 8 条扩到 12 条：去掉「全保留后是空态」那条（现在进批量屏），
+  新增保留后滑回去改判删除并靠快照删掉、批量屏勾上已保留的那张也能删、取消勾选退回「还没答」、
+  保留后改判稍后计时真的重排、答完右滑到尽头回批量屏。全套 71 条单元测试通过。
 
 v1.0.15 把 v1.0.13 那句「不再跳张」修完整：左右滑动翻过去没答的那几张，不再被当成问完了。
 
@@ -384,7 +407,7 @@ app/src/main/java/com/changakira/screenshotbye/
   notify/      Channels(常驻 + 一条提醒渠道，顺带清理已废弃的强度渠道), Notify, ActionReceiver(通知按钮与划掉事件)
   diagnostic/  Diagnostics(纯文本自检报告 + 测试提醒)
   perm/        Perms(权限状态、OEM 跳转、直达通知渠道设置)
-  ui/          MainActivity(首页：一个授权按钮 + 设置入口), SettingsActivity(设置四段), ReviewActivity(逐个确认+批量反选),
+  ui/          MainActivity(首页：一个授权按钮 + 设置入口), SettingsActivity(设置四段), ReviewActivity(逐个确认+批量确认),
                LogActivity, DiagnosticsActivity, OnboardingActivity(首次引导),
                DeleteConfirmActivity(系统删除确认中转), Adapters, Thumbs,
                ThemedActivity(在 super.onCreate 前 setTheme), theme/Palette(五套配色), widget/DetentDial(固定档位旋钮)
