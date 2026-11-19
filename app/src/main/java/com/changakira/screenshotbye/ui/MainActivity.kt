@@ -73,6 +73,10 @@ class MainActivity : ThemedActivity() {
             getString(R.string.main_running, pending.size)
         } else getString(R.string.main_stopped)
 
+        val deleted = settings.deletedTotal
+        b.deletedTotal.visibility = if (deleted > 0) View.VISIBLE else View.GONE
+        if (deleted > 0) b.deletedTotal.text = getString(R.string.main_deleted_total, deleted)
+
         // 权限还缺就继续问；全齐了把按钮按住，免得首页一直挂着个点了没反应的大按钮
         val coreMissing = !Perms.hasMediaRead(this) || !Perms.hasNotification(this)
         // 静默删除：10 及以下靠运行期的 WRITE，Android 11+ 靠「所有文件访问」——

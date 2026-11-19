@@ -27,8 +27,8 @@
     <string name="notif_confirm_title">待你确认删除</string>
     <string name="notif_confirm_body">系统要你亲自确认删除 %1$s，点按打开对话框</string>
     <string name="notif_confirm_body_multi">%1$d 张要你亲自确认删除，点按打开对话框</string>
-    <string name="notif_deleted_title">已删除</string>
-    <string name="notif_deleted_body">%1$s 已删除</string>
+    <string name="notif_milestone_title">清理喜报</string>
+    <string name="notif_milestone_body">已帮您删除超过 %1$d 张图片啦！o(^▽^)o</string>
     <string name="notif_recovery_title">后台检查已停止</string>
     <string name="notif_recovery_body">系统限制了后台自启，点按重新开启</string>
     <string name="notif_stop_watch">停止检查</string>
@@ -37,6 +37,7 @@
     <string name="main_watch_switch">启用服务</string>
     <string name="main_running">运行中 · %1$d 张待确认</string>
     <string name="main_stopped">未运行</string>
+    <string name="main_deleted_total">已帮您删除 %1$d 张截图</string>
 
     <string name="main_open_diag">运行自检</string>
     <string name="main_rules">识别规则</string>
@@ -151,6 +152,7 @@
     <string name="log_batch_item_failed">%1$s：%2$s</string>
     <string name="log_batch_prepared">%1$d 张待系统确认</string>
     <string name="log_batch_deleted">批量删除 %1$d 张</string>
+    <string name="log_milestone">累计删除破 %1$d 张，已发喜报</string>
     <string name="log_batch_none">批量删除：无成功项</string>
     <string name="log_trashed">已进回收站：%1$s</string>
     <string name="log_deleted">已删除：%1$s</string>
@@ -238,6 +240,7 @@
     <string name="diag_newest_unreadable">相册最新条目：读不到（缺媒体权限或被系统拒绝）</string>
     <string name="diag_newest">相册最新条目：%1$s（水位线滞后 %2$d 秒）</string>
     <string name="diag_seen_count">已登记媒体 id 数：%1$d</string>
+    <string name="diag_deleted_total">累计已删除：%1$d 张</string>
     <string name="diag_work_retry">定时任务：%1$s</string>
     <string name="diag_work_watchdog">自动恢复任务：%1$s</string>
     <string name="diag_work_unscheduled">未排期</string>

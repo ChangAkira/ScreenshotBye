@@ -463,7 +463,7 @@ class UiReflowTest {
         // 通知正文一行放得下：短到不用展开
         listOf(
             R.string.notif_review_title, R.string.notif_watch_on, R.string.notif_watch_off,
-            R.string.notif_deleted_title, R.string.notif_confirm_title, R.string.notif_test_title,
+            R.string.notif_milestone_title, R.string.notif_confirm_title, R.string.notif_test_title,
         ).forEach { assertTrue(ctx.getString(it).length <= 10) }
         // 说明性的长句一律不带句号收尾的碎碎念：界面提示里最多一句
         assertTrue(ctx.getString(R.string.notif_test_body).length < 40)

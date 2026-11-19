@@ -114,6 +114,9 @@ object Notify {
     /** 诊断页的测试提醒，独立槽位，方便用户当场判断是应用没发还是系统把横幅压掉了。 */
     const val ID_TEST = 1006
 
+    /** 破百喜报固定占这一条：下一次破百直接覆盖上一条，不会越攒越多。 */
+    const val ID_MILESTONE = 1007
+
     /** 看门狗无法从后台拉起服务时，请用户点一下恢复。 */
     fun recoveryNeeded(ctx: Context): Notification {
         val open = PendingIntent.getActivity(
@@ -288,26 +291,26 @@ object Notify {
     }
 
     /**
-     * 删除结果回执，复用同一条通知槽位，点按即消失。
-     * 走直删（有「所有文件访问」或 Android 10 及以下的 WRITE）时系统不会给任何提示，这条是唯一交代；
-     * 系统弹窗那条路径由弹窗自己演完，不再多发通知。
+     * 破百喜报：每累计删够一百张发一条。
+     *
+     * 以前每删一张都发一条「已删除」，一天几十张截图就是几十条通知，用户只会觉得吵——
+     * 单张的交代由事件日志和首页那行累计数承担，通知只在攒出一个整百时才出声。
      */
-    fun deleted(ctx: Context, shot: PendingShot): Notification {
+    fun milestone(ctx: Context, milestone: Int): Notification {
         val open = PendingIntent.getActivity(
-            ctx, (shot.mediaId.toInt() + 11),
+            ctx, ID_MILESTONE,
             Intent(ctx, MainActivity::class.java)
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val body = ctx.getString(R.string.notif_deleted_body, shot.name)
-        return NotificationCompat.Builder(ctx, Channels.SERVICE)
+        val body = ctx.getString(R.string.notif_milestone_body, milestone)
+        return NotificationCompat.Builder(ctx, Channels.REVIEW)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(ctx.getString(R.string.notif_deleted_title))
+            .setContentTitle(ctx.getString(R.string.notif_milestone_title))
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setAutoCancel(true)
             .setOngoing(false)
-            .setSilent(true)
             .setContentIntent(open)
             .build()
     }
@@ -324,9 +327,6 @@ object Notify {
     fun cancel(ctx: Context, id: Int) {
         ctx.getSystemService(NotificationManager::class.java)?.cancel(id)
     }
-
-    /** 删除结果回执通知按媒体 id 分槽，互不覆盖。 */
-    fun reviewNotifId(mediaId: Long): Int = (mediaId and 0x7FFF_FFFFL).toInt() xor 0x5000_0000
 
     /** 缩略图：两遍解码，控制在 512px 以内，避免大图 OOM。 */
     private fun loadPreview(ctx: Context, uri: Uri): Bitmap? = runCatching {

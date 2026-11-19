@@ -5,7 +5,7 @@
     嫌系统弹窗烦可以开「无感删除」跳过确认，代价是少了一次点头的机会，能不能还原本应用说不准（见下文）。</p>
   <p>
     <img alt="platform" src="https://img.shields.io/badge/Android-8.0%2B-green"/>
-    <img alt="release" src="https://img.shields.io/badge/release-v1.0.16-blue"/>
+    <img alt="release" src="https://img.shields.io/badge/release-v1.0.17-blue"/>
     <img alt="lang" src="https://img.shields.io/badge/Kotlin-2.0.21-orange"/>
     <img alt="offline" src="https://img.shields.io/badge/联网-不需要-informational"/>
     <img alt="license" src="https://img.shields.io/badge/License-MIT-lightgrey"/>
@@ -25,6 +25,7 @@
    嫌这一次弹窗烦，可以在设置页开**无感删除**（即「所有文件访问」）跳过确认。省下的只有弹窗，原件去向仍由系统定，而**这个去向三方应用查不到**：原生安卓这样删是真删；有的 ROM 会把那一行标成 `is_trashed=1`（这种查得到）；更多国产 ROM 把文件直接挪进 `DCIM/.globalTrash` 这类不被媒体库索引的目录——行没了、原路径也空了，跟真删在应用侧长得一模一样。所以界面只承诺「不弹确认」，绝不替你断言进不进回收站，名字后面的感叹号把这件事说清楚。
 7. Android 10 及以下没有这套机制：那一版由应用直接删除，删掉就找不回来了。
 8. 一直没回答的询问默认不会永远挂着：超过设定天数（默认 3 天）自动按「保留」出队；这一档设成 0 就是「继续等待处理」，条目一直留在队列里。
+9. 删掉的张数会攒着：首页那行 `已帮您删除 N 张截图`（一张没删过时不出现）和自检报告里的 `累计已删除` 是同一个数。每攒够一百张发一条喜报——`已帮您删除超过 300 张图片啦！o(^▽^)o`——固定占一条通知槽位，下一次破百覆盖上一条。反过来，**单张删除不再各发一条通知**：那种回执一天几十条，只剩吵，交代改由事件日志和这行累计数承担。
 
 > 通知上也有快捷按钮，直接处理最早到期那一张，不用点开应用。三颗的顺序和页面一致——`保留` / `稍后` / `删除`，
 > 队列里不止一张时中间那颗换成 `全部稍后`，把整批往后推 10 分钟。
@@ -106,9 +107,25 @@ v1.0.3 把这个档位**撤掉了**：声音、震动、横幅、锁屏显示本
 
 ## 下载
 
-最新 release：[v1.0.16](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.16) —
-直接安装 [ScreenshotBye-v1.0.16.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.16/ScreenshotBye-v1.0.16.apk)
+最新 release：[v1.0.17](https://github.com/ChangAkira/ScreenshotBye/releases/tag/v1.0.17) —
+直接安装 [ScreenshotBye-v1.0.17.apk](https://github.com/ChangAkira/ScreenshotBye/releases/download/v1.0.17/ScreenshotBye-v1.0.17.apk)
 （release 签名，minSdk 26 / Android 8.0 起）。v1.0.1 起都是同一把密钥，**直接覆盖安装即可**，待确认清单和设置都保留。
+
+v1.0.17 两件事：删掉每张一条的删除回执，改成累计统计 + 破百喜报。喜报这套照孪生项目 PhotosManager 已上线的实现抄。
+
+- **每删一张发一条通知，这个毛病没了**：以前走无感删除时每张都发一条「已删除：X」，一天几十张截图就是几十条通知。
+  单张的交代本来就有别处承担（事件日志一行、队列通知同步），所以那条回执连同按媒体 id 分槽的 `reviewNotifId` 一起删掉。
+- **累计统计**：`Settings.deletedTotal` 记「确实已经不在了」的张数，只增不减。三条删除路径都从 `countDeleted` 这一个口子累加——
+  单张直删记 1，批量直删记成功的那一批，交回系统弹窗的那些这一轮不算、等 `onBatchConfirmResult` 查过相册再算，谁也不重复记。
+  删不动（权限被拒）、用户在系统框里点了取消、清单里查不到的条目，一律不计数。
+- **破百喜报**：`Settings.milestoneReached(before, after)` 只在跨过整百的那一刻返回那个整百数，一次跨两三个百也只报最高的那个
+  （照抄 PhotosManager 的 `deletedMilestone`）。通知正文 `已帮您删除超过 %1$d 张图片啦！o(^▽^)o`，
+  固定占 `ID_MILESTONE` 一个槽位，下一次破百直接覆盖，不越攒越多；同时写一行事件日志，通知被系统压掉时还查得到。
+- **数字看得见**：首页状态行下面多一行 `已帮您删除 N 张截图`（0 张时整行不出现，不挂个「0」在首页），
+  自检报告在「已登记媒体 id 数」下面多一行 `累计已删除：N 张`。
+- 新增 `DeletedMilestoneTest` 13 条：破百判定的跨百 / 多跨只报最高 / 同百不重报 / 头百之内不报 / 总数没涨不报 / 步长就是 100，
+  计数器的零与负数忽略，以及删多少记多少、下一次破百覆盖上一条、一批跨两个百只报 300、
+  交回系统确认时不计数也不发回执、没有写权限删不动不计数、清单里查不到不计数。全套 84 条单元测试通过。
 
 v1.0.16 一件事：答过的截图不再从本轮消失，反悔随时改判。做法是照孪生项目 PhotosManager 学来的。
 

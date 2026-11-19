@@ -58,6 +58,17 @@
                 android:textAppearance="?attr/textAppearanceBodySmall"
                 android:textColor="?attr/colorOnSurfaceVariant" />
 
+            <!-- 累计删了多少张：一张没删过时整行不出现，首页不该挂个「0」 -->
+            <TextView
+                android:id="@+id/deletedTotal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/askPermsBtn"
                 android:layout_width="match_parent"

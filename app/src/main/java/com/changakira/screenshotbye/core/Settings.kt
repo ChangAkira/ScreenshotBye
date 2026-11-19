@@ -54,6 +54,23 @@ class Settings private constructor(private val sp: SharedPreferences) {
 
         private const val MAX_SEEN = 800
 
+        /** 每攒够这么多张就报一次喜。整百是个「说得出口」的数，报「超过 137 张」反而没劲。 */
+        const val DELETED_MILESTONE_STEP = 100
+
+        /**
+         * 这次累加有没有跨过整百：跨过了就返回那个整百数（「超过 300 张」里的 300），没跨过返回 null。
+         *
+         * 一批删掉跨了两三个百时只报最高的那一个——喜报只有一条通知槽位，逐个整百发一遍等于刷屏。
+         * 总数没有增长（count 被忽略、或者外部把总数往回改）时一律不报。
+         */
+        fun milestoneReached(before: Int, after: Int): Int? {
+            if (after <= before) return null
+            val reached = after / DELETED_MILESTONE_STEP
+            return if (reached > before / DELETED_MILESTONE_STEP && reached > 0) {
+                reached * DELETED_MILESTONE_STEP
+            } else null
+        }
+
         private const val K_ENABLED = "watch_enabled"
         private const val K_DELAY = "delay_minutes"
         private const val K_BY_FOLDER = "match_by_folder"
@@ -72,6 +89,7 @@ class Settings private constructor(private val sp: SharedPreferences) {
         private const val K_LAST_OBSERVER = "last_observer_at"
         private const val K_LAST_SCAN = "last_scan_at"
         private const val K_LAST_CRASH = "last_crash"
+        private const val K_DELETED_TOTAL = "deleted_total"
     }
 
     /** 首次启动是否已走完引导页。 */
@@ -186,6 +204,21 @@ class Settings private constructor(private val sp: SharedPreferences) {
     /** 诊断用：已登记过的媒体 id 数量（上限 MAX_SEEN，超出后丢最旧）。 */
     fun seenCount(): Int = synchronized(this) {
         (sp.getString(K_SEEN, "") ?: "").split(',').count { it.isNotBlank() }
+    }
+
+    /** 累计替用户删掉的照片张数。只增不减，卸载重装才归零。 */
+    val deletedTotal: Int get() = sp.getInt(K_DELETED_TOTAL, 0)
+
+    /**
+     * 累加一批「确认已经不在相册里」的张数，返回加完之后的总数。
+     * [count] 不为正时原样返回总数、不写存储——调用方拿到 0 张成功时不该留下痕迹。
+     */
+    fun addDeleted(count: Int): Int = synchronized(this) {
+        val total = sp.getInt(K_DELETED_TOTAL, 0)
+        if (count <= 0) return total
+        val next = total + count
+        sp.edit().putInt(K_DELETED_TOTAL, next).apply()
+        next
     }
 
     fun appendLog(line: String) {

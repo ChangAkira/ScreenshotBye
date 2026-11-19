@@ -134,7 +134,7 @@ class ScreenshotRepository(ctx: Context) {
         return when (val r = gateway.deleteNow(shot)) {
             is DeleteResult.Removed -> {
                 store.remove(shot.mediaId)
-                Notify.notify(app, Notify.reviewNotifId(shot.mediaId), Notify.deleted(app, shot))
+                countDeleted(1)
                 settings.appendLog(app.getString(removalNote(shot, r.trashed), shot.name))
                 updateReviewNotification(app)
                 DecisionOutcome.Deleted
@@ -211,8 +211,25 @@ class ScreenshotRepository(ctx: Context) {
                 else -> null
             } ?: app.getString(R.string.log_batch_none)
         )
+        countDeleted(deleted)
         updateReviewNotification(app)
         return BatchPlan(deleted, awaiting, failed)
+    }
+
+    /**
+     * 记一笔「确实已经不在了」。
+     *
+     * 三条删除路径（单张直删、批量直删、系统弹窗确认后收尾）都从这里累加，谁也不重复记：
+     * 批量里交回系统确认的那些这一轮不算，等 [onBatchConfirmResult] 查过相册再算。
+     * 跨过整百时发一条喜报，占固定槽位，下一次破百覆盖上一条。
+     */
+    private fun countDeleted(count: Int) {
+        if (count <= 0) return
+        val after = settings.addDeleted(count)
+        Settings.milestoneReached(after - count, after)?.let { reached ->
+            Notify.notify(app, Notify.ID_MILESTONE, Notify.milestone(app, reached))
+            settings.appendLog(app.getString(R.string.log_milestone, reached))
+        }
     }
 
     /**
@@ -238,6 +255,7 @@ class ScreenshotRepository(ctx: Context) {
                 settings.appendLog(app.getString(R.string.log_cancelled_in_dialog, shot.name))
             }
         }
+        countDeleted(done)
         updateReviewNotification(app)
         return done to cancelled
     }

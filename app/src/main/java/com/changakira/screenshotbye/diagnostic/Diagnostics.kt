@@ -101,6 +101,7 @@ object Diagnostics {
                 )
             }
             line(app.getString(R.string.diag_seen_count, settings.seenCount()))
+            line(app.getString(R.string.diag_deleted_total, settings.deletedTotal))
             line(app.getString(R.string.diag_work_retry, workState(app, Reminders.ALERT_RETRY)))
             line(
                 app.getString(
